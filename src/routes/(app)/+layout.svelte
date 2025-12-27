@@ -9,7 +9,7 @@
 
 <div class="flex min-h-screen flex-col">
 	<div class="flex flex-1 flex-col">
-		<div class="sticky top-0 bg-primary p-4 text-white">
+		<div class="sticky top-0 bg-primary p-4 text-white shadow-sm">
 			<h1 class="text-3xl">DoKoHub</h1>
 		</div>
 		<div class="flex-1 overflow-auto p-4 pb-24">
