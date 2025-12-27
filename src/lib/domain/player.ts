@@ -1,4 +1,4 @@
-import type { Player as PlayerType } from '$lib/types/db';
+import type { PlayerType } from '$lib/server/db/schema';
 
 export class Player implements PlayerType {
 	id: string;

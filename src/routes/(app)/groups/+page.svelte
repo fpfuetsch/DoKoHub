@@ -7,22 +7,8 @@
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
-
-	// Rehydrate class instances
-	const groups: Group[] = $derived(data.groups.map((g) => Group.fromJSON(g)));
+	const groups: Group[] = $derived(data.groups);
 	let formModal = $state(false);
-	let groupName = $state('');
-	let error = $state('');
-
-	$effect(() => {
-		if (form?.error) {
-			error = form.error;
-		} else if (form?.success) {
-			formModal = false;
-			groupName = '';
-			error = '';
-		}
-	});
 </script>
 
 <div>
@@ -63,21 +49,21 @@
 	<PlusOutline class="h-10 w-10" />
 </Button>
 
-<Modal bind:open={formModal} size="xs" autoclose={false}>
+<Modal bind:open={formModal} size="xs" >
 	<form method="POST" action="?/create" use:enhance>
 		<div class="flex flex-col space-y-6">
 			<h3 class="mb-4 text-xl font-medium text-gray-900 dark:text-white">
 				Erstelle eine neue Gruppe
 			</h3>
-			{#if error}
-				<Label color="red">{error}</Label>
+			{#if form?.error}
+				<Label color="red">{form.error}</Label>
 			{/if}
 			<Label class="space-y-2">
 				<span>Gruppenname</span>
-				<Input type="text" name="groupName" bind:value={groupName} required />
+				<Input type="text" name="groupName" required />
 			</Label>
 			<div class="flex justify-end gap-3">
-				<Button type="submit">Erstellen</Button>
+				<Button type="submit" value="create">Erstellen</Button>
 			</div>
 		</div>
 	</form>
