@@ -1,12 +1,17 @@
-import { pgTable, uuid, text, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, pgEnum } from 'drizzle-orm/pg-core';
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { createInsertSchema } from 'drizzle-zod';
+
+export const AuthProviderEnum = pgEnum('auth_provider', ['local', 'google', 'apple']);
+export type AuthProviderType = 'local' | 'google' | 'apple';
 
 export const PlayerTable = pgTable('players', {
 	id: uuid('id').primaryKey().defaultRandom(),
 	name: text('name').notNull(),
-	email: text('email').notNull(),
+	authProvider: AuthProviderEnum('auth_provider').notNull().default('local'),
+	authProviderId: text('auth_provider_id'),
 	createdAt: timestamp('created_at').notNull().defaultNow()
+
 });
 export type PlayerType = InferSelectModel<typeof PlayerTable>;
 

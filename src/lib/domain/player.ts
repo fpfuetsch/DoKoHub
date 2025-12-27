@@ -1,20 +1,22 @@
-import type { PlayerType } from '$lib/server/db/schema';
+import type { PlayerType, AuthProviderType } from '$lib/server/db/schema';
 
 export class Player implements PlayerType {
 	id: string;
 	name: string;
-	email: string;
+	authProvider: AuthProviderType;
+	authProviderId: string | null;
 	createdAt: Date;
 
 	constructor(data: PlayerType) {
 		this.id = data.id;
 		this.name = data.name;
-		this.email = data.email;
+		this.authProvider = data.authProvider;
+		this.authProviderId = data.authProviderId;
 		this.createdAt = data.createdAt;
 	}
 
 	get displayName() {
-		return `${this.name} <${this.email}>`;
+		return this.name;
 	}
 
 	toJSON() {
@@ -25,7 +27,8 @@ export class Player implements PlayerType {
 		return new Player({
 			id: json.id,
 			name: json.name,
-			email: json.email,
+			authProvider: json.authProvider,
+			authProviderId: json.authProviderId,
 			createdAt: new Date(json.createdAt)
 		});
 	}
