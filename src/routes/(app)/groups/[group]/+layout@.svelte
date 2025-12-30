@@ -21,16 +21,9 @@
 		{ name: 'players', label: 'Spieler', icon: UsersGroupSolid }
 	];
 
-	const currentTab = $derived.by(() => {
-		const pathParts = $page.url.pathname.split('/');
-		return pathParts[pathParts.length - 1] || 'games';
-	});
-
-	let selected = $state(currentTab);
-
-	$effect(() => {
-		selected = currentTab;
-	});
+	const pathParts = $page.url.pathname.split('/');
+	const initialTab =  pathParts[pathParts.length - 1] || 'games';
+	let selected = $state(initialTab);
 </script>
 
 <header class="bg-primary-200 shadow-sm">
@@ -45,9 +38,9 @@
 		>
 			<ArrowLeftOutline class="h-6 w-6" />
 		</Button>
-		<div class="flex-1 truncate text-center text-2xl font-semibold">
+		<h1 class="flex-1 truncate text-center text-2xl font-semibold">
 			{group ? group.name : ''}
-		</div>
+		</h1>
 		<div class="h-10 w-10"></div>
 		<!-- Spacer for symmetry -->
 	</div>
@@ -56,7 +49,7 @@
 	<div class="sticky top-14 z-20">
 		<Tabs tabStyle="underline" classes={{ content: "hidden" }} divider={false} bind:selected class="flex justify-center">
 			{#each tabs as tab}
-				<TabItem key={tab.name} onclick={() => goto(`/groups/${groupId}/${tab.name}`)}>
+				<TabItem key={tab.name} onclick={() => goto(`/groups/${groupId}/${tab.name}`)} class="*:cursor-pointer">
 					{#snippet titleSlot()}
 						<div class="flex items-center gap-2">
 							<tab.icon size="md" />
