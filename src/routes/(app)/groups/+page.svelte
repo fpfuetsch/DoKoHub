@@ -49,7 +49,7 @@
 	<PlusOutline class="h-10 w-10" />
 </Button>
 
-<Modal bind:open={formModal} size="xs" >
+<Modal bind:open={formModal} size="xs" autoclose={true}>
 	<form method="POST" action="?/create" use:enhance>
 		<div class="flex flex-col space-y-6">
 			<h3 class="mb-4 text-xl font-medium text-gray-900 dark:text-white">

@@ -54,12 +54,12 @@
 
 	<!-- Tab Navigation -->
 	<div class="sticky top-14 z-20">
-		<Tabs tabStyle="underline" contentClass="hidden" divider={false} bind:selected class="flex justify-center">
+		<Tabs tabStyle="underline" classes={{ content: "hidden" }} divider={false} bind:selected class="flex justify-center">
 			{#each tabs as tab}
 				<TabItem key={tab.name} onclick={() => goto(`/groups/${groupId}/${tab.name}`)}>
 					{#snippet titleSlot()}
 						<div class="flex items-center gap-2">
-							<svelte:component this={tab.icon} size="md" />
+							<tab.icon size="md" />
 							{tab.label}
 						</div>
 					{/snippet}
