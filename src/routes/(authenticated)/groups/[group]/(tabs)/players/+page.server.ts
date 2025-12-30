@@ -1,39 +1,51 @@
 import { PlayerRepository } from '$lib/repositories/player';
 import { GroupRepository } from '$lib/repositories/group';
 import { fail } from '@sveltejs/kit';
-import type { Actions, PageServerLoad } from './$types';
-
-export const load: PageServerLoad = async () => {
-	const playerRepo = new PlayerRepository();
-	const allPlayers = await playerRepo.getAll();
-	return { allPlayers };
-};
+import { requireUserOrFail } from '$lib/server/auth/guard';
+import type { Actions } from './$types';
 
 export const actions: Actions = {
-	addExisting: async ({ params, request }) => {
+	addExisting: async ({ params, request, locals }) => {
+		const user = requireUserOrFail({ locals });
 		const formData = await request.formData();
-		const playerId = formData.get('playerId') as string;
+		const username = (formData.get('username') as string)?.trim();
 
-		if (!playerId) {
-			return fail(400, { error: 'Bitte einen Spieler auswählen.' });
+		if (!username) {
+			return fail(400, { error: 'Bitte einen Benutzernamen eingeben.' });
 		}
 
 		const groupId = params.group;
 
+		// Look up player by username
+		const playerRepo = new PlayerRepository(user.id);
+		const player = await playerRepo.getByName(username);
+
+		if (!player) {
+			return fail(404, { error: 'Spieler mit diesem Benutzernamen nicht gefunden.' });
+		}
+
+		if (player.authProvider === 'local') {
+			return fail(400, { error: 'Lokale Spieler können nicht auf diese Weise hinzugefügt werden.' });
+		}
+
 		// Check if player is already in group
-		const groupRepo = new GroupRepository();
+		const groupRepo = new GroupRepository(user.id);
 		const group = await groupRepo.getById(groupId);
-		if (group?.players.some((p) => p.id === playerId)) {
+		if (group?.players.some((p) => p.id === player.id)) {
 			return fail(400, { error: 'Spieler ist bereits in der Gruppe.' });
 		}
 
 		// Add player to group
-		await groupRepo.addMember(groupId, playerId);
+		const added = await groupRepo.addMember(groupId, player.id);
+		if (!added) {
+			return fail(403, { error: 'Nicht berechtigt, diesen Spieler hinzuzufügen.' });
+		}
 
 		return { success: true };
 	},
 
-	createLocal: async ({ params, request }) => {
+	createLocal: async ({ params, request, locals }) => {
+		const user = requireUserOrFail({ locals });
 		const formData = await request.formData();
 		const playerName = formData.get('playerName') as string;
 
@@ -47,8 +59,8 @@ export const actions: Actions = {
 		// Use UUID as name for local players (internal identifier)
 		const username = crypto.randomUUID();
 
-		const playerRepo = new PlayerRepository();
-		const groupRepo = new GroupRepository();
+		const playerRepo = new PlayerRepository(user.id);
+		const groupRepo = new GroupRepository(user.id);
 		const newPlayer = await playerRepo.create({
 			name: username,
 			displayName: playerName.trim(),
@@ -62,7 +74,8 @@ export const actions: Actions = {
 		return { success: true };
 	},
 
-	removePlayer: async ({ params, request }) => {
+	removePlayer: async ({ params, request, locals }) => {
+		const user = requireUserOrFail({ locals });
 		const formData = await request.formData();
 		const playerId = formData.get('playerId') as string;
 
@@ -71,10 +84,10 @@ export const actions: Actions = {
 		}
 
 		const groupId = params.group;
-		const groupRepo = new GroupRepository();
+		const groupRepo = new GroupRepository(user.id);
 
 		// Get player info to check if local
-		const playerRepo = new PlayerRepository();
+		const playerRepo = new PlayerRepository(user.id);
 		const player = await playerRepo.getById(playerId);
 
 		if (!player) {
@@ -82,13 +95,13 @@ export const actions: Actions = {
 		}
 
 		// Remove from group
-		await groupRepo.removeMember(groupId, playerId);
-
+		const success_remove = await groupRepo.removeMember(groupId, playerId);
+		let success_delete = true;
 		// If local player, delete completely
 		if (player.authProvider === 'local') {
-			await playerRepo.delete(playerId);
+			success_delete = await playerRepo.delete(playerId);
 		}
 
-		return { success: true };
+		return { success: success_remove && success_delete};
 	}
 };

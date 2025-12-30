@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { LinkBreakOutline, PlusOutline, InfoCircleSolid, TrashBinOutline } from 'flowbite-svelte-icons';
-	import { Button, Modal, Label, Input, Tabs, TabItem, Avatar, Alert } from 'flowbite-svelte';
+	import { Button, Modal, Label, Input, Tabs, TabItem, Avatar, Alert, Helper } from 'flowbite-svelte';
 	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
 	import type { Player } from '$lib/domain/player';
@@ -8,12 +8,6 @@
 	let { data, form }: PageProps = $props();
 
 	let players = $derived(data.group?.players || []);
-	let allPlayers = $derived(data.allPlayers || []);
-	let availablePlayers = $derived(
-		allPlayers.filter(
-			(p: Player) => p.authProvider !== 'local' && !players.some((gp) => gp.id === p.id)
-		)
-	);
 
 	let formModal = $state(false);
 	let confirmDeleteModal = $state(false);
@@ -76,46 +70,42 @@
 	<div class="flex flex-col space-y-2">
 		<h3 class="text-xl font-medium text-gray-900 dark:text-white">Spieler hinzufügen</h3>
 
-		{#if form?.error}
-			<Label color="red">{form.error}</Label>
-		{/if}
-
 		<Tabs tabStyle="underline" divider={false}>
 			<TabItem open title="Angemeldeter Spieler">
 				<form method="POST" action="?/addExisting" use:enhance={() => {
 					return async ({ result, update }) => {
+						await update();
 						if (result.type === 'success') {
-							await update();
 							formModal = false;
 						}
 					};
-				}} class="mt-4">
+				}}>
 					<div class="flex flex-col space-y-4">
-						{#if availablePlayers.length === 0}
-							<p class="text-sm text-gray-500 dark:text-gray-400">
-								Keine verfügbaren Spieler mit Account gefunden.
-							</p>
-						{:else}
-							<Label class="space-y-2">
-								<span>Spieler auswählen</span>
-								<select
-									name="playerId"
-									class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500"
-									required
-								>
-									<option value="">Bitte wählen...</option>
-									{#each availablePlayers as player}
-									<option value={player.id}>{player.displayName}</option>
-									{/each}
-								</select>
-							</Label>
-							<div class="flex justify-end gap-3">
-								<Button type="button" color="alternative" onclick={() => (formModal = false)}>
-									Abbrechen
-								</Button>
-								<Button type="submit">Hinzufügen</Button>
-							</div>
+						{#if form?.error}
+							<Alert color="red">
+								{#snippet icon()}<InfoCircleSolid class="h-5 w-5" />{/snippet}
+								{form.error}
+							</Alert>
 						{/if}
+
+						<Label for="username">Benutzername</Label>
+						<Input
+							id="username"
+							type="text"
+							name="username"
+							placeholder="Benutzername eingeben..."
+							required
+						/>
+						<Helper>
+							Geben Sie den Benutzernamen des Spielers ein, um ihn hinzuzufügen. Den Benutzernamen finden Sie auf der Profilseite des Spielers.
+						</Helper>
+
+						<div class="flex justify-end gap-3">
+							<Button type="button" color="alternative" onclick={() => (formModal = false)}>
+								Abbrechen
+							</Button>
+							<Button type="submit">Hinzufügen</Button>
+						</div>
 					</div>
 				</form>
 			</TabItem>
@@ -130,14 +120,11 @@
 					};
 				}}>
 					<div class="flex flex-col space-y-4">
-						<Label class="space-y-2">
-							<span>Spielername</span>
-							<Input type="text" name="playerName" placeholder="Name eingeben..." required />
-						</Label>
-						<Alert color="blue">
-							{#snippet icon()}<InfoCircleSolid class="h-5 w-5" />{/snippet}
-							<span class="font-medium">Lokale Spieler</span> existieren nur in dieser Gruppe und sind nicht mit einem Account verknüpft.
-						</Alert>
+						<Label for="playerName">Spielername</Label>
+						<Input id="playerName" type="text" name="playerName" placeholder="Name eingeben..." required />
+						<Helper>
+							Lokale Spieler sind nur in dieser Gruppe sichtbar und können nicht zu anderen Gruppen hinzugefügt werden.
+						</Helper>
 						<div class="flex justify-end gap-3">
 							<Button type="button" color="alternative" onclick={() => (formModal = false)}>
 								Abbrechen

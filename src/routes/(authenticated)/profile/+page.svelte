@@ -1,30 +1,98 @@
 <script lang="ts">
-	let { data } = $props();
+	import { Button, Label, Input, Helper, Alert, Toast } from 'flowbite-svelte';
+	import { CheckCircleOutline, OpenDoorOutline } from 'flowbite-svelte-icons';
+	import { enhance } from '$app/forms';
+	import type { PageProps } from './$types';
+	import { page } from '$app/stores';
+
+	let { data, form }: PageProps = $props();
 	const user = $derived(data.user);
+	const authProviderDisplay = $derived(
+		user?.authProvider ? user.authProvider.charAt(0).toUpperCase() + user.authProvider.slice(1) : 'unbekannt'
+	);
+	let showSuccess = $state(false);
+
+	const showSuccessIfUpdated = () => {
+		if ($page.url.searchParams.has('updated')) {
+			showSuccess = true;
+			setTimeout(() => {
+				showSuccess = false;
+			}, 5000);
+		}
+	};
+
+	$effect(() => {
+		$page.url.searchParams;
+		showSuccessIfUpdated();
+	});
 </script>
 
-<div class="space-y-6">
-	<div>
-		<h1 class="text-3xl font-semibold">Profil</h1>
-		<p class="text-gray-600">Angemeldet via {user?.authProvider ?? 'unbekannt'}.</p>
-	</div>
+<div class="flex justify-center px-4">
+	<div class="space-y-6 w-full max-w-md">
+		<div class="flex justify-between items-center">
+			<h1 class="text-xl">Angemeldet via <span class="font-bold">{authProviderDisplay}</span></h1>
+			<form method="POST" action="/logout">
+				<Button type="submit" size="sm" color="red" class="cursor-pointer">
+					<OpenDoorOutline class="w-4 h-4 mr-2" />
+					Abmelden
+				</Button>
+			</form>
+		</div>
 
-	<div class="rounded-lg border bg-white p-4 shadow-sm">
-		<dl class="grid grid-cols-2 gap-3 text-sm">
-			<dt class="text-gray-500">Name</dt>
-			<dd class="text-gray-900">{user?.displayName}</dd>
+		<form method="POST" action="?/save" use:enhance={() => {
+			return async ({ result, update }) => {
+				await update();
+			};
+		}} class="space-y-6">
+			<div class="bg-white p-4 space-y-4">
+			{#if form?.message}
+				<Alert color="red">
+					{form.message}
+				</Alert>
+			{/if}
+			{#if showSuccess}
+				<Toast position="top-right" color="green">
+					{#snippet icon()}
+						<CheckCircleOutline class="text-green-600 bg-green-100 dark:bg-green-800 dark:text-green-200 h-6 w-6" />
+					{/snippet}
+					Deine Änderungen wurden erfolgreich gespeichert!
+				</Toast>
+			{/if}
 
-			<dt class="text-gray-500">Handle</dt>
-			<dd class="text-gray-900">{user?.name}</dd>
-		</dl>
-	</div>
+			<div>
+				<Label for="name">Benutzername</Label>
+				<Input
+					id="name"
+					type="text"
+					name="name"
+					value={user?.name}
+					required
+				/>
+				<Helper>Eindeutiger Benutzername für Verknüpfungen und Spielgruppen.</Helper>
+				{#if form?.errors?.name}
+					<Helper color="red">{form.errors.name[0]}</Helper>
+				{/if}
+			</div>
+			<div>
+				<Label for="displayName">Anzeigename</Label>
+				<Input
+					id="displayName"
+					type="text"
+					name="displayName"
+					value={user?.displayName}
+					required
+				/>
+				<Helper>Der angezeigte Name für andere Spieler.</Helper>
+				{#if form?.errors?.displayName}
+					<Helper color="red">{form.errors.displayName[0]}</Helper>
+				{/if}
+			</div>
 
-	<form method="POST" action="/logout">
-		<button
-			type="submit"
-			class="rounded-md bg-primary px-4 py-2 text-white shadow-sm transition hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-		>
-			Abmelden
-		</button>
+		</div>
+
+		<div class="flex justify-end">
+			<Button type="submit" class="cursor-pointer">Änderungen speichern</Button>
+		</div>
 	</form>
+	</div>
 </div>
