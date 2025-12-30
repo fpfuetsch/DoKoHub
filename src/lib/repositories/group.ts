@@ -3,7 +3,7 @@ import { GroupTable, GroupMemberTable, PlayerTable } from '$lib/server/db/schema
 import { Group } from '$lib/domain/group';
 import { Player } from '$lib/domain/player';
 import type { GroupType, GroupInsertType, PlayerType } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 export class GroupRepository {
     async getById(id: string): Promise<Group | null> {
@@ -37,6 +37,18 @@ export class GroupRepository {
 
     async delete(id: string): Promise<boolean> {
         const result = await db.delete(GroupTable).where(eq(GroupTable.id, id)).returning();
+        return result.length > 0;
+    }
+
+    async addMember(groupId: string, playerId: string): Promise<void> {
+        await db.insert(GroupMemberTable).values({ groupId, playerId });
+    }
+
+    async removeMember(groupId: string, playerId: string): Promise<boolean> {
+        const result = await db
+            .delete(GroupMemberTable)
+            .where(and(eq(GroupMemberTable.groupId, groupId), eq(GroupMemberTable.playerId, playerId)))
+            .returning();
         return result.length > 0;
     }
 

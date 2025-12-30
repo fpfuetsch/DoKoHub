@@ -1,9 +1,6 @@
 import { PlayerRepository } from '$lib/repositories/player';
 import { GroupRepository } from '$lib/repositories/group';
-import { db } from '$lib/server/db';
-import { GroupMemberTable } from '$lib/server/db/schema';
 import { fail } from '@sveltejs/kit';
-import { sql, eq, and } from 'drizzle-orm';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
@@ -31,7 +28,7 @@ export const actions: Actions = {
 		}
 
 		// Add player to group
-		await db.insert(GroupMemberTable).values({ groupId, playerId });
+		await groupRepo.addMember(groupId, playerId);
 
 		return { success: true };
 	},
@@ -51,6 +48,7 @@ export const actions: Actions = {
 		const username = crypto.randomUUID();
 
 		const playerRepo = new PlayerRepository();
+		const groupRepo = new GroupRepository();
 		const newPlayer = await playerRepo.create({
 			name: username,
 			displayName: playerName.trim(),
@@ -59,7 +57,7 @@ export const actions: Actions = {
 		});
 
 		// Add to group
-		await db.insert(GroupMemberTable).values({ groupId, playerId: newPlayer.id });
+		await groupRepo.addMember(groupId, newPlayer.id);
 
 		return { success: true };
 	},
@@ -73,6 +71,7 @@ export const actions: Actions = {
 		}
 
 		const groupId = params.group;
+		const groupRepo = new GroupRepository();
 
 		// Get player info to check if local
 		const playerRepo = new PlayerRepository();
@@ -83,8 +82,7 @@ export const actions: Actions = {
 		}
 
 		// Remove from group
-		await db.delete(GroupMemberTable)
-			.where(sql`${GroupMemberTable.groupId} = ${groupId} AND ${GroupMemberTable.playerId} = ${playerId}`);
+		await groupRepo.removeMember(groupId, playerId);
 
 		// If local player, delete completely
 		if (player.authProvider === 'local') {

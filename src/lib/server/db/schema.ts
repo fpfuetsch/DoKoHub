@@ -1,6 +1,7 @@
 import { pgTable, uuid, text, timestamp, pgEnum } from 'drizzle-orm/pg-core';
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { createInsertSchema } from 'drizzle-zod';
+import { z } from 'zod';
 
 export const AuthProviderEnum = pgEnum('auth_provider', ['local', 'google', 'apple']);
 export type AuthProviderType = 'local' | 'google' | 'apple';
@@ -15,6 +16,27 @@ export const PlayerTable = pgTable('players', {
 
 });
 export type PlayerType = InferSelectModel<typeof PlayerTable>;
+export type PlayerInsertType = InferInsertModel<typeof PlayerTable>;
+
+export const PlayerNameSchema = z
+	.string()
+	.trim()
+	.regex(/^[a-z0-9_-]+$/, 'Nur Kleinbuchstaben, Zahlen, - und _ sind erlaubt')
+	.min(3, 'Mindestens 3 Zeichen notwendig')
+	.max(40, 'Maximal 30 Zeichen erlaubt');
+
+export const PlayerDisplayNameSchema = z
+	.string()
+	.trim()
+	.min(3, 'Mindestens 3 Zeichen notwendig')
+	.max(80, 'Maximal 50 Zeichen erlaubt');
+
+export const PlayerProfileSchema = z.object({
+	displayName: PlayerDisplayNameSchema,
+	name: PlayerNameSchema
+});
+
+export type PlayerProfile = z.infer<typeof PlayerProfileSchema>;
 
 export const GroupTable = pgTable('group', {
 	id: uuid('id').primaryKey().defaultRandom(),
