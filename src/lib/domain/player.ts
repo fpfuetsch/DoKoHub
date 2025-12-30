@@ -3,6 +3,7 @@ import type { PlayerType, AuthProviderType } from '$lib/server/db/schema';
 export class Player implements PlayerType {
 	id: string;
 	name: string;
+	displayName: string;
 	authProvider: AuthProviderType;
 	authProviderId: string | null;
 	createdAt: Date;
@@ -10,13 +11,10 @@ export class Player implements PlayerType {
 	constructor(data: PlayerType) {
 		this.id = data.id;
 		this.name = data.name;
+		this.displayName = data.displayName;
 		this.authProvider = data.authProvider;
 		this.authProviderId = data.authProviderId;
 		this.createdAt = data.createdAt;
-	}
-
-	get displayName() {
-		return this.name;
 	}
 
 	toJSON() {
@@ -27,6 +25,7 @@ export class Player implements PlayerType {
 		return new Player({
 			id: json.id,
 			name: json.name,
+			displayName: json.displayName,
 			authProvider: json.authProvider,
 			authProviderId: json.authProviderId,
 			createdAt: new Date(json.createdAt)

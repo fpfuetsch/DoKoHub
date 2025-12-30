@@ -27,7 +27,7 @@
 </script>
 
 <header class="bg-primary-200 shadow-sm">
-	<div class="sticky top-0 z-30 flex h-14 items-center px-2">
+	<div class="top-0 z-30 flex h-14 items-center px-2">
 		<Button
 			color="primary-200"
 			size="sm"
@@ -46,7 +46,7 @@
 	</div>
 
 	<!-- Tab Navigation -->
-	<div class="sticky top-14 z-20">
+	<div class="top-14 z-20">
 		<Tabs tabStyle="underline" classes={{ content: "hidden" }} divider={false} bind:selected class="flex justify-center">
 			{#each tabs as tab}
 				<TabItem key={tab.name} onclick={() => goto(`/groups/${groupId}/${tab.name}`)} class="*:cursor-pointer">

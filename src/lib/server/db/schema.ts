@@ -7,7 +7,8 @@ export type AuthProviderType = 'local' | 'google' | 'apple';
 
 export const PlayerTable = pgTable('players', {
 	id: uuid('id').primaryKey().defaultRandom(),
-	name: text('name').notNull(),
+	name: text('name').notNull().unique(),
+	displayName: text('display_name').notNull(),
 	authProvider: AuthProviderEnum('auth_provider').notNull().default('local'),
 	authProviderId: text('auth_provider_id'),
 	createdAt: timestamp('created_at').notNull().defaultNow()

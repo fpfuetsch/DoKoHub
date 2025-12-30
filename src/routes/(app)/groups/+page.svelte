@@ -29,7 +29,7 @@
 								{#if group.players.length === 0}
 									<span class="italic">Keine Mitglieder</span>
 								{:else}
-									<span>{group.players.map((p) => p.name).join(', ')}</span>
+									<span>{group.players.map((p) => p.displayName).join(', ')}</span>
 								{/if}
 							</div>
 						</li>
