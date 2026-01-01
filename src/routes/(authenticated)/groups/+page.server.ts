@@ -1,5 +1,5 @@
 import { GroupRepository } from '$lib/repositories/group';
-import { GroupInsertSchema } from '$lib/server/db/schema';
+import { GroupNameSchema } from '$lib/server/db/schema';
 import { requireUserOrRedirectToLogin, requireUserOrFail } from '$lib/server/auth/guard';
 import type { PageServerLoad, Actions } from './$types';
 import { fail } from '@sveltejs/kit';
@@ -15,17 +15,23 @@ export const actions: Actions = {
 	create: async ({ request, locals }) => {
 		const user = requireUserOrFail({ locals });
 		const formData = await request.formData();
+		const groupName = formData.get('groupName');
 
-		const parsed = GroupInsertSchema.safeParse({
-			name: formData.get('groupName')
-		});
+		if (typeof groupName !== 'string') {
+			return fail(400, { error: 'Bitte einen gültigen Gruppennamen eingeben.', values: { groupName: '' } });
+		}
+
+		const parsed = GroupNameSchema.safeParse(groupName);
 
 		if (!parsed.success) {
-			return fail(400, { error: 'Bitte einen Gruppennamen eingeben.', });
+			return fail(400, {
+				error: parsed.error.issues[0]?.message || 'Bitte einen gültigen Gruppennamen eingeben.',
+				values: { groupName }
+			});
 		}
 
 		const repo = new GroupRepository(user.id);
-		await repo.create({ name: parsed.data.name });
+		await repo.create({ name: parsed.data });
 
 		return { success: true };
 	}

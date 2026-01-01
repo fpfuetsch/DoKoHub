@@ -29,7 +29,7 @@ export const PlayerDisplayNameSchema = z
 	.string()
 	.trim()
 	.min(3, 'Mindestens 3 Zeichen notwendig')
-	.max(80, 'Maximal 50 Zeichen erlaubt');
+	.max(50, 'Maximal 50 Zeichen erlaubt');
 
 export const PlayerProfileSchema = z.object({
 	displayName: PlayerDisplayNameSchema,
@@ -37,6 +37,13 @@ export const PlayerProfileSchema = z.object({
 });
 
 export type PlayerProfile = z.infer<typeof PlayerProfileSchema>;
+
+export const GroupNameSchema = z
+	.string()
+	.trim()
+	.regex(/^[A-Za-zÄÖÜäöüß0-9_\- ]+$/, 'Buchstaben (inkl. Umlaute), Zahlen, -, _ und Leerzeichen sind erlaubt')
+	.min(3, 'Mindestens 3 Zeichen notwendig')
+	.max(50, 'Maximal 50 Zeichen erlaubt');
 
 export const GroupTable = pgTable('group', {
 	id: uuid('id').primaryKey().defaultRandom(),
