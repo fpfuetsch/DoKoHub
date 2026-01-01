@@ -72,6 +72,32 @@ export const GroupNameSchema = z
 	.min(3, 'Mindestens 3 Zeichen notwendig')
 	.max(50, 'Maximal 50 Zeichen erlaubt');
 
+export const CreateGameSchema = z.object({
+	maxRoundCount: z.coerce
+		.number()
+		.int()
+		.refine((val) => [4, 8, 12, 16, 20, 24].includes(val), {
+			message: 'Bitte wähle eine gültige Rundenanzahl (4, 8, 12, 16, 20 oder 24)'
+		}),
+	withMandatorySolos: z.coerce.boolean(),
+	player_0: z
+		.string()
+		.min(1, 'Bitte wähle einen Spieler für Sitzposition 1')
+		.uuid('Ungültige Spieler-ID für Sitzposition 1'),
+	player_1: z
+		.string()
+		.min(1, 'Bitte wähle einen Spieler für Sitzposition 2')
+		.uuid('Ungültige Spieler-ID für Sitzposition 2'),
+	player_2: z
+		.string()
+		.min(1, 'Bitte wähle einen Spieler für Sitzposition 3')
+		.uuid('Ungültige Spieler-ID für Sitzposition 3'),
+	player_3: z
+		.string()
+		.min(1, 'Bitte wähle einen Spieler für Sitzposition 4')
+		.uuid('Ungültige Spieler-ID für Sitzposition 4')
+});
+
 export const GroupTable = pgTable('group', {
 	id: uuid('id').primaryKey().defaultRandom(),
 	name: text('name').notNull(),

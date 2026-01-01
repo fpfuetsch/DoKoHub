@@ -103,7 +103,7 @@ export class GameRepository {
 			await db.insert(GameParticipantTable).values({
 				gameId: gameInstance.id,
 				playerId: uniqueParticipantIds[i],
-				seatPosition: String(i) // 0-3
+				seatPosition: Number(i)
 			});
 		}
 
