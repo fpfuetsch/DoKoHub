@@ -1,13 +1,8 @@
 import { fail, redirect } from '@sveltejs/kit';
-import type { Actions, PageServerLoad } from './$types';
+import type { Actions } from './$types';
 import { PlayerRepository } from '$lib/repositories/player';
 import { PlayerProfileSchema } from '$lib/server/db/schema';
-import { requireUserOrRedirectToLogin, requireUserOrFail } from '$lib/server/auth/guard';
-
-export const load: PageServerLoad = async ({ locals, url }) => {
-	const user = requireUserOrRedirectToLogin({ locals, url });
-	return { user };
-};
+import { requireUserOrFail } from '$lib/server/auth/guard';
 
 export const actions: Actions = {
 	save: async ({ request, locals }) => {

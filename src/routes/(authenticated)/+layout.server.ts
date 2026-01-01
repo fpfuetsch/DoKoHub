@@ -1,11 +1,7 @@
-import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
+import { requireUserOrRedirectToLogin } from '$lib/server/auth/guard';
 
 export const load: LayoutServerLoad = async ({ locals, url }) => {
-	if (locals.user) {
-		return { user: locals.user };
-	}
-
-	const redirectTo = encodeURIComponent(url.pathname + url.search);
-	throw redirect(302, `/login?redirectTo=${redirectTo}`);
+	const user = requireUserOrRedirectToLogin({ locals, url });
+	return { user };
 };
