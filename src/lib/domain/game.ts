@@ -1,33 +1,6 @@
-import type { GameType, RoundTypeEnum, SoloTypeEnumValue, TeamEnumValue, CallTypeEnumValue, BonusTypeEnumValue } from '$lib/server/db/schema';
+import type { GameType } from '$lib/server/db/schema';
 import { Player } from './player';
-
-export interface GameRoundCall {
-	playerId: string;
-	callType: CallTypeEnumValue;
-}
-
-export interface GameRoundBonus {
-	playerId: string;
-	bonusType: BonusTypeEnumValue;
-	count: number;
-}
-
-export interface GameRoundParticipant {
-	playerId: string;
-	player?: Player;
-	team: TeamEnumValue; // RE oder KONTRA
-	calls: GameRoundCall[];
-	bonuses: GameRoundBonus[];
-}
-
-export interface GameRound {
-	id: string;
-	roundNumber: number;
-	type: RoundTypeEnum;
-	soloType: SoloTypeEnumValue | null;
-	eyesRe: number; // 0-240
-	participants: GameRoundParticipant[];
-}
+import type { RoundType } from './round';
 
 export interface GameParticipant {
 	playerId: string;
@@ -43,12 +16,12 @@ export class Game implements GameType {
 	createdAt: Date;
 	endedAt: Date | null;
 	participants: GameParticipant[] = [];
-	rounds: GameRound[] = [];
+	rounds: RoundType[] = [];
 
 	constructor(
 		data: GameType,
 		participants: GameParticipant[] = [],
-		rounds: GameRound[] = []
+		rounds: RoundType[] = []
 	) {
 		this.id = data.id;
 		this.groupId = data.groupId;

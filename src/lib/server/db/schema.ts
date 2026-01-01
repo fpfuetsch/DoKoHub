@@ -98,6 +98,17 @@ export const CreateGameSchema = z.object({
 		.uuid('Ungültige Spieler-ID für Sitzposition 4')
 });
 
+const roundTypeValues = RoundTypeEnum.enumValues;
+const soloTypeValues = SoloTypeEnum.enumValues;
+const teamValues = TeamEnum.enumValues;
+
+export const CreateRoundSchema = z.object({
+	type: z.enum(roundTypeValues as [RoundTypeEnum, ...RoundTypeEnum[]]),
+	soloType: z.enum(soloTypeValues as [SoloTypeEnumValue, ...SoloTypeEnumValue[]]).optional(),
+	eyesRe: z.coerce.number().int().min(0).max(240),
+	teams: z.record(z.string(), z.enum(teamValues as [TeamEnumValue, ...TeamEnumValue[]]))
+});
+
 export const GroupTable = pgTable('group', {
 	id: uuid('id').primaryKey().defaultRandom(),
 	name: text('name').notNull(),
