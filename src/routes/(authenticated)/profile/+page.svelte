@@ -32,7 +32,7 @@
 		<div class="flex justify-between items-center">
 			<h1 class="text-xl">Angemeldet via <span class="font-bold">{authProviderDisplay}</span></h1>
 			<form method="POST" action="/logout">
-				<Button type="submit" size="sm" color="red" class="cursor-pointer">
+				<Button type="submit" size="sm" color="red">
 					<OpenDoorOutline class="w-4 h-4 mr-2" />
 					Abmelden
 				</Button>
@@ -91,7 +91,7 @@
 		</div>
 
 		<div class="flex justify-end">
-			<Button type="submit" class="cursor-pointer">Änderungen speichern</Button>
+			<Button type="submit">Änderungen speichern</Button>
 		</div>
 	</form>
 	</div>

@@ -119,6 +119,11 @@ export class Round implements RoundType {
 			0
 		);
 
+		const bonusesAllowed = round.type === 'NORMAL' || round.type === 'HOCHZEIT_NORMAL';
+		if (!bonusesAllowed && (totalFuchs > 0 || totalKarlchen > 0 || totalDoko > 0)) {
+			return 'Bonuspunkte werden nur in Normalspielen oder normaler Hochzeit gewertet';
+		}
+
 		if (totalFuchs < 0 || totalFuchs > 2) return 'Es können max 2 Füchse vergeben werden';
 		if (totalKarlchen < 0 || totalKarlchen > 1) return 'Es kann max 1 Karlchen geben';
 		if (totalDoko < 0 || totalDoko > 5) return 'Es können max 5 Doppelköpfe vergeben werden';

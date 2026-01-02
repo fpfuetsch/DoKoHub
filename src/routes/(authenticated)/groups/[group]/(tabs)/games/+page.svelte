@@ -123,7 +123,7 @@
 
 <Button
 	pill={true}
-	class="fixed right-6 bottom-6 z-50 cursor-pointer p-2"
+	class="fixed right-6 bottom-6 z-50  p-2"
 	disabled={!canCreateGame}
 	onclick={() => (gameModal = true)}
 >
@@ -164,7 +164,7 @@
 					{#each roundOptions as option}
 						<Button
 							color={maxRoundCount === option.value ? 'primary' : 'alternative'}
-							class="flex-1 cursor-pointer"
+							class="flex-1 "
 							onclick={() => (maxRoundCount = option.value)}
 						>
 							{option.label}
@@ -181,7 +181,7 @@
 					<Button
 						pill={true}
 						color="primary"
-						class="cursor-pointer"
+
 						onclick={randomizeSeats}
 						title="Spieler zufällig zuweisen"
 					>
@@ -208,7 +208,7 @@
 				{/each}
 			</div>
 			<div class="flex justify-end gap-3">
-				<Button type="submit" value="create" class="cursor-pointer">Erstellen</Button>
+				<Button type="submit" value="create" >Erstellen</Button>
 			</div>
 		</div>
 	</form>

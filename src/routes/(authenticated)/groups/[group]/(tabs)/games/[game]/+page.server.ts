@@ -30,10 +30,12 @@ function parseTeamsFromFormData(formData: FormData): Record<string, string> {
 }
 
 function parseCallsFromFormData(formData: FormData): Record<string, { playerId: string; callType: CallTypeEnumValue }[]> {
+	const allowedCalls = new Set<CallTypeEnumValue>(['RE', 'KONTRA', 'KEINE90', 'KEINE60', 'KEINE30', 'SCHWARZ']);
 	const callsObj: Record<string, { playerId: string; callType: CallTypeEnumValue }[]> = {};
 	for (const [key, value] of formData.entries()) {
 		if (key.startsWith('player_') && key.includes('_call_')) {
 			const playerKey = key.replace(/_call_.*/, '');
+			if (!allowedCalls.has(value as CallTypeEnumValue)) continue;
 			if (!callsObj[playerKey]) {
 				callsObj[playerKey] = [];
 			}
@@ -114,12 +116,6 @@ export const actions: Actions = {
 			}
 
 			const teamAssignments = buildTeamAssignments(parsed.data.teams, game);
-			if (teamAssignments.size !== game.participants.length) {
-				return fail(400, {
-					error: 'Alle Spieler müssen einem Team zugeordnet werden',
-					values: { type: parsed.data.type }
-				});
-			}
 
 			const roundDraft: RoundType = {
 				id: 'draft',

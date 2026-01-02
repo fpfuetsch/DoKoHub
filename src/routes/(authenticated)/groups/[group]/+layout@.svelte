@@ -31,7 +31,7 @@
 		<Button
 			color="primary-200"
 			size="sm"
-			class="flex h-10 w-10 items-center justify-center cursor-pointer"
+			class="flex h-10 w-10 items-center justify-center "
 			pill={true}
 			onclick={() => goto('/groups')}
 			aria-label="Zurück"
@@ -49,7 +49,7 @@
 	<div class="top-14 z-20">
 		<Tabs tabStyle="underline" classes={{ content: "hidden" }} divider={false} bind:selected class="flex justify-center">
 			{#each tabs as tab}
-				<TabItem key={tab.name} onclick={() => goto(`/groups/${groupId}/${tab.name}`)} class="*:cursor-pointer">
+				<TabItem key={tab.name} onclick={() => goto(`/groups/${groupId}/${tab.name}`)}>
 					{#snippet titleSlot()}
 						<div class="flex items-center gap-2">
 							<tab.icon size="md" />

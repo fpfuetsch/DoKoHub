@@ -24,10 +24,11 @@
 	let eyesTeam = $state<'RE' | 'KONTRA'>('RE');
 	let eyesError = $state<string | null>(null);
 	let playerTeams = $state<Record<string, 'RE' | 'KONTRA' | undefined>>({});
+	const bonusesAllowed = $derived(roundType === 'NORMAL' || roundType === 'HOCHZEIT_NORMAL');
 
 	// Player calls and bonus points
 	let playerCalls = $state<Record<string, {
-		calls: { team: 'RE' | 'KONTRA' | null; type: 'K90' | 'K60' | 'K30' | 'SCHWARZ' | null };
+		calls: { team: 'RE' | 'KONTRA' | null; type: 'KEINE90' | 'KEINE60' | 'KEINE30' | 'SCHWARZ' | null };
 		bonus: { fuchs: number; doppelkopf: number; karlchen: boolean };
 	}>>({});
 	let callsEditModal = $state(false);
@@ -39,7 +40,7 @@
 		if (roundModal && Object.keys(playerTeams).length === 0) {
 			const teams: Record<string, 'RE' | 'KONTRA' | undefined> = {};
 			const calls: Record<string, {
-				calls: { team: 'RE' | 'KONTRA' | null; type: 'K90' | 'K60' | 'K30' | 'SCHWARZ' | null };
+				calls: { team: 'RE' | 'KONTRA' | null; type: 'KEINE90' | 'KEINE60' | 'KEINE30' | 'SCHWARZ' | null };
 				bonus: { fuchs: number; doppelkopf: number; karlchen: boolean };
 			}> = {};
 			sortedParticipants.forEach((p) => {
@@ -51,6 +52,24 @@
 			});
 			playerTeams = teams;
 			playerCalls = calls;
+		}
+	});
+
+	$effect(() => {
+		if (!bonusesAllowed) {
+			const hasAnyBonus = Object.values(playerCalls).some(
+				(entry) => entry.bonus.fuchs !== 0 || entry.bonus.doppelkopf !== 0 || entry.bonus.karlchen
+			);
+			if (hasAnyBonus) {
+				playerCalls = Object.fromEntries(
+					Object.entries(playerCalls).map(([playerId, data]) => [
+						playerId,
+						{ ...data, bonus: { fuchs: 0, doppelkopf: 0, karlchen: false } }
+					])
+				);
+				bonusEditModal = false;
+				editingPlayerId = null;
+			}
 		}
 	});
 
@@ -161,13 +180,13 @@
 
 <Button
 	pill={true}
-	class="fixed right-6 bottom-6 z-50 cursor-pointer p-2"
+	class="fixed right-6 bottom-6 z-50  p-2"
 	onclick={() => (roundModal = true)}
 >
 	<PlusOutline class="h-10 w-10" />
 </Button>
 
-<Modal bind:open={roundModal} size="md" autoclose={false} class="p-2">
+<Modal bind:open={roundModal} fullscreen size="lg" autoclose={false} class="p-2 *:border-0!">
 	<form method="POST" action="?/addRound" use:enhance={handleRoundSubmit}>
 		<div class="flex flex-col space-y-2">
 			<h3 class="mb-4 text-xl font-medium text-gray-900 dark:text-white">
@@ -185,7 +204,7 @@
 							<Button
 								type="button"
 								color={roundType === 'NORMAL' ? 'secondary' : 'light'}
-								class="flex-1 cursor-pointer"
+								class="flex-1 "
 								onclick={() => {
 									roundType = 'NORMAL';
 									soloType = null;
@@ -197,7 +216,7 @@
 							<Button
 								type="button"
 								color={roundType.startsWith('HOCHZEIT') ? 'secondary' : 'light'}
-								class="flex-1 cursor-pointer"
+								class="flex-1 "
 								onclick={() => {
 									roundType = 'HOCHZEIT_NORMAL';
 									soloType = null;
@@ -209,7 +228,7 @@
 							<Button
 								type="button"
 								color={roundType.startsWith('SOLO') ? 'secondary' : 'light'}
-								class="flex-1 cursor-pointer"
+								class="flex-1 "
 								onclick={() => {
 									roundType = 'SOLO_BUBEN';
 									soloType = 'PFLICHT';
@@ -228,7 +247,7 @@
 								<Button
 									type="button"
 									color={roundType === 'HOCHZEIT_NORMAL' ? 'secondary' : 'light'}
-									class="flex-1 cursor-pointer text-xs"
+									class="flex-1  text-xs"
 									onclick={() => (roundType = 'HOCHZEIT_NORMAL')}
 								>
 									Normal
@@ -236,7 +255,7 @@
 								<Button
 									type="button"
 									color={roundType === 'HOCHZEIT_STILL' ? 'secondary' : 'light'}
-									class="flex-1 cursor-pointer text-xs"
+									class="flex-1  text-xs"
 									onclick={() => (roundType = 'HOCHZEIT_STILL')}
 								>
 									Still
@@ -244,7 +263,7 @@
 								<Button
 									type="button"
 									color={roundType === 'HOCHZEIT_UNGEKLAERT' ? 'secondary' : 'light'}
-									class="flex-1 cursor-pointer text-xs"
+									class="flex-1  text-xs"
 									onclick={() => (roundType = 'HOCHZEIT_UNGEKLAERT')}
 								>
 									Ungeklärt
@@ -259,7 +278,7 @@
 									<Button
 										type="button"
 										color={soloType === 'PFLICHT' ? 'secondary' : 'light'}
-										class="flex-1 cursor-pointer"
+										class="flex-1 "
 										onclick={() => (soloType = 'PFLICHT')}
 									>
 										Pflicht
@@ -267,7 +286,7 @@
 									<Button
 										type="button"
 										color={soloType === 'LUST' ? 'secondary' : 'light'}
-										class="flex-1 cursor-pointer"
+										class="flex-1 "
 										onclick={() => (soloType = 'LUST')}
 									>
 										Lust
@@ -281,7 +300,7 @@
 									<Button
 										type="button"
 										color={soloTypeSelection === 'BUBEN' ? 'secondary' : 'light'}
-										class="flex-1 cursor-pointer text-xs py-1 px-1"
+										class="flex-1  text-xs py-1 px-1"
 										size="sm"
 										onclick={() => {
 											soloTypeSelection = 'BUBEN';
@@ -293,7 +312,7 @@
 									<Button
 										type="button"
 										color={soloTypeSelection === 'DAMEN' ? 'secondary' : 'light'}
-										class="flex-1 cursor-pointer text-xs py-1 px-1"
+										class="flex-1  text-xs py-1 px-1"
 										size="sm"
 										onclick={() => {
 											soloTypeSelection = 'DAMEN';
@@ -305,7 +324,7 @@
 									<Button
 										type="button"
 										color={soloTypeSelection === 'ASS' ? 'secondary' : 'light'}
-										class="flex-1 cursor-pointer text-xs py-1 px-1"
+										class="flex-1  text-xs py-1 px-1"
 										size="sm"
 										onclick={() => {
 											soloTypeSelection = 'ASS';
@@ -317,7 +336,7 @@
 									<Button
 										type="button"
 										color={soloTypeSelection === 'KREUZ' ? 'secondary' : 'light'}
-										class="flex-1 cursor-pointer py-1 px-1"
+										class="flex-1  py-1 px-1"
 										size="sm"
 										onclick={() => {
 											soloTypeSelection = 'KREUZ';
@@ -329,7 +348,7 @@
 									<Button
 										type="button"
 										color={soloTypeSelection === 'PIK' ? 'secondary' : 'light'}
-										class="flex-1 cursor-pointer py-1 px-1"
+										class="flex-1  py-1 px-1"
 										size="sm"
 										onclick={() => {
 											soloTypeSelection = 'PIK';
@@ -341,7 +360,7 @@
 									<Button
 										type="button"
 										color={soloTypeSelection === 'HERZ' ? 'secondary' : 'light'}
-										class="flex-1 cursor-pointer py-1 px-1"
+										class="flex-1  py-1 px-1"
 										size="sm"
 										onclick={() => {
 											soloTypeSelection = 'HERZ';
@@ -353,7 +372,7 @@
 									<Button
 										type="button"
 										color={soloTypeSelection === 'KARO' ? 'secondary' : 'light'}
-										class="flex-1 cursor-pointer py-1 px-1"
+										class="flex-1  py-1 px-1"
 										size="sm"
 										onclick={() => {
 											soloTypeSelection = 'KARO';
@@ -385,7 +404,7 @@
 							<Button
 								type="button"
 								color={eyesTeam === 'RE' ? 'secondary' : 'light'}
-								class="flex-1 cursor-pointer"
+								class="flex-1 "
 								onclick={() => {
 									eyesReInput = 240 - eyesReInput;
 									eyesTeam = 'RE';
@@ -396,7 +415,7 @@
 							<Button
 								type="button"
 								color={eyesTeam === 'KONTRA' ? 'secondary' : 'light'}
-								class="flex-1 cursor-pointer"
+								class="flex-1 "
 								onclick={() => {
 									eyesReInput = 240 - eyesReInput;
 									eyesTeam = 'KONTRA';
@@ -438,7 +457,7 @@
 						{@const team = playerTeams[participant.playerId]}
 						{@const calls = playerCalls[participant.playerId]}
 						<div
-							class="flex flex-col gap-2 p-3 rounded-lg border-2 cursor-pointer transition {team === 'RE'
+							class="flex flex-col gap-2 p-3 rounded-lg border-2  transition {team === 'RE'
 								? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
 								: team === 'KONTRA'
 									? 'border-red-500 bg-red-50 dark:bg-red-900/20'
@@ -447,7 +466,7 @@
 							<button
 								type="button"
 								onclick={() => togglePlayerTeam(participant.playerId)}
-								class="flex flex-col items-center gap-2 transition hover:opacity-80 cursor-pointer"
+								class="flex flex-col items-center gap-2 transition hover:opacity-80 "
 							>
 								{#if team}
 									<input type="hidden" name="player_{participant.seatPosition}_team" value={team} />
@@ -457,14 +476,16 @@
 									{#if calls?.calls.type}
 										<input type="hidden" name="player_{participant.seatPosition}_call_{calls.calls.type}" value={calls.calls.type} />
 									{/if}
-									{#if calls?.bonus.fuchs}
-										<input type="hidden" name="player_{participant.seatPosition}_bonus_FUCHS" value={calls.bonus.fuchs} />
-									{/if}
-									{#if calls?.bonus.doppelkopf}
-										<input type="hidden" name="player_{participant.seatPosition}_bonus_DOKO" value={calls.bonus.doppelkopf} />
-									{/if}
-									{#if calls?.bonus.karlchen}
-										<input type="hidden" name="player_{participant.seatPosition}_bonus_KARLCHEN" value={1} />
+									{#if bonusesAllowed}
+										{#if calls?.bonus.fuchs}
+											<input type="hidden" name="player_{participant.seatPosition}_bonus_FUCHS" value={calls.bonus.fuchs} />
+										{/if}
+										{#if calls?.bonus.doppelkopf}
+											<input type="hidden" name="player_{participant.seatPosition}_bonus_DOKO" value={calls.bonus.doppelkopf} />
+										{/if}
+										{#if calls?.bonus.karlchen}
+											<input type="hidden" name="player_{participant.seatPosition}_bonus_KARLCHEN" value={1} />
+										{/if}
 									{/if}
 								{/if}
 								<div class="text-sm font-medium text-gray-900 dark:text-white text-center">
@@ -516,29 +537,31 @@
 								</div>
 
 								<!-- Bonuspunkte Section -->
-								<div>
-									<div class="flex items-center justify-between mb-1">
-										<span class="text-xs font-medium text-gray-700 dark:text-gray-300">Bonus:</span>
-										<Button
-											pill
-											size="xs"
-											color="secondary"
-											onclick={() => {
-												editingPlayerId = participant.playerId;
-												bonusEditModal = true;
-											}}
-                                            class="p-2!"
-											title="Bonus bearbeiten"
-										>
-											<EditOutline class="h-4 w-4" />
-										</Button>
-									</div>
-									{#if calls && (calls.bonus.fuchs !== 0 || calls.bonus.doppelkopf !== 0 || calls.bonus.karlchen)}
-										<div class="text-xs text-gray-700 dark:text-gray-300 pl-2">
-											{#if calls.bonus.fuchs !== 0}Fuchs {calls.bonus.fuchs}x{/if}{#if calls.bonus.doppelkopf !== 0}{calls.bonus.fuchs !== 0 ? ', ' : ''}Doppelkopf {calls.bonus.doppelkopf}x{/if}{#if calls.bonus.karlchen}{(calls.bonus.fuchs !== 0 || calls.bonus.doppelkopf !== 0) ? ', ' : ''}Karlchen{/if}
+								{#if bonusesAllowed}
+									<div>
+										<div class="flex items-center justify-between mb-1">
+											<span class="text-xs font-medium text-gray-700 dark:text-gray-300">Bonus:</span>
+											<Button
+												pill
+												size="xs"
+												color="secondary"
+												onclick={() => {
+													editingPlayerId = participant.playerId;
+													bonusEditModal = true;
+												}}
+												class="p-2!"
+												title="Bonus bearbeiten"
+											>
+												<EditOutline class="h-4 w-4" />
+											</Button>
 										</div>
-									{/if}
-								</div>
+										{#if calls && (calls.bonus.fuchs !== 0 || calls.bonus.doppelkopf !== 0 || calls.bonus.karlchen)}
+											<div class="text-xs text-gray-700 dark:text-gray-300 pl-2">
+												{#if calls.bonus.fuchs !== 0}Fuchs {calls.bonus.fuchs}x{/if}{#if calls.bonus.doppelkopf !== 0}{calls.bonus.fuchs !== 0 ? ', ' : ''}Doppelkopf {calls.bonus.doppelkopf}x{/if}{#if calls.bonus.karlchen}{(calls.bonus.fuchs !== 0 || calls.bonus.doppelkopf !== 0) ? ', ' : ''}Karlchen{/if}
+											</div>
+										{/if}
+									</div>
+								{/if}
 							</div>
 						</div>
 					{/each}
@@ -557,12 +580,12 @@
 				<Button
 					type="button"
 					color="light"
-					class="cursor-pointer"
+
 					onclick={() => (roundModal = false)}
 				>
 					Abbrechen
 				</Button>
-				<Button type="submit" class="cursor-pointer">Speichern</Button>
+				<Button type="submit" >Fertig</Button>
 			</div>
 		</div>
 	</form>
@@ -585,7 +608,7 @@
 						<Button
 							type="button"
 							color={playerData.calls.team === 'RE' ? 'secondary' : 'light'}
-							class="flex-1 cursor-pointer text-xs py-1"
+							class="flex-1  text-xs py-1"
 							onclick={() => {
 								playerData.calls.team = playerData.calls.team === 'RE' ? null : 'RE';
 							}}
@@ -595,7 +618,7 @@
 						<Button
 							type="button"
 							color={playerData.calls.team === 'KONTRA' ? 'secondary' : 'light'}
-							class="flex-1 cursor-pointer text-xs py-1"
+							class="flex-1  text-xs py-1"
 							onclick={() => {
 								playerData.calls.team = playerData.calls.team === 'KONTRA' ? null : 'KONTRA';
 							}}
@@ -610,30 +633,30 @@
 					<ButtonGroup class="w-full">
 						<Button
 							type="button"
-							color={playerData.calls.type === 'K90' ? 'secondary' : 'light'}
-							class="flex-1 cursor-pointer text-xs py-1"
+							color={playerData.calls.type === 'KEINE90' ? 'secondary' : 'light'}
+							class="flex-1  text-xs py-1"
 							onclick={() => {
-								playerData.calls.type = playerData.calls.type === 'K90' ? null : 'K90';
+								playerData.calls.type = playerData.calls.type === 'KEINE90' ? null : 'KEINE90';
 							}}
 						>
 							Keine 90
 						</Button>
 						<Button
 							type="button"
-							color={playerData.calls.type === 'K60' ? 'secondary' : 'light'}
-							class="flex-1 cursor-pointer text-xs py-1"
+							color={playerData.calls.type === 'KEINE60' ? 'secondary' : 'light'}
+							class="flex-1  text-xs py-1"
 							onclick={() => {
-								playerData.calls.type = playerData.calls.type === 'K60' ? null : 'K60';
+								playerData.calls.type = playerData.calls.type === 'KEINE60' ? null : 'KEINE60';
 							}}
 						>
 							Keine 60
 						</Button>
 						<Button
 							type="button"
-							color={playerData.calls.type === 'K30' ? 'secondary' : 'light'}
-							class="flex-1 cursor-pointer text-xs py-1"
+							color={playerData.calls.type === 'KEINE30' ? 'secondary' : 'light'}
+							class="flex-1  text-xs py-1"
 							onclick={() => {
-								playerData.calls.type = playerData.calls.type === 'K30' ? null : 'K30';
+								playerData.calls.type = playerData.calls.type === 'KEINE30' ? null : 'KEINE30';
 							}}
 						>
 							Keine 30
@@ -641,7 +664,7 @@
 						<Button
 							type="button"
 							color={playerData.calls.type === 'SCHWARZ' ? 'secondary' : 'light'}
-							class="flex-1 cursor-pointer text-xs py-1"
+							class="flex-1  text-xs py-1"
 							onclick={() => {
 								playerData.calls.type = playerData.calls.type === 'SCHWARZ' ? null : 'SCHWARZ';
 							}}
@@ -656,7 +679,7 @@
 				<Button
 					type="button"
 					color="primary"
-					class="cursor-pointer"
+
 					onclick={() => (callsEditModal = false)}
 				>
 					Fertig
@@ -666,8 +689,9 @@
 	{/if}
 </Modal>
 
+
 <Modal bind:open={bonusEditModal} size="xs" autoclose={false}>
-	{#if editingPlayerId && playerCalls[editingPlayerId]}
+	{#if bonusesAllowed && editingPlayerId && playerCalls[editingPlayerId]}
 		{@const editingPlayer = sortedParticipants.find((p) => p.playerId === editingPlayerId)}
 		{@const playerData = playerCalls[editingPlayerId]}
 		<div class="flex flex-col space-y-6">
@@ -690,7 +714,7 @@
 									playerData.bonus.fuchs--;
 								}
 							}}
-							class="cursor-pointer, p-2!"
+							class="p-2!"
 						>
 							<MinusOutline class="h-4 w-4" />
 						</Button>
@@ -706,7 +730,7 @@
 									playerData.bonus.fuchs++;
 								}
 							}}
-							class="cursor-pointer, p-2!"
+							class="p-2!"
 						>
 							<PlusOutline class="h-4 w-4" />
 						</Button>
@@ -724,7 +748,7 @@
 									playerData.bonus.doppelkopf--;
 								}
 							}}
-							class="cursor-pointer, p-2!"
+							class="p-2!"
 						>
 							<MinusOutline class="h-4 w-4" />
 						</Button>
@@ -740,7 +764,7 @@
 									playerData.bonus.doppelkopf++;
 								}
 							}}
-							class="cursor-pointer, p-2!"
+							class="p-2!"
 						>
 							<PlusOutline class="h-4 w-4" />
 						</Button>
@@ -752,7 +776,7 @@
 						<Button
 							type="button"
 							color={playerData.bonus.karlchen === true ? 'secondary' : 'light'}
-							class="flex-1 cursor-pointer"
+							class="flex-1 "
 							onclick={() => {
 								playerData.bonus.karlchen = true;
 							}}
@@ -762,7 +786,7 @@
 						<Button
 							type="button"
 							color={playerData.bonus.karlchen === false ? 'secondary' : 'light'}
-							class="flex-1 cursor-pointer"
+							class="flex-1 "
 							onclick={() => {
 								playerData.bonus.karlchen = false;
 							}}
@@ -777,7 +801,6 @@
 				<Button
 					type="button"
 					color="primary"
-					class="cursor-pointer"
 					onclick={() => (bonusEditModal = false)}
 				>
 					Fertig

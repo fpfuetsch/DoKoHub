@@ -73,7 +73,7 @@
 
 <Button
 	pill={true}
-	class="fixed right-6 bottom-6 z-50 cursor-pointer p-2"
+	class="fixed right-6 bottom-6 z-50  p-2"
 	onclick={() => (formModal = true)}
 >
 	<PlusOutline class="h-10 w-10" />
