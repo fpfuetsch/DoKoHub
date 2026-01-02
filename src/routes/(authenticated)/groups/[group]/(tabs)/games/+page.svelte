@@ -74,7 +74,7 @@
 		<ul class="w-full max-w-xl space-y-2 pr-4 pl-4">
 			{#each games as game}
 				<a
-					href="/groups/{group.id}/games/{game.id}"
+					href="/groups/{group.id}/games/{game.id}/rounds"
 					class="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition cursor-pointer"
 				>
 					<div class="flex-1 space-y-1 font-medium dark:text-white">
