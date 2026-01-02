@@ -3,41 +3,80 @@ import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
 
-export const AuthProviderEnum = pgEnum('auth_provider', ['local', 'google', 'apple']);
-export type AuthProviderType = 'local' | 'google' | 'apple';
+// TypeScript Enums
+export enum AuthProvider {
+	Local = 'local',
+	Google = 'google',
+	Apple = 'apple'
+}
 
-export const RoundTypeEnum = pgEnum('round_type', [
-	'NORMAL',
-	'HOCHZEIT_NORMAL',
-	'HOCHZEIT_STILL',
-	'HOCHZEIT_UNGEKLAERT',
-	'SOLO_DAMEN',
-	'SOLO_BUBEN',
-	'SOLO_KREUZ',
-	'SOLO_PIK',
-	'SOLO_HERZ',
-	'SOLO_KARO',
-	'SOLO_ASS'
-]);
-export type RoundTypeEnum = 'NORMAL' | 'HOCHZEIT_NORMAL' | 'HOCHZEIT_STILL' | 'HOCHZEIT_UNGEKLAERT' | 'SOLO_DAMEN' | 'SOLO_BUBEN' | 'SOLO_KREUZ' | 'SOLO_PIK' | 'SOLO_HERZ' | 'SOLO_KARO' | 'SOLO_ASS';
+export enum RoundType {
+	Normal = 'NORMAL',
+	HochzeitNormal = 'HOCHZEIT_NORMAL',
+	HochzeitStill = 'HOCHZEIT_STILL',
+	HochzeitUngeklaert = 'HOCHZEIT_UNGEKLAERT',
+	SoloDamen = 'SOLO_DAMEN',
+	SoloBuben = 'SOLO_BUBEN',
+	SoloKreuz = 'SOLO_KREUZ',
+	SoloPik = 'SOLO_PIK',
+	SoloHerz = 'SOLO_HERZ',
+	SoloKaro = 'SOLO_KARO',
+	SoloAss = 'SOLO_ASS'
+}
 
-export const SoloTypeEnum = pgEnum('solo_type', ['PFLICHT', 'LUST']);
-export type SoloTypeEnumValue = 'PFLICHT' | 'LUST';
+export enum SoloType {
+	Pflicht = 'PFLICHT',
+	Lust = 'LUST'
+}
 
-export const TeamEnum = pgEnum('team', ['RE', 'KONTRA']);
-export type TeamEnumValue = 'RE' | 'KONTRA';
+export enum Team {
+	RE = 'RE',
+	KONTRA = 'KONTRA'
+}
 
-export const CallTypeEnum = pgEnum('call_type', ['RE', 'KONTRA', 'KEINE90', 'KEINE60', 'KEINE30', 'SCHWARZ']);
-export type CallTypeEnumValue = 'RE' | 'KONTRA' | 'KEINE90' | 'KEINE60' | 'KEINE30' | 'SCHWARZ';
+export enum RoundResult {
+	WON = 'WON',
+	LOST = 'LOST',
+	DRAW = 'DRAW'
+}
 
-export const BonusTypeEnum = pgEnum('bonus_type', ['DOKO', 'FUCHS', 'KARLCHEN']);
-export type BonusTypeEnumValue = 'DOKO' | 'FUCHS' | 'KARLCHEN';
+export enum CallType {
+	RE = 'RE',
+	KONTRA = 'KONTRA',
+	Keine90 = 'KEINE90',
+	Keine60 = 'KEINE60',
+	Keine30 = 'KEINE30',
+	Schwarz = 'SCHWARZ'
+}
+
+export enum BonusType {
+	Doko = 'DOKO',
+	Fuchs = 'FUCHS',
+	Karlchen = 'KARLCHEN'
+}
+
+// Type aliases for enum values
+export type AuthProviderType = `${AuthProvider}`;
+export type RoundTypeEnum = `${RoundType}`;
+export type SoloTypeEnumValue = `${SoloType}`;
+export type TeamEnumValue = `${Team}`;
+export type CallTypeEnumValue = `${CallType}`;
+export type BonusTypeEnumValue = `${BonusType}`;
+export type RoundResultEnumValue = `${RoundResult}`;
+
+// Database enums for Drizzle (derived from TypeScript enums)
+const AuthProviderDbEnum = pgEnum('auth_provider', Object.values(AuthProvider) as [AuthProvider, ...AuthProvider[]]);
+const RoundTypeDbEnum = pgEnum('round_type', Object.values(RoundType) as [RoundType, ...RoundType[]]);
+const SoloTypeDbEnum = pgEnum('solo_type', Object.values(SoloType) as [SoloType, ...SoloType[]]);
+const TeamDbEnum = pgEnum('team', Object.values(Team) as [Team, ...Team[]]);
+const CallTypeDbEnum = pgEnum('call_type', Object.values(CallType) as [CallType, ...CallType[]]);
+const BonusTypeDbEnum = pgEnum('bonus_type', Object.values(BonusType) as [BonusType, ...BonusType[]]);
 
 export const PlayerTable = pgTable('players', {
 	id: uuid('id').primaryKey().defaultRandom(),
 	name: text('name').notNull().unique(),
 	displayName: text('display_name').notNull(),
-	authProvider: AuthProviderEnum('auth_provider').notNull().default('local'),
+	authProvider: AuthProviderDbEnum('auth_provider').notNull().default(AuthProvider.Local),
 	authProviderId: text('auth_provider_id'),
 	createdAt: timestamp('created_at').notNull().defaultNow()
 
@@ -98,9 +137,9 @@ export const CreateGameSchema = z.object({
 		.uuid('Ungültige Spieler-ID für Sitzposition 4')
 });
 
-const roundTypeValues = RoundTypeEnum.enumValues;
-const soloTypeValues = SoloTypeEnum.enumValues;
-const teamValues = TeamEnum.enumValues;
+const roundTypeValues = RoundTypeDbEnum.enumValues;
+const soloTypeValues = SoloTypeDbEnum.enumValues;
+const teamValues = TeamDbEnum.enumValues;
 
 export const CreateRoundSchema = z.object({
 	type: z.enum(roundTypeValues as [RoundTypeEnum, ...RoundTypeEnum[]]),
@@ -139,8 +178,8 @@ export const GameRoundTable = pgTable('game_round', {
 	id: uuid('id').primaryKey().defaultRandom(),
 	gameId: uuid('game_id').notNull().references(() => GameTable.id, { onDelete: 'cascade' }),
 	roundNumber: integer('round_number').notNull(),
-	type: RoundTypeEnum('type').notNull(),
-	soloType: SoloTypeEnum('solo_type'), // optional
+	type: RoundTypeDbEnum('type').notNull(),
+	soloType: SoloTypeDbEnum('solo_type'), // optional
 	eyesRe: integer('eyes_re').notNull() // 0-240
 });
 export type GameRoundType = InferSelectModel<typeof GameRoundTable>;
@@ -150,7 +189,7 @@ export const GameRoundParticipantTable = pgTable('game_round_participant', {
 	id: uuid('id').primaryKey().defaultRandom(),
 	roundId: uuid('round_id').notNull().references(() => GameRoundTable.id, { onDelete: 'cascade' }),
 	playerId: uuid('player_id').notNull().references(() => PlayerTable.id, { onDelete: 'cascade' }),
-	team: TeamEnum('team').notNull() // RE oder KONTRA
+	team: TeamDbEnum('team').notNull() // RE oder KONTRA
 });
 export type GameRoundParticipantType = InferSelectModel<typeof GameRoundParticipantTable>;
 export type GameRoundParticipantInsertType = InferInsertModel<typeof GameRoundParticipantTable>;
@@ -168,7 +207,7 @@ export const GameRoundCallTable = pgTable('game_round_call', {
 	id: uuid('id').primaryKey().defaultRandom(),
 	roundId: uuid('round_id').notNull().references(() => GameRoundTable.id, { onDelete: 'cascade' }),
 	playerId: uuid('player_id').notNull().references(() => PlayerTable.id, { onDelete: 'cascade' }),
-	callType: CallTypeEnum('call_type').notNull()
+	callType: CallTypeDbEnum('call_type').notNull()
 });
 export type GameRoundCallType = InferSelectModel<typeof GameRoundCallTable>;
 export type GameRoundCallInsertType = InferInsertModel<typeof GameRoundCallTable>;
@@ -177,7 +216,7 @@ export const GameRoundBonusTable = pgTable('game_round_bonus', {
 	id: uuid('id').primaryKey().defaultRandom(),
 	roundId: uuid('round_id').notNull().references(() => GameRoundTable.id, { onDelete: 'cascade' }),
 	playerId: uuid('player_id').notNull().references(() => PlayerTable.id, { onDelete: 'cascade' }),
-	bonusType: BonusTypeEnum('bonus_type').notNull(),
+	bonusType: BonusTypeDbEnum('bonus_type').notNull(),
 	count: integer('count').notNull().default(0) // Anzahl der Bonus-Punkte
 });
 export type GameRoundBonusType = InferSelectModel<typeof GameRoundBonusTable>;

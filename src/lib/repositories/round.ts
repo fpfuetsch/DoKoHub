@@ -10,9 +10,6 @@ import {
 	GameParticipantTable
 } from '$lib/server/db/schema';
 import type {
-	RoundTypeEnum,
-	SoloTypeEnumValue,
-	TeamEnumValue,
 	GameRoundType,
 	PlayerType
 } from '$lib/server/db/schema';
