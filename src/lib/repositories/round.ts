@@ -4,16 +4,23 @@ import {
 	GameRoundParticipantTable,
 	GameRoundCallTable,
 	GameRoundBonusTable,
+	GameRoundResultTable,
 	GameTable,
+	GameParticipantTable,
 	GroupMemberTable,
 	PlayerTable,
-	GameParticipantTable
+	RoundType,
+	Team,
+	CallType,
+	BonusType,
+	SoloType,
+	RoundResult
 } from '$lib/server/db/schema';
 import type {
 	GameRoundType,
 	PlayerType
 } from '$lib/server/db/schema';
-import type { RoundType, GameRoundParticipant, GameRoundCall, GameRoundBonus } from '$lib/domain/round';
+import type { RoundData, GameRoundParticipant, GameRoundCall, GameRoundBonus } from '$lib/domain/round';
 import { Round } from '$lib/domain/round';
 import { Player } from '$lib/domain/player';
 import { and, eq } from 'drizzle-orm';
@@ -21,12 +28,12 @@ import { and, eq } from 'drizzle-orm';
 export class RoundRepository {
 	constructor(private readonly principalId: string) {}
 
-	async getById(roundId: string, gameId: string, groupId: string): Promise<RoundType | null> {
+	async getById(roundId: string, gameId: string, groupId: string): Promise<RoundData | null> {
 		if (!(await this.roundBelongsToUserGroup(roundId, gameId, groupId))) return null;
 		return this.getRoundById(roundId);
 	}
 
-	async getRoundsForGame(gameId: string, groupId: string): Promise<RoundType[]> {
+	async getRoundsForGame(gameId: string, groupId: string): Promise<RoundData[]> {
 		if (!(await this.isGroupMember(groupId))) return [];
 
 		const gameRow = await db
@@ -42,7 +49,7 @@ export class RoundRepository {
 			.from(GameRoundTable)
 			.where(eq(GameRoundTable.gameId, gameId));
 
-		const rounds: RoundType[] = [];
+		const rounds: RoundData[] = [];
 		for (const roundRow of roundRows) {
 			const roundData = roundRow as GameRoundType;
 			const participants = await this.getParticipantsForRound(roundData.id);
@@ -60,7 +67,7 @@ export class RoundRepository {
 		return rounds.sort((a, b) => a.roundNumber - b.roundNumber);
 	}
 
-	async updateRound(roundId: string, gameId: string, groupId: string, round: RoundType): Promise<RoundType | null> {
+	async updateRound(roundId: string, gameId: string, groupId: string, round: RoundData): Promise<RoundData | null> {
 		if (!(await this.roundBelongsToUserGroup(roundId, gameId, groupId))) return null;
 
 		const existing = await this.getRoundById(roundId);
@@ -72,7 +79,7 @@ export class RoundRepository {
 			throw new Error('Teilnehmer stimmen nicht mit dem Spiel überein');
 		}
 
-		const draft: RoundType = {
+		const draft: RoundData = {
 			...round,
 			id: roundId,
 			roundNumber: existing.roundNumber
@@ -81,32 +88,41 @@ export class RoundRepository {
 		const validationError = Round.validate(draft);
 		if (validationError) throw new Error(validationError);
 
-		await db.update(GameRoundTable).set({ type: draft.type, soloType: draft.soloType, eyesRe: draft.eyesRe }).where(eq(GameRoundTable.id, roundId));
+		await db.update(GameRoundTable).set({ type: draft.type as RoundType, soloType: draft.soloType as SoloType | null, eyesRe: draft.eyesRe }).where(eq(GameRoundTable.id, roundId));
 
 		await db.delete(GameRoundCallTable).where(eq(GameRoundCallTable.roundId, roundId));
 		await db.delete(GameRoundBonusTable).where(eq(GameRoundBonusTable.roundId, roundId));
 		await db.delete(GameRoundParticipantTable).where(eq(GameRoundParticipantTable.roundId, roundId));
 
 		for (const participant of draft.participants) {
-			await db.insert(GameRoundParticipantTable).values({ roundId, playerId: participant.playerId, team: participant.team });
+			await db.insert(GameRoundParticipantTable).values({ roundId, playerId: participant.playerId, team: participant.team as Team });
 			for (const call of participant.calls) {
-				await db.insert(GameRoundCallTable).values({ roundId, playerId: participant.playerId, callType: call.callType });
+				await db.insert(GameRoundCallTable).values({ roundId, playerId: participant.playerId, callType: call.callType as CallType });
 			}
 			for (const bonus of participant.bonuses) {
 				await db.insert(GameRoundBonusTable).values({
 					roundId,
 					playerId: participant.playerId,
-					bonusType: bonus.bonusType,
+					bonusType: bonus.bonusType as BonusType,
 					count: bonus.count
 				});
 			}
 		}
 
-		return this.getRoundById(roundId);
+		// Calculate and persist round results
+		const updatedRound = await this.getRoundById(roundId);
+		if (updatedRound) {
+			await this.persistRoundResults(roundId, updatedRound);
+		}
+
+		return updatedRound;
 	}
 
 	async deleteRound(roundId: string, gameId: string, groupId: string): Promise<boolean> {
 		if (!(await this.roundBelongsToUserGroup(roundId, gameId, groupId))) return false;
+
+		// Cleanup round results first
+		await db.delete(GameRoundResultTable).where(eq(GameRoundResultTable.roundId, roundId));
 
 		await db.delete(GameRoundBonusTable).where(eq(GameRoundBonusTable.roundId, roundId));
 		await db.delete(GameRoundCallTable).where(eq(GameRoundCallTable.roundId, roundId));
@@ -116,7 +132,7 @@ export class RoundRepository {
 		return result.length > 0;
 	}
 
-	async addRound(gameId: string, groupId: string, round: RoundType): Promise<RoundType | null> {
+	async addRound(gameId: string, groupId: string, round: RoundData): Promise<RoundData | null> {
 		if (!(await this.isGroupMember(groupId))) return null;
 
 		const gameRow = await db
@@ -136,7 +152,7 @@ export class RoundRepository {
 		const roundCount = await db.select().from(GameRoundTable).where(eq(GameRoundTable.gameId, gameId));
 		const nextRoundNumber = roundCount.length + 1;
 
-		const draft: RoundType = {
+		const draft: RoundData = {
 			...round,
 			id: 'draft',
 			roundNumber: nextRoundNumber
@@ -147,30 +163,60 @@ export class RoundRepository {
 
 		const [insertedRound] = await db
 			.insert(GameRoundTable)
-			.values({ gameId, roundNumber: nextRoundNumber, type: draft.type, soloType: draft.soloType, eyesRe: draft.eyesRe })
+			.values({ gameId, roundNumber: nextRoundNumber, type: draft.type as RoundType, soloType: draft.soloType as SoloType | null, eyesRe: draft.eyesRe })
 			.returning();
 
 		const roundId = insertedRound.id;
 
 		for (const participant of draft.participants) {
-			await db.insert(GameRoundParticipantTable).values({ roundId, playerId: participant.playerId, team: participant.team });
+			await db.insert(GameRoundParticipantTable).values({ roundId, playerId: participant.playerId, team: participant.team as Team });
 			for (const call of participant.calls) {
-				await db.insert(GameRoundCallTable).values({ roundId, playerId: participant.playerId, callType: call.callType });
+				await db.insert(GameRoundCallTable).values({ roundId, playerId: participant.playerId, callType: call.callType as CallType });
 			}
 			for (const bonus of participant.bonuses) {
 				await db.insert(GameRoundBonusTable).values({
 					roundId,
 					playerId: participant.playerId,
-					bonusType: bonus.bonusType,
+					bonusType: bonus.bonusType as BonusType,
 					count: bonus.count
 				});
 			}
 		}
 
-		return this.getRoundById(roundId);
+		// Calculate and persist round results
+		const newRound = await this.getRoundById(roundId);
+		if (newRound) {
+			await this.persistRoundResults(roundId, newRound);
+		}
+
+		return newRound;
 	}
 
-	private async getRoundById(roundId: string): Promise<RoundType | null> {
+	private async persistRoundResults(roundId: string, round: RoundData): Promise<void> {
+		try {
+			// Calculate points for this round
+			const roundInstance = new Round(round);
+			const roundPoints = roundInstance.calculatePoints();
+
+			// Delete existing results for this round
+			await db.delete(GameRoundResultTable).where(eq(GameRoundResultTable.roundId, roundId));
+
+			// Insert new results
+			await db.insert(GameRoundResultTable).values(
+				roundPoints.map((rp: { playerId: string; points: number; result: string }) => ({
+					roundId,
+					playerId: rp.playerId,
+					points: rp.points,
+					result: rp.result as RoundResult
+				}))
+			);
+		} catch (error) {
+			// Log error but don't fail the round operation if persistence fails
+			console.error(`Failed to persist round results for round ${roundId}:`, error);
+		}
+	}
+
+	private async getRoundById(roundId: string): Promise<RoundData | null> {
 		const roundRow = await db
 			.select()
 			.from(GameRoundTable)

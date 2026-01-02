@@ -1,6 +1,6 @@
 import type { GameType } from '$lib/server/db/schema';
 import { Player } from './player';
-import type { RoundType } from './round';
+import type { Round } from './round';
 
 export interface GameParticipant {
 	playerId: string;
@@ -16,12 +16,12 @@ export class Game implements GameType {
 	createdAt: Date;
 	endedAt: Date | null;
 	participants: GameParticipant[] = [];
-	rounds: RoundType[] = [];
+	rounds: Round[] = [];
 
 	constructor(
 		data: GameType,
 		participants: GameParticipant[] = [],
-		rounds: RoundType[] = []
+		rounds: Round[] = []
 	) {
 		this.id = data.id;
 		this.groupId = data.groupId;

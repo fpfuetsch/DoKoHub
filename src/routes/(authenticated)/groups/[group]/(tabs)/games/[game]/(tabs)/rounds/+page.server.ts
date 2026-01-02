@@ -1,6 +1,6 @@
 import { GameRepository } from '$lib/repositories/game';
 import { RoundRepository } from '$lib/repositories/round';
-import { Round, type RoundType } from '$lib/domain/round';
+import { Round, type RoundData } from '$lib/domain/round';
 import { requireUserOrFail } from '$lib/server/auth/guard';
 import { CreateRoundSchema, type TeamEnumValue as Team, type CallTypeEnumValue, type BonusTypeEnumValue } from '$lib/server/db/schema';
 import { fail, type RequestEvent, type ServerLoad } from '@sveltejs/kit';
@@ -110,7 +110,7 @@ export const actions = {
 
 			const teamAssignments = buildTeamAssignments(parsed.data.teams, game);
 
-			const roundDraft: RoundType = {
+			const roundDraft: RoundData = {
 				id: 'draft',
 				roundNumber: game.rounds?.length ? game.rounds.length + 1 : 1,
 				type: parsed.data.type,

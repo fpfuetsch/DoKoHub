@@ -65,12 +65,13 @@ export type BonusTypeEnumValue = `${BonusType}`;
 export type RoundResultEnumValue = `${RoundResult}`;
 
 // Database enums for Drizzle (derived from TypeScript enums)
-const AuthProviderDbEnum = pgEnum('auth_provider', Object.values(AuthProvider) as [AuthProvider, ...AuthProvider[]]);
-const RoundTypeDbEnum = pgEnum('round_type', Object.values(RoundType) as [RoundType, ...RoundType[]]);
-const SoloTypeDbEnum = pgEnum('solo_type', Object.values(SoloType) as [SoloType, ...SoloType[]]);
-const TeamDbEnum = pgEnum('team', Object.values(Team) as [Team, ...Team[]]);
-const CallTypeDbEnum = pgEnum('call_type', Object.values(CallType) as [CallType, ...CallType[]]);
-const BonusTypeDbEnum = pgEnum('bonus_type', Object.values(BonusType) as [BonusType, ...BonusType[]]);
+export const AuthProviderDbEnum = pgEnum('auth_provider', Object.values(AuthProvider) as [AuthProvider, ...AuthProvider[]]);
+export const RoundTypeDbEnum = pgEnum('round_type', Object.values(RoundType) as [RoundType, ...RoundType[]]);
+export const SoloTypeDbEnum = pgEnum('solo_type', Object.values(SoloType) as [SoloType, ...SoloType[]]);
+export const TeamDbEnum = pgEnum('team', Object.values(Team) as [Team, ...Team[]]);
+export const CallTypeDbEnum = pgEnum('call_type', Object.values(CallType) as [CallType, ...CallType[]]);
+export const BonusTypeDbEnum = pgEnum('bonus_type', Object.values(BonusType) as [BonusType, ...BonusType[]]);
+export const RoundResultDbEnum = pgEnum('round_result', Object.values(RoundResult) as [RoundResult, ...RoundResult[]]);
 
 export const PlayerTable = pgTable('players', {
 	id: uuid('id').primaryKey().defaultRandom(),
@@ -221,3 +222,13 @@ export const GameRoundBonusTable = pgTable('game_round_bonus', {
 });
 export type GameRoundBonusType = InferSelectModel<typeof GameRoundBonusTable>;
 export type GameRoundBonusInsertType = InferInsertModel<typeof GameRoundBonusTable>;
+
+export const GameRoundResultTable = pgTable('game_round_result', {
+	id: uuid('id').primaryKey().defaultRandom(),
+	roundId: uuid('round_id').notNull().references(() => GameRoundTable.id, { onDelete: 'cascade' }),
+	playerId: uuid('player_id').notNull().references(() => PlayerTable.id, { onDelete: 'cascade' }),
+	points: integer('points').notNull(),
+	result: RoundResultDbEnum('result').notNull() // WON, LOST, DRAW
+});
+export type GameRoundResultType = InferSelectModel<typeof GameRoundResultTable>;
+export type GameRoundResultInsertType = InferInsertModel<typeof GameRoundResultTable>;
