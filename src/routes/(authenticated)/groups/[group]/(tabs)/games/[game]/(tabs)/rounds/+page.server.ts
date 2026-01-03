@@ -1,5 +1,5 @@
-import { GameRepository } from '$lib/repositories/game';
-import { RoundRepository } from '$lib/repositories/round';
+import { GameRepository } from '$lib/server/repositories/game';
+import { RoundRepository } from '$lib/server/repositories/round';
 import { Round, type RoundData } from '$lib/domain/round';
 import { requireUserOrFail } from '$lib/server/auth/guard';
 import { CreateRoundSchema } from '$lib/server/db/schema';

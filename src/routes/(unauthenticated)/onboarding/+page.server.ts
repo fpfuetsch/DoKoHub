@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { PlayerRepository } from '$lib/repositories/player';
+import { PlayerRepository } from '$lib/server/repositories/player';
 import { PlayerProfileSchema, PlayerNameSchema, PlayerDisplayNameSchema } from '$lib/server/db/schema';
 import {
 	ONBOARDING_COOKIE,

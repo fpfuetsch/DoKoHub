@@ -1,4 +1,4 @@
-import { GroupRepository } from '$lib/repositories/group';
+import { GroupRepository } from '$lib/server/repositories/group';
 import type { LayoutServerLoad } from './$types';
 import { requireUserOrRedirectToLogin } from '$lib/server/auth/guard';
 

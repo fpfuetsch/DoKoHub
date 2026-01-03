@@ -1,5 +1,5 @@
-import { PlayerRepository } from '$lib/repositories/player';
-import { GroupRepository } from '$lib/repositories/group';
+import { PlayerRepository } from '$lib/server/repositories/player';
+import { GroupRepository } from '$lib/server/repositories/group';
 import { fail } from '@sveltejs/kit';
 import { requireUserOrFail } from '$lib/server/auth/guard';
 import { AuthProvider } from '$lib/server/enums';

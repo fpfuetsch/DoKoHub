@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions } from './$types';
-import { PlayerRepository } from '$lib/repositories/player';
+import { PlayerRepository } from '$lib/server/repositories/player';
 import { PlayerProfileSchema } from '$lib/server/db/schema';
 import { requireUserOrFail } from '$lib/server/auth/guard';
 

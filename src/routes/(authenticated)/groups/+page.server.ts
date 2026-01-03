@@ -1,4 +1,4 @@
-import { GroupRepository } from '$lib/repositories/group';
+import { GroupRepository } from '$lib/server/repositories/group';
 import { GroupNameSchema } from '$lib/server/db/schema';
 import { requireUserOrRedirectToLogin, requireUserOrFail } from '$lib/server/auth/guard';
 import type { PageServerLoad, Actions } from './$types';

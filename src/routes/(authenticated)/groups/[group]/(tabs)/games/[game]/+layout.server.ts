@@ -1,4 +1,4 @@
-import { GameRepository } from '$lib/repositories/game';
+import { GameRepository } from '$lib/server/repositories/game';
 import { requireUserOrRedirectToLogin } from '$lib/server/auth/guard';
 import type { LayoutServerLoad } from './$types';
 

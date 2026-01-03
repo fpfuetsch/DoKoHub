@@ -1,5 +1,5 @@
-import { GameRepository } from '$lib/repositories/game';
-import { GroupRepository } from '$lib/repositories/group';
+import { GameRepository } from '$lib/server/repositories/game';
+import { GroupRepository } from '$lib/server/repositories/group';
 import { requireUserOrFail, requireUserOrRedirectToLogin } from '$lib/server/auth/guard';
 import { CreateGameSchema } from '$lib/server/db/schema';
 import type { PageServerLoad, Actions } from './$types';

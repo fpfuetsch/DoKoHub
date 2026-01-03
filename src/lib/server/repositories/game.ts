@@ -1,4 +1,4 @@
-import { RoundRepository } from '$lib/repositories/round';
+import { RoundRepository } from '$lib/server/repositories/round';
 import { db } from '$lib/server/db';
 import { GameTable, GameParticipantTable, PlayerTable, GroupMemberTable } from '$lib/server/db/schema';
 import { Game, type GameParticipant } from '$lib/domain/game';

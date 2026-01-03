@@ -8,7 +8,7 @@ import {
 } from '$lib/server/auth/google';
 import { SESSION_COOKIE_NAME, createSessionToken, sessionCookieAttributes } from '$lib/server/auth/session';
 import { ONBOARDING_COOKIE, createOnboardingToken, onboardingCookieAttributes } from '$lib/server/auth/onboarding';
-import { PlayerRepository } from '$lib/repositories/player';
+import { PlayerRepository } from '$lib/server/repositories/player';
 import { AuthProvider } from '$lib/server/enums';
 import type { RequestHandler } from './$types';
 
