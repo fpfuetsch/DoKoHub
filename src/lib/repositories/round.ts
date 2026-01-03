@@ -85,7 +85,13 @@ export class RoundRepository {
 			roundNumber: existing.roundNumber
 		};
 
-		const validationError = Round.validate(draft);
+		// Get game's mandatory solos setting for validation
+		const [game] = await db.select({ withMandatorySolos: GameTable.withMandatorySolos })
+			.from(GameTable)
+			.where(eq(GameTable.id, gameId));
+		if (!game) throw new Error('Spiel nicht gefunden');
+
+		const validationError = Round.validate(draft, game.withMandatorySolos);
 		if (validationError) throw new Error(validationError);
 
 		await db.update(GameRoundTable).set({ type: draft.type as RoundType, soloType: draft.soloType as SoloType | null, eyesRe: draft.eyesRe }).where(eq(GameRoundTable.id, roundId));
@@ -158,7 +164,13 @@ export class RoundRepository {
 			roundNumber: nextRoundNumber
 		};
 
-		const validationError = Round.validate(draft);
+		// Get game's mandatory solos setting for validation
+		const [game] = await db.select({ withMandatorySolos: GameTable.withMandatorySolos })
+			.from(GameTable)
+			.where(eq(GameTable.id, gameId));
+		if (!game) throw new Error('Spiel nicht gefunden');
+
+		const validationError = Round.validate(draft, game.withMandatorySolos);
 		if (validationError) throw new Error(validationError);
 
 		const [insertedRound] = await db

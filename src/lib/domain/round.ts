@@ -6,7 +6,7 @@ import type {
     BonusTypeEnumValue,
     RoundResultEnumValue
 } from '$lib/server/db/schema';
-import { Team, CallType, BonusType, RoundType, RoundResult } from '$lib/server/db/schema';
+import { Team, CallType, BonusType, RoundType, RoundResult, SoloType } from '$lib/server/db/schema';
 import { Player } from './player';
 
 export interface GameRoundCall {
@@ -94,7 +94,14 @@ export class Round implements RoundData {
         });
     }
 
-    static validate(round: RoundData): string | null {
+    static validate(round: RoundData, withMandatorySolos: boolean = false): string | null {
+        // Validate solo type is only LUST or PFLICHT when game has mandatory solos
+        if (round.soloType && !withMandatorySolos) {
+            if (round.soloType === SoloType.Lust || round.soloType === SoloType.Pflicht) {
+                return 'Solotyp (Lust- oder Pflichtsolo) ist nur bei Spielen mit Pflichtsolo erlaubt';
+            }
+        }
+
         if (round.participants.some((p) => !p.team)) {
             return 'Alle Spieler müssen einem Team zugeordnet werden';
         }
@@ -158,8 +165,8 @@ export class Round implements RoundData {
         return null;
     }
 
-    validate(): string | null {
-        return Round.validate(this);
+    validate(withMandatorySolos: boolean = false): string | null {
+        return Round.validate(this, withMandatorySolos);
     }
 
     /**
@@ -205,10 +212,16 @@ export class Round implements RoundData {
         rePoints += reBonusPoints - kontraBonusPoints;
         kontraPoints += kontraBonusPoints - reBonusPoints;
 
+        // In solo games (including stille and ungeklärte hochzeit), the solo player (RE) gets 3x the points
+        const isSolo = this.type.startsWith('SOLO') ||
+                       this.type === RoundType.HochzeitStill ||
+                       this.type === RoundType.HochzeitUngeklaert;
+        const soloRePoints = isSolo ? rePoints * 3 : rePoints;
+
         // Distribute points to players
         return this.participants.map((p) => ({
             playerId: p.playerId,
-            points: p.team === Team.RE ? rePoints : kontraPoints,
+            points: p.team === Team.RE ? soloRePoints : kontraPoints,
             result: p.team === Team.RE
                 ? (reWon ? RoundResult.WON : (kontraWon ? RoundResult.LOST : RoundResult.DRAW))
                 : (kontraWon ? RoundResult.WON : (reWon ? RoundResult.LOST : RoundResult.DRAW))

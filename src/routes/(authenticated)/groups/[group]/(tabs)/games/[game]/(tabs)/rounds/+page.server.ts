@@ -128,7 +128,7 @@ export const actions = {
 				})
 			};
 
-			const validationError = Round.validate(roundDraft as any);
+			const validationError = Round.validate(roundDraft as any, game.withMandatorySolos);
 			if (validationError) {
 				return fail(400, {
 					error: validationError,

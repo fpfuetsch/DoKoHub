@@ -228,7 +228,7 @@ describe('Round.calculatePoints', () => {
 
 			// RE should get: +1 win, +2 for RE call, +1 for KEINE90 call, +1 for <90
 			expect(reResult).toBe(RoundResult.WON);
-			expect(rePoints).toStrictEqual(5);
+			expect(rePoints).toStrictEqual(15);
 			expect(kontraPoints).toStrictEqual(-5);
 		});
 	});
@@ -314,7 +314,7 @@ describe('Round.calculatePoints', () => {
             const kontraResult_3 = points[2].result;
 
 			// Kontra should get: +1 win only (no bonus in solo round)
-			expect(rePoints).toStrictEqual(-1);
+			expect(rePoints).toStrictEqual(-3);
 			expect(kontraPoints_1).toStrictEqual(1);
 			expect(kontraPoints_2).toStrictEqual(1);
 			expect(kontraPoints_3).toStrictEqual(1);
@@ -339,7 +339,7 @@ describe('Round.calculatePoints', () => {
             const kontraResult = points[1].result;
 
 			// RE should get: +1 win only (no bonus in solo round)
-			expect(rePoints).toStrictEqual(1);
+			expect(rePoints).toStrictEqual(3);
 			expect(kontraPoints).toStrictEqual(-1);
             expect(reResult).toBe(RoundResult.WON);
             expect(kontraResult).toBe(RoundResult.LOST);
@@ -361,7 +361,7 @@ describe('Round.calculatePoints', () => {
             const kontraResult = points[1].result;
 
 			// RE should get: +1 win only (no bonus in solo round)
-			expect(rePoints).toStrictEqual(1);
+			expect(rePoints).toStrictEqual(3);
 			expect(kontraPoints).toStrictEqual(-1);
             expect(reResult).toBe(RoundResult.WON);
             expect(kontraResult).toBe(RoundResult.LOST);

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Hr, Button, Modal, Label, Input, Alert } from 'flowbite-svelte';
+	import { Button, Modal, Label, Input, Alert } from 'flowbite-svelte';
 	import { PlusOutline, InfoCircleSolid, ExclamationCircleSolid } from 'flowbite-svelte-icons';
 	import { Group } from '$lib/domain/group';
 	import { formatDate } from '$lib/utils/format';
@@ -23,9 +23,9 @@
 	};
 </script>
 
-<div>
+<div class="flex flex-col items-center gap-4 pt-4">
 	{#if groups.length === 0}
-		<Alert class="mb-6" color="secondary">
+		<Alert class="w-full max-w-xl" color="secondary">
 			{#snippet icon()}
 				<InfoCircleSolid class="h-5 w-5" />
 			{/snippet}
@@ -33,29 +33,34 @@
 			<div>Erstelle eine neue Gruppe oder lass dich einladen.</div>
 		</Alert>
 	{:else}
-		<div class="h-auto overflow-auto">
-			<ul>
-				{#each groups as group}
-					<a href={`/groups/${group.id}`} class="block">
-						<li class="mb-4 rounded p-2 transition-colors duration-150 hover:bg-gray-100">
-							<div class="text-lg font-bold truncate">{group.name}</div>
-							<div class="mb-1 text-sm text-gray-500">
-								Erstellt am: {formatDate(group.createdAt)}
+		<ul class="w-full max-w-xl space-y-2 pr-4 pl-4">
+			{#each groups as group}
+				<a
+					href="/groups/{group.id}"
+					class="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition cursor-pointer"
+				>
+					<div class="flex-1 space-y-1 font-medium dark:text-white">
+						<div class="font-semibold text-gray-900 dark:text-white">
+							{group.name}
+						</div>
+						<div class="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+							<div>
+								<span class="font-medium">Erstellt am:</span>
+								{formatDate(group.createdAt)}
 							</div>
-							<div class="text-sm">
-								Mitglieder:
+							<div>
+								<span class="font-medium">Mitglieder:</span>
 								{#if group.players.length === 0}
 									<span class="italic">Keine Mitglieder</span>
 								{:else}
 									<span>{group.players.map((p) => p.displayName).join(', ')}</span>
 								{/if}
 							</div>
-						</li>
-					</a>
-					<Hr class="my-4" />
-				{/each}
-			</ul>
-		</div>
+						</div>
+					</div>
+				</a>
+			{/each}
+		</ul>
 	{/if}
 </div>
 
