@@ -52,7 +52,7 @@
 	};
 </script>
 
-<div class="flex flex-col items-center gap-4 pt-4">
+<div class="flex flex-col items-center gap-4">
 	{#if !canCreateGame}
 		<Alert color="yellow" class="w-full max-w-xl">
 			{#snippet icon()}
@@ -71,7 +71,7 @@
 			<div>Erstelle ein neues Spiel über den Button unten rechts.</div>
 		</Alert>
 	{:else}
-		<ul class="w-full max-w-xl space-y-2 pr-4 pl-4">
+		<ul class="w-full max-w-xl space-y-2">
 			{#each games as game}
 				<a
 					href="/groups/{group.id}/games/{game.id}/rounds"

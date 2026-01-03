@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Round } from './round';
-import { Team, CallType, BonusType, RoundType, RoundResult } from '$lib/server/db/schema';
+import { Team, CallType, BonusType, RoundType, RoundResult } from '$lib/domain/enums';
 import type { RoundData, GameRoundParticipant } from './round';
 
 describe('Round.calculatePoints', () => {

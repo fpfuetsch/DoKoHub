@@ -2,7 +2,9 @@ import { GameRepository } from '$lib/repositories/game';
 import { RoundRepository } from '$lib/repositories/round';
 import { Round, type RoundData } from '$lib/domain/round';
 import { requireUserOrFail } from '$lib/server/auth/guard';
-import { CreateRoundSchema, type TeamEnumValue as Team, type CallTypeEnumValue, type BonusTypeEnumValue } from '$lib/server/db/schema';
+import { CreateRoundSchema } from '$lib/server/db/schema';
+import type { TeamEnumValue as Team, CallTypeEnumValue, BonusTypeEnumValue } from '$lib/domain/enums';
+import { CallType } from '$lib/server/enums';
 import { fail, type RequestEvent, type ServerLoad } from '@sveltejs/kit';
 
 export const load: ServerLoad = async ({ parent }) => {
@@ -21,7 +23,7 @@ function parseTeamsFromFormData(formData: FormData): Record<string, string> {
 }
 
 function parseCallsFromFormData(formData: FormData): Record<string, { playerId: string; callType: CallTypeEnumValue }[]> {
-	const allowedCalls = new Set<CallTypeEnumValue>(['RE', 'KONTRA', 'KEINE90', 'KEINE60', 'KEINE30', 'SCHWARZ']);
+	const allowedCalls = new Set<CallTypeEnumValue>([CallType.RE, CallType.KONTRA, CallType.Keine90, CallType.Keine60, CallType.Keine30, CallType.Schwarz]);
 	const callsObj: Record<string, { playerId: string; callType: CallTypeEnumValue }[]> = {};
 	for (const [key, value] of formData.entries()) {
 		if (key.startsWith('player_') && key.includes('_call_')) {

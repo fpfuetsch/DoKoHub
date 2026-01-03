@@ -23,7 +23,7 @@
 	};
 </script>
 
-<div class="flex flex-col items-center gap-4 pt-4">
+<div class="flex flex-col items-center gap-4">
 	{#if groups.length === 0}
 		<Alert class="w-full max-w-xl" color="secondary">
 			{#snippet icon()}
@@ -33,7 +33,7 @@
 			<div>Erstelle eine neue Gruppe oder lass dich einladen.</div>
 		</Alert>
 	{:else}
-		<ul class="w-full max-w-xl space-y-2 pr-4 pl-4">
+		<ul class="w-full max-w-xl space-y-2">
 			{#each groups as group}
 				<a
 					href="/groups/{group.id}"

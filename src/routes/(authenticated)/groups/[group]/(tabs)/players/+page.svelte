@@ -19,6 +19,7 @@
 	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
 	import type { Player } from '$lib/domain/player';
+	import { AuthProvider } from '$lib/domain/enums';
 
 	let { data, form }: PageProps = $props();
 
@@ -29,8 +30,8 @@
 	let playerToDelete = $state<Player | null>(null);
 </script>
 
-<div class="flex flex-col items-center gap-4 pt-4">
-	<ul class="w-full max-w-xl space-y-2 pr-4 pl-4">
+<div class="flex flex-col items-center gap-4">
+	<ul class="w-full max-w-xl space-y-2">
 		{#each players as player}
 			<li
 				class="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800"
@@ -43,7 +44,7 @@
 						<div class="text-gray-900 dark:text-white">
 							{player.displayName}
 						</div>
-						{#if player.authProvider === 'local'}
+						{#if player.authProvider == AuthProvider.Local}
 							<div class="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
 								<LinkBreakOutline class="h-4 w-4 shrink-0" />
 								Mit keinem Account verknüpft
@@ -51,7 +52,7 @@
 						{/if}
 					</div>
 				</div>
-				{#if player.authProvider === 'local'}
+				{#if player.authProvider == AuthProvider.Local}
 					<Button
 						color="red"
 						outline={true}

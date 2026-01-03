@@ -5,8 +5,8 @@ import type {
     CallTypeEnumValue,
     BonusTypeEnumValue,
     RoundResultEnumValue
-} from '$lib/server/db/schema';
-import { Team, CallType, BonusType, RoundType, RoundResult, SoloType } from '$lib/server/db/schema';
+} from '$lib/domain/enums';
+import { Team, CallType, BonusType, RoundType, RoundResult, SoloType } from '$lib/domain/enums';
 import { Player } from './player';
 
 export interface GameRoundCall {

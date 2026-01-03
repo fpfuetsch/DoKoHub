@@ -1,7 +1,8 @@
 import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
-import type { AuthProviderType, PlayerType } from '$lib/server/db/schema';
+import type { PlayerType } from '$lib/server/db/schema';
+import type { AuthProviderType } from '$lib/server/enums';
 
 const secret = new TextEncoder().encode(env.AUTH_JWT_SECRET ?? 'dev-secret-change-me');
 const issuer = 'dokohub';

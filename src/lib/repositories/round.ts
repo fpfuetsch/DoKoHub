@@ -8,14 +8,9 @@ import {
 	GameTable,
 	GameParticipantTable,
 	GroupMemberTable,
-	PlayerTable,
-	RoundType,
-	Team,
-	CallType,
-	BonusType,
-	SoloType,
-	RoundResult
+	PlayerTable
 } from '$lib/server/db/schema';
+import { RoundType, Team, CallType, BonusType, SoloType, RoundResult } from '$lib/server/enums';
 import type {
 	GameRoundType,
 	PlayerType
@@ -33,7 +28,7 @@ export class RoundRepository {
 		return this.getRoundById(roundId);
 	}
 
-	async getRoundsForGame(gameId: string, groupId: string): Promise<RoundData[]> {
+	async getRoundsForGame(gameId: string, groupId: string): Promise<Round[]> {
 		if (!(await this.isGroupMember(groupId))) return [];
 
 		const gameRow = await db
@@ -49,25 +44,25 @@ export class RoundRepository {
 			.from(GameRoundTable)
 			.where(eq(GameRoundTable.gameId, gameId));
 
-		const rounds: RoundData[] = [];
+		const rounds: Round[] = [];
 		for (const roundRow of roundRows) {
 			const roundData = roundRow as GameRoundType;
 			const participants = await this.getParticipantsForRound(roundData.id);
 
-			rounds.push({
+			rounds.push(new Round({
 				id: roundData.id,
 				roundNumber: roundData.roundNumber,
 				type: roundData.type,
 				soloType: roundData.soloType,
 				eyesRe: roundData.eyesRe,
 				participants
-			});
+			}));
 		}
 
 		return rounds.sort((a, b) => a.roundNumber - b.roundNumber);
 	}
 
-	async updateRound(roundId: string, gameId: string, groupId: string, round: RoundData): Promise<RoundData | null> {
+	async updateRound(roundId: string, gameId: string, groupId: string, round: RoundData): Promise<Round | null> {
 		if (!(await this.roundBelongsToUserGroup(roundId, gameId, groupId))) return null;
 
 		const existing = await this.getRoundById(roundId);
@@ -121,7 +116,7 @@ export class RoundRepository {
 			await this.persistRoundResults(roundId, updatedRound);
 		}
 
-		return updatedRound;
+		return updatedRound ? new Round(updatedRound as RoundData) : null;
 	}
 
 	async deleteRound(roundId: string, gameId: string, groupId: string): Promise<boolean> {
@@ -138,7 +133,7 @@ export class RoundRepository {
 		return result.length > 0;
 	}
 
-	async addRound(gameId: string, groupId: string, round: RoundData): Promise<RoundData | null> {
+	async addRound(gameId: string, groupId: string, round: RoundData): Promise<Round | null> {
 		if (!(await this.isGroupMember(groupId))) return null;
 
 		const gameRow = await db
@@ -201,7 +196,7 @@ export class RoundRepository {
 			await this.persistRoundResults(roundId, newRound);
 		}
 
-		return newRound;
+		return newRound ? new Round(newRound as RoundData) : null;
 	}
 
 	private async persistRoundResults(roundId: string, round: RoundData): Promise<void> {

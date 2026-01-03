@@ -11,6 +11,7 @@
 	import { enhance, applyAction } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import type { SubmitFunction } from '@sveltejs/kit';
+	import { RoundType, SoloType, Team, CallType } from '$lib/domain/enums';
 
 	let { data, form }: PageProps = $props();
 	const game: Game = $derived(data.game);
@@ -21,14 +22,14 @@
 	);
 
 	let roundModal = $state(false);
-	let roundType = $state<string>('NORMAL');
-	let soloType = $state<'PFLICHT' | 'LUST' | null>(null);
+	let roundType = $state<string>(RoundType.Normal);
+	let soloType = $state<SoloType | null>(null);
 	let soloTypeSelection = $state<string | null>(null);
 	let eyesReInput = $state(120);
-	let eyesTeam = $state<'RE' | 'KONTRA'>('RE');
+	let eyesTeam = $state<Team>(Team.RE);
 	let eyesError = $state<string | null>(null);
-	let playerTeams = $state<Record<string, 'RE' | 'KONTRA' | undefined>>({});
-	const bonusesAllowed = $derived(roundType === 'NORMAL' || roundType === 'HOCHZEIT_NORMAL');
+	let playerTeams = $state<Record<string, Team | undefined>>({});
+	const bonusesAllowed = $derived(roundType === RoundType.Normal || roundType === RoundType.HochzeitNormal);
 
 	// Player calls and bonus points
 	let playerCalls = $state<
@@ -36,8 +37,8 @@
 			string,
 			{
 				calls: {
-					team: 'RE' | 'KONTRA' | null;
-					type: 'KEINE90' | 'KEINE60' | 'KEINE30' | 'SCHWARZ' | null;
+					team: Team | null;
+					type: CallType | null;
 				};
 				bonus: { fuchs: number; doppelkopf: number; karlchen: boolean };
 			}
@@ -49,8 +50,8 @@
 
 	// Initialize player teams when modal opens
 	$effect(() => {
-		if (roundModal && Object.keys(playerTeams).length === 0) {
-			const teams: Record<string, 'RE' | 'KONTRA' | undefined> = {};
+			if (roundModal && Object.keys(playerTeams).length === 0) {
+			const teams: Record<string, Team | undefined> = {};
 			const calls: Record<
 				string,
 				{
@@ -108,11 +109,11 @@
 				await invalidateAll();
 				roundModal = false;
 				// Reset form
-				roundType = 'NORMAL';
+				roundType = RoundType.Normal;
 				soloType = null;
 				soloTypeSelection = null;
 				eyesReInput = 120;
-				eyesTeam = 'RE';
+				eyesTeam = Team.RE;
 				eyesError = null;
 				playerTeams = {};
 			}
@@ -120,20 +121,20 @@
 		};
 	};
 
-	const togglePlayerTeam = (playerId: string) => {
-		const current = playerTeams[playerId];
-		if (current === undefined) {
-			playerTeams[playerId] = 'RE';
-		} else if (current === 'RE') {
-			playerTeams[playerId] = 'KONTRA';
-		} else {
-			playerTeams[playerId] = undefined;
-		}
-	};
+		const togglePlayerTeam = (playerId: string) => {
+			const current = playerTeams[playerId];
+			if (current === undefined) {
+				playerTeams[playerId] = Team.RE;
+			} else if (current === Team.RE) {
+				playerTeams[playerId] = Team.KONTRA;
+			} else {
+				playerTeams[playerId] = undefined;
+			}
+		};
 
 	// Get the final round type based on selections
 	const getFinalRoundType = (): string => {
-		if (roundType === 'NORMAL') return 'NORMAL';
+		if (roundType === RoundType.Normal) return RoundType.Normal;
 		if (roundType.startsWith('HOCHZEIT')) return roundType;
 		if (roundType.startsWith('SOLO') && soloTypeSelection) {
 			return `SOLO_${soloTypeSelection}`;
@@ -193,7 +194,7 @@
 												? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100'
 												: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-100'}"
 										>
-											{roundParticipant?.team === 'RE' ? 'RE' : 'KONTRA'}
+											{roundParticipant?.team === Team.RE ? Team.RE : Team.KONTRA}
 										</div>
 									</div>
 								</td>
@@ -229,10 +230,10 @@
 						<ButtonGroup class="w-full">
 							<Button
 								type="button"
-								color={roundType === 'NORMAL' ? 'secondary' : 'light'}
+								color={roundType === RoundType.Normal ? 'secondary' : 'light'}
 								class="flex-1 "
 								onclick={() => {
-									roundType = 'NORMAL';
+									roundType = RoundType.Normal;
 									soloType = null;
 									soloTypeSelection = null;
 								}}
@@ -244,7 +245,7 @@
 								color={roundType.startsWith('HOCHZEIT') ? 'secondary' : 'light'}
 								class="flex-1 "
 								onclick={() => {
-									roundType = 'HOCHZEIT_NORMAL';
+									roundType = RoundType.HochzeitNormal;
 									soloType = null;
 									soloTypeSelection = null;
 								}}
@@ -256,8 +257,8 @@
 								color={roundType.startsWith('SOLO') ? 'secondary' : 'light'}
 								class="flex-1 "
 								onclick={() => {
-									roundType = 'SOLO_BUBEN';
-									soloType = game.withMandatorySolos ? 'PFLICHT' : null;
+									roundType = RoundType.SoloBuben;
+									soloType = game.withMandatorySolos ? SoloType.Pflicht : null;
 									soloTypeSelection = 'BUBEN';
 								}}
 							>
@@ -274,25 +275,25 @@
 							<ButtonGroup class="w-full">
 								<Button
 									type="button"
-									color={roundType === 'HOCHZEIT_NORMAL' ? 'secondary' : 'light'}
+									color={roundType === RoundType.HochzeitNormal ? 'secondary' : 'light'}
 									class="flex-1  text-xs"
-									onclick={() => (roundType = 'HOCHZEIT_NORMAL')}
+									onclick={() => (roundType = RoundType.HochzeitNormal)}
 								>
 									Normal
 								</Button>
 								<Button
 									type="button"
-									color={roundType === 'HOCHZEIT_STILL' ? 'secondary' : 'light'}
+									color={roundType === RoundType.HochzeitStill ? 'secondary' : 'light'}
 									class="flex-1  text-xs"
-									onclick={() => (roundType = 'HOCHZEIT_STILL')}
+									onclick={() => (roundType = RoundType.HochzeitStill)}
 								>
 									Still
 								</Button>
 								<Button
 									type="button"
-									color={roundType === 'HOCHZEIT_UNGEKLAERT' ? 'secondary' : 'light'}
+									color={roundType === RoundType.HochzeitUngeklaert ? 'secondary' : 'light'}
 									class="flex-1  text-xs"
-									onclick={() => (roundType = 'HOCHZEIT_UNGEKLAERT')}
+									onclick={() => (roundType = RoundType.HochzeitUngeklaert)}
 								>
 									Ungeklärt
 								</Button>
@@ -308,17 +309,17 @@
 									<ButtonGroup class="w-full">
 										<Button
 											type="button"
-											color={soloType === 'PFLICHT' ? 'secondary' : 'light'}
+											color={soloType === SoloType.Pflicht ? 'secondary' : 'light'}
 											class="flex-1 "
-											onclick={() => (soloType = 'PFLICHT')}
+											onclick={() => (soloType = SoloType.Pflicht)}
 										>
 											Pflicht
 										</Button>
 										<Button
 											type="button"
-											color={soloType === 'LUST' ? 'secondary' : 'light'}
+											color={soloType === SoloType.Lust ? 'secondary' : 'light'}
 											class="flex-1 "
-											onclick={() => (soloType = 'LUST')}
+											onclick={() => (soloType = SoloType.Lust)}
 										>
 											Lust
 										</Button>
@@ -329,40 +330,40 @@
 							<div>
 								<Label class="mb-2 block text-xs text-gray-600 dark:text-gray-400">Solotyp</Label>
 								<ButtonGroup class="w-full">
-									<Button
-										type="button"
-										color={soloTypeSelection === 'BUBEN' ? 'secondary' : 'light'}
-										class="flex-1  px-1 py-1 text-xs"
-										size="sm"
-										onclick={() => {
-											soloTypeSelection = 'BUBEN';
-											roundType = 'SOLO_BUBEN';
-										}}
-									>
+										<Button
+											type="button"
+											color={soloTypeSelection === 'BUBEN' ? 'secondary' : 'light'}
+											class="flex-1  px-1 py-1 text-xs"
+											size="sm"
+											onclick={() => {
+												soloTypeSelection = 'BUBEN';
+												roundType = RoundType.SoloBuben;
+											}}
+										>
 										Bube
 									</Button>
-									<Button
-										type="button"
-										color={soloTypeSelection === 'DAMEN' ? 'secondary' : 'light'}
-										class="flex-1  px-1 py-1 text-xs"
-										size="sm"
-										onclick={() => {
-											soloTypeSelection = 'DAMEN';
-											roundType = 'SOLO_DAMEN';
-										}}
-									>
+										<Button
+											type="button"
+											color={soloTypeSelection === 'DAMEN' ? 'secondary' : 'light'}
+											class="flex-1  px-1 py-1 text-xs"
+											size="sm"
+											onclick={() => {
+												soloTypeSelection = 'DAMEN';
+												roundType = RoundType.SoloDamen;
+											}}
+										>
 										Dame
 									</Button>
-									<Button
-										type="button"
-										color={soloTypeSelection === 'ASS' ? 'secondary' : 'light'}
-										class="flex-1  px-1 py-1 text-xs"
-										size="sm"
-										onclick={() => {
-											soloTypeSelection = 'ASS';
-											roundType = 'SOLO_ASS';
-										}}
-									>
+										<Button
+											type="button"
+											color={soloTypeSelection === 'ASS' ? 'secondary' : 'light'}
+											class="flex-1  px-1 py-1 text-xs"
+											size="sm"
+											onclick={() => {
+												soloTypeSelection = 'ASS';
+												roundType = RoundType.SoloAss;
+											}}
+										>
 										Ass
 									</Button>
 									<Button
@@ -370,10 +371,10 @@
 										color={soloTypeSelection === 'KREUZ' ? 'secondary' : 'light'}
 										class="flex-1  px-1 py-1"
 										size="sm"
-										onclick={() => {
-											soloTypeSelection = 'KREUZ';
-											roundType = 'SOLO_KREUZ';
-										}}
+											onclick={() => {
+												soloTypeSelection = 'KREUZ';
+												roundType = RoundType.SoloKreuz;
+											}}
 									>
 										♣
 									</Button>
@@ -382,10 +383,10 @@
 										color={soloTypeSelection === 'PIK' ? 'secondary' : 'light'}
 										class="flex-1  px-1 py-1"
 										size="sm"
-										onclick={() => {
-											soloTypeSelection = 'PIK';
-											roundType = 'SOLO_PIK';
-										}}
+											onclick={() => {
+												soloTypeSelection = 'PIK';
+												roundType = RoundType.SoloPik;
+											}}
 									>
 										♠
 									</Button>
@@ -394,10 +395,10 @@
 										color={soloTypeSelection === 'HERZ' ? 'secondary' : 'light'}
 										class="flex-1  px-1 py-1"
 										size="sm"
-										onclick={() => {
-											soloTypeSelection = 'HERZ';
-											roundType = 'SOLO_HERZ';
-										}}
+											onclick={() => {
+												soloTypeSelection = 'HERZ';
+												roundType = RoundType.SoloHerz;
+											}}
 									>
 										♥
 									</Button>
@@ -406,10 +407,10 @@
 										color={soloTypeSelection === 'KARO' ? 'secondary' : 'light'}
 										class="flex-1  px-1 py-1"
 										size="sm"
-										onclick={() => {
-											soloTypeSelection = 'KARO';
-											roundType = 'SOLO_KARO';
-										}}
+											onclick={() => {
+												soloTypeSelection = 'KARO';
+												roundType = RoundType.SoloKaro;
+											}}
 									>
 										♦
 									</Button>
@@ -439,22 +440,22 @@
 						<ButtonGroup class="w-full">
 							<Button
 								type="button"
-								color={eyesTeam === 'RE' ? 'secondary' : 'light'}
+								color={eyesTeam === Team.RE ? 'secondary' : 'light'}
 								class="flex-1 "
 								onclick={() => {
 									eyesReInput = 240 - eyesReInput;
-									eyesTeam = 'RE';
+									eyesTeam = Team.RE;
 								}}
 							>
 								Re
 							</Button>
 							<Button
 								type="button"
-								color={eyesTeam === 'KONTRA' ? 'secondary' : 'light'}
+								color={eyesTeam === Team.KONTRA ? 'secondary' : 'light'}
 								class="flex-1 "
 								onclick={() => {
 									eyesReInput = 240 - eyesReInput;
-									eyesTeam = 'KONTRA';
+									eyesTeam = Team.KONTRA;
 								}}
 							>
 								Kontra
@@ -463,9 +464,9 @@
 					</div>
 
 					<div>
-						<Label class="mb-2 block text-xs text-gray-600 dark:text-gray-400"
-							>{eyesTeam === 'RE' ? 'Re' : 'Kontra'} Augen</Label
-						>
+									<Label class="mb-2 block text-xs text-gray-600 dark:text-gray-400"
+										>{eyesTeam === Team.RE ? 'Re' : 'Kontra'} Augen</Label
+									>
 						<input
 							type="number"
 							name="eyesRe"
@@ -483,7 +484,7 @@
 							<div class="mt-1 text-xs text-red-600 dark:text-red-400">{eyesError}</div>
 						{:else}
 							<div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-								{eyesTeam === 'RE' ? 'Kontra' : 'Re'} Augen: {240 - eyesReInput}
+								{eyesTeam === Team.RE ? 'Kontra' : 'Re'} Augen: {240 - eyesReInput}
 							</div>
 						{/if}
 					</div>
@@ -503,9 +504,9 @@
 						{@const team = playerTeams[participant.playerId]}
 						{@const calls = playerCalls[participant.playerId]}
 						<div
-							class="flex flex-col gap-2 rounded-lg border-2 p-3 transition {team === 'RE'
+							class="flex flex-col gap-2 rounded-lg border-2 p-3 transition {team === Team.RE
 								? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-								: team === 'KONTRA'
+								: team === Team.KONTRA
 									? 'border-red-500 bg-red-50 dark:bg-red-900/20'
 									: 'border-gray-400 bg-gray-100 dark:bg-gray-700'}"
 						>
@@ -684,20 +685,20 @@
 					<ButtonGroup class="w-full">
 						<Button
 							type="button"
-							color={playerData.calls.team === 'RE' ? 'secondary' : 'light'}
+							color={playerData.calls.team === Team.RE ? 'secondary' : 'light'}
 							class="flex-1  py-1 text-xs"
 							onclick={() => {
-								playerData.calls.team = playerData.calls.team === 'RE' ? null : 'RE';
+								playerData.calls.team = playerData.calls.team === Team.RE ? null : Team.RE;
 							}}
 						>
 							Re
 						</Button>
 						<Button
 							type="button"
-							color={playerData.calls.team === 'KONTRA' ? 'secondary' : 'light'}
+							color={playerData.calls.team === Team.KONTRA ? 'secondary' : 'light'}
 							class="flex-1  py-1 text-xs"
 							onclick={() => {
-								playerData.calls.team = playerData.calls.team === 'KONTRA' ? null : 'KONTRA';
+								playerData.calls.team = playerData.calls.team === Team.KONTRA ? null : Team.KONTRA;
 							}}
 						>
 							Kontra
@@ -710,40 +711,40 @@
 					<ButtonGroup class="w-full">
 						<Button
 							type="button"
-							color={playerData.calls.type === 'KEINE90' ? 'secondary' : 'light'}
+							color={playerData.calls.type === CallType.Keine90 ? 'secondary' : 'light'}
 							class="flex-1  py-1 text-xs"
 							onclick={() => {
-								playerData.calls.type = playerData.calls.type === 'KEINE90' ? null : 'KEINE90';
+								playerData.calls.type = playerData.calls.type === CallType.Keine90 ? null : CallType.Keine90;
 							}}
 						>
 							Keine 90
 						</Button>
 						<Button
 							type="button"
-							color={playerData.calls.type === 'KEINE60' ? 'secondary' : 'light'}
+							color={playerData.calls.type === CallType.Keine60 ? 'secondary' : 'light'}
 							class="flex-1  py-1 text-xs"
 							onclick={() => {
-								playerData.calls.type = playerData.calls.type === 'KEINE60' ? null : 'KEINE60';
+								playerData.calls.type = playerData.calls.type === CallType.Keine60 ? null : CallType.Keine60;
 							}}
 						>
 							Keine 60
 						</Button>
 						<Button
 							type="button"
-							color={playerData.calls.type === 'KEINE30' ? 'secondary' : 'light'}
+							color={playerData.calls.type === CallType.Keine30 ? 'secondary' : 'light'}
 							class="flex-1  py-1 text-xs"
 							onclick={() => {
-								playerData.calls.type = playerData.calls.type === 'KEINE30' ? null : 'KEINE30';
+								playerData.calls.type = playerData.calls.type === CallType.Keine30 ? null : CallType.Keine30;
 							}}
 						>
 							Keine 30
 						</Button>
 						<Button
 							type="button"
-							color={playerData.calls.type === 'SCHWARZ' ? 'secondary' : 'light'}
+							color={playerData.calls.type === CallType.Schwarz ? 'secondary' : 'light'}
 							class="flex-1  py-1 text-xs"
 							onclick={() => {
-								playerData.calls.type = playerData.calls.type === 'SCHWARZ' ? null : 'SCHWARZ';
+								playerData.calls.type = playerData.calls.type === CallType.Schwarz ? null : CallType.Schwarz;
 							}}
 						>
 							Schwarz

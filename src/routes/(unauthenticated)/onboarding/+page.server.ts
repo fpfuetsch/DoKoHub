@@ -8,6 +8,7 @@ import {
 	verifyOnboardingToken
 } from '$lib/server/auth/onboarding';
 import { SESSION_COOKIE_NAME, createSessionToken, sessionCookieAttributes } from '$lib/server/auth/session';
+import { AuthProvider } from '$lib/server/enums';
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {
 	if (locals.user) throw redirect(302, '/groups');
@@ -71,7 +72,7 @@ export const actions: Actions = {
 		const player = await playerRepository.create({
 			name,
 			displayName,
-			authProvider: payload.provider,
+			authProvider: payload.provider as AuthProvider,
 			authProviderId: payload.providerId
 		});
 

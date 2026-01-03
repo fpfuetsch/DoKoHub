@@ -2,6 +2,7 @@ import { PlayerRepository } from '$lib/repositories/player';
 import { GroupRepository } from '$lib/repositories/group';
 import { fail } from '@sveltejs/kit';
 import { requireUserOrFail } from '$lib/server/auth/guard';
+import { AuthProvider } from '$lib/server/enums';
 import type { Actions } from './$types';
 
 export const actions: Actions = {
@@ -24,7 +25,7 @@ export const actions: Actions = {
 			return fail(404, { error: 'Spieler mit diesem Benutzernamen nicht gefunden.' });
 		}
 
-		if (player.authProvider === 'local') {
+		if (player.authProvider === AuthProvider.Local) {
 			return fail(400, { error: 'Lokale Spieler können nicht auf diese Weise hinzugefügt werden.' });
 		}
 
@@ -64,7 +65,7 @@ export const actions: Actions = {
 		const newPlayer = await playerRepo.create({
 			name: username,
 			displayName: playerName.trim(),
-			authProvider: 'local',
+			authProvider: AuthProvider.Local,
 			authProviderId: null
 		});
 
@@ -98,7 +99,7 @@ export const actions: Actions = {
 		const success_remove = await groupRepo.removeMember(groupId, playerId);
 		let success_delete = true;
 		// If local player, delete completely
-		if (player.authProvider === 'local') {
+		if (player.authProvider === AuthProvider.Local) {
 			success_delete = await playerRepo.delete(playerId);
 		}
 

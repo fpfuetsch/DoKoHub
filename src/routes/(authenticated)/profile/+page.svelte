@@ -8,7 +8,7 @@
 	let { data, form }: PageProps = $props();
 	const user = $derived(data.user);
 	const authProviderDisplay = $derived(
-		user?.authProvider ? user.authProvider.charAt(0).toUpperCase() + user.authProvider.slice(1) : 'unbekannt'
+		user?.authProvider ? user.authProvider.toLowerCase().charAt(0).toUpperCase() + user.authProvider.toLowerCase().slice(1) : 'unbekannt'
 	);
 	let showSuccess = $state(false);
 
@@ -44,7 +44,7 @@
 				await update();
 			};
 		}} class="space-y-6">
-			<div class="bg-white p-4 space-y-4">
+			<div class="bg-white space-y-4">
 			{#if form?.message}
 				<Alert color="red">
 					{form.message}

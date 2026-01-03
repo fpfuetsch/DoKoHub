@@ -1,8 +1,10 @@
 import { db } from '$lib/server/db';
-import { PlayerTable, type AuthProviderType } from '$lib/server/db/schema';
+import { PlayerTable } from '$lib/server/db/schema';
+import type { AuthProviderType } from '$lib/server/enums';
 import { and, eq } from 'drizzle-orm';
 import { Player } from '$lib/domain/player';
 import type { PlayerType } from '$lib/server/db/schema';
+import { AuthProvider } from '$lib/server/enums';
 
 export class PlayerRepository {
 	constructor(private readonly principalId?: string) {}
@@ -49,7 +51,7 @@ export class PlayerRepository {
 	async delete(id: string): Promise<boolean> {
 		// Only allow deleting local players and own profile
 		const player = await this.getById(id);
-		if (!player || player.authProvider !== 'local') {
+		if (!player || player.authProvider !== AuthProvider.Local) {
 			return false;
 		}
 		if (this.principalId && id !== this.principalId) {

@@ -1,16 +1,17 @@
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
 import { env } from '$env/dynamic/private';
 import { sessionCookieAttributes } from './session';
+import type { AuthProviderType } from '$lib/server/enums';
 
 const secret = new TextEncoder().encode(env.AUTH_JWT_SECRET ?? 'dev-secret-change-me');
 export const ONBOARDING_COOKIE = 'doko_onboarding';
 const MAX_AGE_SECONDS = 10 * 60; // 10 minutes
 
 export type OnboardingPayload = {
-	provider: 'google';
+	provider: AuthProviderType;
 	providerId: string;
-	suggestedName: string;
-	suggestedDisplayName: string;
+	suggestedName?: string;
+	suggestedDisplayName?: string;
 	redirectTo?: string;
 };
 
@@ -26,7 +27,7 @@ export async function verifyOnboardingToken(token: string): Promise<OnboardingPa
 	try {
 		const result = await jwtVerify<JWTPayload>(token, secret, { algorithms: ['HS256'] });
 		return {
-			provider: result.payload.provider as OnboardingPayload['provider'],
+			provider: result.payload.provider as AuthProviderType,
 			providerId: result.payload.providerId as string,
 			suggestedName: result.payload.suggestedName as string | undefined,
 			suggestedDisplayName: result.payload.suggestedDisplayName as string | undefined,

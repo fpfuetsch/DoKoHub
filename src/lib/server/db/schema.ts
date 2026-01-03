@@ -2,67 +2,9 @@ import { pgTable, uuid, text, timestamp, pgEnum, integer, boolean } from 'drizzl
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
+import { AuthProvider, RoundType, SoloType, Team, RoundResult, CallType, BonusType } from '../enums';
+import type { RoundTypeEnum, SoloTypeEnumValue, TeamEnumValue } from '../enums';
 
-// TypeScript Enums
-export enum AuthProvider {
-	Local = 'local',
-	Google = 'google',
-	Apple = 'apple'
-}
-
-export enum RoundType {
-	Normal = 'NORMAL',
-	HochzeitNormal = 'HOCHZEIT_NORMAL',
-	HochzeitStill = 'HOCHZEIT_STILL',
-	HochzeitUngeklaert = 'HOCHZEIT_UNGEKLAERT',
-	SoloDamen = 'SOLO_DAMEN',
-	SoloBuben = 'SOLO_BUBEN',
-	SoloKreuz = 'SOLO_KREUZ',
-	SoloPik = 'SOLO_PIK',
-	SoloHerz = 'SOLO_HERZ',
-	SoloKaro = 'SOLO_KARO',
-	SoloAss = 'SOLO_ASS'
-}
-
-export enum SoloType {
-	Pflicht = 'PFLICHT',
-	Lust = 'LUST'
-}
-
-export enum Team {
-	RE = 'RE',
-	KONTRA = 'KONTRA'
-}
-
-export enum RoundResult {
-	WON = 'WON',
-	LOST = 'LOST',
-	DRAW = 'DRAW'
-}
-
-export enum CallType {
-	RE = 'RE',
-	KONTRA = 'KONTRA',
-	Keine90 = 'KEINE90',
-	Keine60 = 'KEINE60',
-	Keine30 = 'KEINE30',
-	Schwarz = 'SCHWARZ'
-}
-
-export enum BonusType {
-	Doko = 'DOKO',
-	Fuchs = 'FUCHS',
-	Karlchen = 'KARLCHEN'
-}
-
-// Type aliases for enum values
-export type AuthProviderType = `${AuthProvider}`;
-export type RoundTypeEnum = `${RoundType}`;
-export type SoloTypeEnumValue = `${SoloType}`;
-export type TeamEnumValue = `${Team}`;
-export type CallTypeEnumValue = `${CallType}`;
-export type BonusTypeEnumValue = `${BonusType}`;
-export type RoundResultEnumValue = `${RoundResult}`;
 
 // Database enums for Drizzle (derived from TypeScript enums)
 export const AuthProviderDbEnum = pgEnum('auth_provider', Object.values(AuthProvider) as [AuthProvider, ...AuthProvider[]]);
