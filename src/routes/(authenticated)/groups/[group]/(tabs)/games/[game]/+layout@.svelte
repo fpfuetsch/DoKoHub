@@ -30,7 +30,11 @@
 
 	const gameTitle = $derived(game ? formatDateTime(game.createdAt) : '');
 	const roundProgress = $derived(
-		game ? `${game.getRoundCount()} / ${game.maxRoundCount} Runden` : ''
+		game
+			? game.isFinished()
+				? 'Spiel abgeschlossen'
+				: `${game.getRoundCount()} / ${game.maxRoundCount} Runden`
+			: ''
 	);
 </script>
 

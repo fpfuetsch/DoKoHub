@@ -98,7 +98,11 @@
 							{/if}
 							<div>
 								<span class="font-medium">Spielrunden:</span>
-								<span>{game.rounds.length} / {game.maxRoundCount}</span>
+								<span>{game.maxRoundCount}</span>
+							</div>
+							<div>
+								<span class="font-medium">Pflichtsoli:</span>
+								<span>{game.withMandatorySolos ? 'Ja' : 'Nein'}</span>
 							</div>
 						</div>
 					</div>
@@ -153,6 +157,7 @@
 			<div class="flex items-center justify-between">
 				<Label for="pflichtsoli" class="font-medium">Mit Pflichtsoli</Label>
 				<Toggle id="pflichtsoli" bind:checked={withMandatorySolos} class="cursor-pointer" />
+				<input type="hidden" name="withMandatorySolos" value={withMandatorySolos} />
 			</div>
 
 			<div class="space-y-2">

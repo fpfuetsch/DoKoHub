@@ -4,7 +4,7 @@ import { GameTable, GameParticipantTable, PlayerTable, GroupMemberTable } from '
 import { Game, type GameParticipant } from '$lib/domain/game';
 import { Player } from '$lib/domain/player';
 import type { GameType, PlayerType } from '$lib/server/db/schema';
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 
 export class GameRepository {
 	constructor(private readonly principalId: string) {}
@@ -37,15 +37,15 @@ export class GameRepository {
 		const gameRows = await db
 			.select()
 			.from(GameTable)
-			.where(eq(GameTable.groupId, groupId));
+			.where(eq(GameTable.groupId, groupId))
+			.orderBy(desc(GameTable.createdAt));
 
-		const roundRepo = new RoundRepository(this.principalId);
 		const games: Game[] = [];
 		for (const gameRow of gameRows) {
 			const gameData = gameRow as GameType;
 			const participants = await this.getParticipantsForGame(gameData.id);
-			const rounds = await roundRepo.getRoundsForGame(gameData.id, groupId);
-			games.push(new Game(gameData, participants, rounds));
+			// Do not load rounds here to keep list view fast; rounds are fetched on game detail
+			games.push(new Game(gameData, participants, []));
 		}
 		return games;
 	}

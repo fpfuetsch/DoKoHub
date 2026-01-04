@@ -4,32 +4,205 @@
 		PlusOutline,
 		ExclamationCircleSolid,
 		EditOutline,
-		MinusOutline
+		MinusOutline,
+		ShuffleOutline,
+		RocketOutline,
+		EyeOutline,
+		EyeSlashOutline
 	} from 'flowbite-svelte-icons';
-	import { Game } from '$lib/domain/game';
-	import type { PageProps } from './$types';
 	import { enhance, applyAction } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import type { SubmitFunction } from '@sveltejs/kit';
-	import { RoundType, SoloType, Team, CallType } from '$lib/domain/enums';
+	import type { PageProps } from './$types';
+	import { Game } from '$lib/domain/game';
+	import { Round } from '$lib/domain/round';
+	import {
+		RoundType as RoundTypeEnum,
+		SoloType as SoloTypeEnum,
+		Team as TeamEnum,
+		CallType as CallTypeEnum,
+		RoundResult as RoundResultEnum,
+		BonusType as BonusTypeEnum
+	} from '$lib/domain/enums';
 
 	let { data, form }: PageProps = $props();
 	const game: Game = $derived(data.game);
+
+	type RoundWithPoints = { round: Round; points: ReturnType<Round['calculatePoints']> };
+	type MandatorySoloSlot = {
+		participant: (typeof sortedParticipants)[number];
+		entry?: RoundWithPoints;
+	};
+
+	const allRoundsWithPoints: RoundWithPoints[] = $derived(
+		(game.rounds ?? [])
+			.map((round: Round) => {
+				const instance = round instanceof Round ? round : new Round(round as any);
+				return { round: instance, points: instance.calculatePoints() };
+			})
+			.sort((a, b) => a.round.roundNumber - b.round.roundNumber)
+	);
+
+	const roundsWithPoints: RoundWithPoints[] = $derived(
+		allRoundsWithPoints.filter((entry) => {
+			// Filter out mandatory solos if game has them
+			if (game.withMandatorySolos && entry.round.type.startsWith('SOLO') && entry.round.soloType === SoloTypeEnum.Pflicht) {
+				return false;
+			}
+			return true;
+		})
+	);
 
 	// Get sorted participants by seat position
 	const sortedParticipants = $derived(
 		[...game.participants].sort((a, b) => a.seatPosition - b.seatPosition)
 	);
 
+	const playerOrder = $derived(sortedParticipants.map((p) => p.playerId));
+
+	const playerTotals = $derived(
+		(() => {
+			const totals = new Map<string, number>();
+			playerOrder.forEach((id) => totals.set(id, 0));
+			allRoundsWithPoints.forEach(({ points }) => {
+				points.forEach(({ playerId, points }) => {
+					totals.set(playerId, (totals.get(playerId) ?? 0) + points);
+				});
+			});
+			return totals;
+		})()
+	);
+
+	const hasUpcomingRound = $derived(game.rounds.length < game.maxRoundCount);
+	const isFinished = $derived(game.isFinished());
+	const canEditRounds = $derived(!isFinished);
+	const visibleRoundCount = $derived(roundsWithPoints.length);
+	const nextRoundNumber = $derived(game.rounds.length + 1);
+	const nextVisibleRoundNumber = $derived(visibleRoundCount + 1);
+	const upcomingDealer = $derived(
+		sortedParticipants.length
+			? sortedParticipants[(nextVisibleRoundNumber - 1) % sortedParticipants.length]
+			: null
+	);
+	const upcomingStarter = $derived(
+		sortedParticipants.length ? sortedParticipants[nextVisibleRoundNumber % sortedParticipants.length] : null
+	);
+
+	const mandatorySoloSlots = $derived(
+		((): MandatorySoloSlot[] => {
+			if (!game.withMandatorySolos) return [];
+			const soloRounds = allRoundsWithPoints.filter(
+				({ round }) => round.type.startsWith('SOLO') && round.soloType === SoloTypeEnum.Pflicht
+			);
+			return sortedParticipants.map((participant) => {
+				const hit = soloRounds.find(({ round }) => {
+					const soloPlayer = round.participants.find((p) => p.team === TeamEnum.RE);
+					return soloPlayer?.playerId === participant.playerId;
+				});
+				return { participant, entry: hit } satisfies MandatorySoloSlot;
+			});
+		})()
+	);
+
+const mandatorySoloPlayerIds = $derived(
+	new Set(
+		allRoundsWithPoints
+			.filter(({ round }) => round.type.startsWith('SOLO') && round.soloType === SoloTypeEnum.Pflicht)
+			.map(({ round }) => round.participants.find((p) => p.team === TeamEnum.RE)?.playerId)
+			.filter(Boolean) as string[]
+	)
+);
+
+const remainingMandatorySoloPlayers = $derived(
+	sortedParticipants.filter((p) => !mandatorySoloPlayerIds.has(p.playerId))
+);
+
+const allMandatorySolosDone = $derived(
+	!game.withMandatorySolos || remainingMandatorySoloPlayers.length === 0
+);
+
+	const resultStyles: Record<RoundResultEnum, string> = {
+		[RoundResultEnum.WON]:
+			'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-100',
+		[RoundResultEnum.LOST]:
+			'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-900/40 dark:text-rose-100',
+		[RoundResultEnum.DRAW]:
+			'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100'
+	};
+
+	const placeholderTile =
+		'border-dashed border-slate-200 bg-transparent text-slate-400 dark:border-slate-700 dark:text-slate-400';
+
+	const getPlayerResult = (entry: RoundWithPoints, playerId: string) =>
+		entry.points.find((p) => p.playerId === playerId);
+
+	const formatRoundLabel = (round: Round) => {
+		if (round.type === RoundTypeEnum.Normal) return 'Normal';
+		if (round.type.startsWith('HOCHZEIT')) {
+			const variant = round.type.replace('HOCHZEIT_', '').toLowerCase();
+			if (variant === 'normal') return 'Hochzeit';
+			if (variant === 'still') return 'Stille';
+			if (variant === 'ungeklaert') return 'Ungeklärt';
+			return variant;
+		}
+		if (round.type.startsWith('SOLO')) {
+			const variant = round.type.replace('SOLO_', '').toLowerCase();
+			const isPflicht = round.soloType === SoloTypeEnum.Pflicht;
+
+			// Map solo types to names
+			const soloTypeMap: Record<string, string> = {
+				'kreuz': 'Kreuz',
+				'pik': 'Pik',
+				'herz': 'Herz',
+				'karo': 'Karo',
+				'buben': 'Buben',
+				'damen': 'Damen',
+				'ass': 'Ass'
+			};
+
+			const displayType = soloTypeMap[variant] || variant;
+
+			if (isPflicht) {
+				return `${displayType}`;
+			}
+
+			return displayType;
+		}
+		return round.type.replaceAll('_', ' ');
+	};
+
 	let roundModal = $state(false);
-	let roundType = $state<string>(RoundType.Normal);
-	let soloType = $state<SoloType | null>(null);
+	let roundType = $state<string>(RoundTypeEnum.Normal);
+	let soloType = $state<SoloTypeEnum | null>(null);
 	let soloTypeSelection = $state<string | null>(null);
 	let eyesReInput = $state(120);
-	let eyesTeam = $state<Team>(Team.RE);
+	let eyesTeam = $state<TeamEnum>(TeamEnum.RE);
 	let eyesError = $state<string | null>(null);
-	let playerTeams = $state<Record<string, Team | undefined>>({});
-	const bonusesAllowed = $derived(roundType === RoundType.Normal || roundType === RoundType.HochzeitNormal);
+	let playerTeams = $state<Record<string, TeamEnum | undefined>>({});
+	let showSum = $state(false);
+	let editingRoundId = $state<string | null>(null);
+	const editingMandatorySolo = $derived(Boolean(editingRoundId && soloType === SoloTypeEnum.Pflicht));
+	const bonusesAllowed = $derived(
+		roundType === RoundTypeEnum.Normal || roundType === RoundTypeEnum.HochzeitNormal
+	);
+
+	$effect(() => {
+		// Only auto-switch Pflicht -> Lust when creating a new round; keep Pflicht when editing an existing Pflichtsolo
+		if (
+			!editingRoundId &&
+			game.withMandatorySolos &&
+			remainingMandatorySoloPlayers.length === 0 &&
+			soloType === SoloTypeEnum.Pflicht
+		) {
+			soloType = SoloTypeEnum.Lust;
+		}
+	});
+
+	$effect(() => {
+		if (!hasUpcomingRound) {
+			showSum = true;
+		}
+	});
 
 	// Player calls and bonus points
 	let playerCalls = $state<
@@ -37,8 +210,8 @@
 			string,
 			{
 				calls: {
-					team: Team | null;
-					type: CallType | null;
+					team: TeamEnum | null;
+					type: CallTypeEnum | null;
 				};
 				bonus: { fuchs: number; doppelkopf: number; karlchen: boolean };
 			}
@@ -50,14 +223,14 @@
 
 	// Initialize player teams when modal opens
 	$effect(() => {
-			if (roundModal && Object.keys(playerTeams).length === 0) {
-			const teams: Record<string, Team | undefined> = {};
+		if (roundModal && Object.keys(playerTeams).length === 0) {
+			const teams: Record<string, TeamEnum | undefined> = {};
 			const calls: Record<
 				string,
 				{
 					calls: {
-						team: 'RE' | 'KONTRA' | null;
-						type: 'KEINE90' | 'KEINE60' | 'KEINE30' | 'SCHWARZ' | null;
+						team: TeamEnum | null;
+						type: CallTypeEnum | null;
 					};
 					bonus: { fuchs: number; doppelkopf: number; karlchen: boolean };
 				}
@@ -109,13 +282,14 @@
 				await invalidateAll();
 				roundModal = false;
 				// Reset form
-				roundType = RoundType.Normal;
+				roundType = RoundTypeEnum.Normal;
 				soloType = null;
 				soloTypeSelection = null;
 				eyesReInput = 120;
-				eyesTeam = Team.RE;
+				eyesTeam = TeamEnum.RE;
 				eyesError = null;
 				playerTeams = {};
+				editingRoundId = null;
 			}
 			await applyAction(result);
 		};
@@ -124,9 +298,9 @@
 		const togglePlayerTeam = (playerId: string) => {
 			const current = playerTeams[playerId];
 			if (current === undefined) {
-				playerTeams[playerId] = Team.RE;
-			} else if (current === Team.RE) {
-				playerTeams[playerId] = Team.KONTRA;
+				playerTeams[playerId] = TeamEnum.RE;
+			} else if (current === TeamEnum.RE) {
+				playerTeams[playerId] = TeamEnum.KONTRA;
 			} else {
 				playerTeams[playerId] = undefined;
 			}
@@ -134,88 +308,319 @@
 
 	// Get the final round type based on selections
 	const getFinalRoundType = (): string => {
-		if (roundType === RoundType.Normal) return RoundType.Normal;
+		if (roundType === RoundTypeEnum.Normal) return RoundTypeEnum.Normal;
 		if (roundType.startsWith('HOCHZEIT')) return roundType;
 		if (roundType.startsWith('SOLO') && soloTypeSelection) {
 			return `SOLO_${soloTypeSelection}`;
 		}
 		return roundType;
 	};
+
+	const loadRoundIntoForm = (entry: RoundWithPoints) => {
+		const round = entry.round;
+		roundType = round.type;
+		soloType = round.soloType;
+		soloTypeSelection = round.type.startsWith('SOLO') ? round.type.replace('SOLO_', '') : null;
+		eyesReInput = round.eyesRe;
+		eyesTeam = TeamEnum.RE;
+		eyesError = null;
+
+		const teams: Record<string, TeamEnum | undefined> = {};
+		const calls: typeof playerCalls = {};
+		sortedParticipants.forEach((p) => {
+			const participant = round.participants.find((rp) => rp.playerId === p.playerId);
+			teams[p.playerId] = participant?.team;
+
+			const teamCall = participant?.calls.find(
+				(c) => c.callType === CallTypeEnum.RE || c.callType === CallTypeEnum.KONTRA
+			);
+			const absageCall = participant?.calls.find(
+				(c) => ![CallTypeEnum.RE, CallTypeEnum.KONTRA].includes(c.callType)
+			);
+			const fuchs = participant?.bonuses.find((b) => b.bonusType === BonusTypeEnum.Fuchs)?.count ?? 0;
+			const doko = participant?.bonuses.find((b) => b.bonusType === BonusTypeEnum.Doko)?.count ?? 0;
+			const karlchen =
+				participant?.bonuses.find((b) => b.bonusType === BonusTypeEnum.Karlchen)?.count === 1 || false;
+
+			calls[p.playerId] = {
+				calls: {
+					team: teamCall
+						? teamCall.callType === CallTypeEnum.RE
+							? TeamEnum.RE
+							: TeamEnum.KONTRA
+						: null,
+					type: absageCall ? absageCall.callType : null
+				},
+				bonus: { fuchs, doppelkopf: doko, karlchen }
+			};
+		});
+
+		playerTeams = teams;
+		playerCalls = calls;
+		editingRoundId = round.id;
+		roundModal = true;
+	};
 </script>
 
-<div class="gap- flex min-h-screen flex-col bg-gray-50 p-6 dark:bg-gray-900">
-	{#if game.rounds.length === 0}
-		<div
-			class="flex flex-col items-center justify-center py-12 text-center text-gray-500 dark:text-gray-400"
-		>
-			<p class="mb-4 text-lg">Noch keine Runden hinzugefügt.</p>
-			<p class="text-sm">
-				Klicke auf den Plus-Button unten rechts, um die erste Runde hinzuzufügen.
-			</p>
-		</div>
-	{:else}
-		<div class="overflow-x-auto">
-			<table
-				class="w-full border-collapse overflow-hidden rounded-lg bg-white shadow dark:bg-gray-800"
-			>
-				<thead>
-					<tr class="border-b border-gray-200 dark:border-gray-700">
-						<th
-							class="bg-gray-100 px-4 py-2 text-left text-sm font-semibold text-gray-900 dark:bg-gray-700 dark:text-white"
-						>
-							Runde
-						</th>
+
+<div class="flex min-h-screen flex-col bg-gray-50 p-4 sm:p-6 dark:bg-gray-900">
+	<section class={`space-y-4 mx-auto w-full max-w-4xl ${hasUpcomingRound ? 'pb-20' : ''}`}>
+		<div class="space-y-3">
+			<div class="flex items-center justify-between">
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Standardrunden</h2>
+			</div>
+
+			<div class="overflow-x-auto">
+				<div class="min-w-full space-y-2">
+					<div
+						class="grid items-center gap-2 p-0 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
+						style={`grid-template-columns: 70px repeat(${sortedParticipants.length}, minmax(0, 1fr));`}
+					>
+						<div class="text-center px-2">Runde</div>
 						{#each sortedParticipants as participant}
-							<th
-								class="bg-gray-100 px-4 py-2 text-center text-sm font-semibold text-gray-900 dark:bg-gray-700 dark:text-white"
+							<div
+								class="text-center truncate px-2"
+								title={participant.player?.displayName ?? 'Spieler'}
 							>
 								{participant.player?.displayName ?? 'Spieler'}
-							</th>
+							</div>
 						{/each}
-					</tr>
-				</thead>
-				<tbody>
-					{#each game.rounds as round, roundIndex (round.id)}
-						<tr
-							class="border-b border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700"
+					</div>
+
+					<div class="mx-1 my-2 h-px bg-gray-200 dark:bg-gray-700"></div>
+
+					{#each roundsWithPoints as entry, idx (entry.round.id)}
+						<div
+							role={canEditRounds ? 'button' : undefined}
+							class={`grid w-full items-stretch gap-2 p-0 text-left transition ${canEditRounds ? 'cursor-pointer hover:bg-gray-100/60 dark:hover:bg-gray-800/60' : 'cursor-default'} focus:outline-none`}
+							style={`grid-template-columns: 70px repeat(${sortedParticipants.length}, minmax(0, 1fr));`}
+							onclick={canEditRounds ? () => loadRoundIntoForm(entry) : undefined}
+							onkeydown={canEditRounds ? (event) => (event.key === 'Enter' || event.key === ' ') && loadRoundIntoForm(entry) : undefined}
 						>
-							<td class="px-4 py-2 text-sm font-medium text-gray-900 dark:text-white">
-								{round.roundNumber}
-							</td>
+							<div class="flex flex-col justify-center gap-0.5 px-2 py-2 text-xs text-gray-900 dark:text-gray-100">
+								<span class="leading-tight font-semibold">{entry.round.roundNumber}</span>
+								<span class="text-[8px] truncate font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+									{formatRoundLabel(entry.round)}
+								</span>
+							</div>
 							{#each sortedParticipants as participant}
-								{@const roundParticipant = round.participants.find(
-									(p) => p.playerId === participant.playerId
-								)}
-								<td class="px-4 py-2 text-center">
-									<div class="flex flex-col gap-1">
-										<div
-											class="rounded px-2 py-1 text-xs font-semibold {roundParticipant?.team ===
-											'RE'
-												? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100'
-												: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-100'}"
-										>
-											{roundParticipant?.team === Team.RE ? Team.RE : Team.KONTRA}
-										</div>
-									</div>
-								</td>
+								{@const participantTeam = entry.round.participants.find((p) => p.playerId === participant.playerId)?.team}
+								{@const result = getPlayerResult(entry, participant.playerId)}
+								<div
+									class={`flex flex-col items-center justify-center rounded-md border px-2 py-3 text-sm font-semibold ${result ? resultStyles[result.result] : placeholderTile} ${participantTeam === TeamEnum.RE ? 'border-2 border-dashed' : ''}`}
+									title={result?.result === RoundResultEnum.WON
+										? 'Sieg'
+										: result?.result === RoundResultEnum.LOST
+											? 'Niederlage'
+											: result?.result === RoundResultEnum.DRAW
+												? 'Remis'
+												: 'Offen'}
+								>
+									<div class="text-lg font-bold leading-none">{result?.points ?? 0}</div>
+								</div>
 							{/each}
-						</tr>
+						</div>
+
+						{#if (idx + 1) % 4 === 0 && idx !== roundsWithPoints.length - 1}
+							<div class="mx-1 my-2 h-px bg-gray-200 dark:bg-gray-700"></div>
+						{/if}
 					{/each}
-				</tbody>
-			</table>
+
+					{#if hasUpcomingRound}
+						<div
+							class="grid items-stretch gap-2 p-0"
+							style={`grid-template-columns: 70px repeat(${sortedParticipants.length}, minmax(0, 1fr));`}
+						>
+							<div class="flex flex-col justify-center gap-0.5 px-2 py-2 text-xs font-semibold text-gray-800 dark:text-gray-100">
+								<span class="leading-tight">{nextRoundNumber}</span>
+							</div>
+							{#each sortedParticipants as participant}
+								<div class="flex flex-col items-center justify-center rounded-md border border-dashed border-gray-300 px-2 py-3 text-xs font-semibold text-gray-600 dark:border-gray-700 dark:text-gray-200">
+									{#if upcomingDealer && participant.playerId === upcomingDealer.playerId}
+										<ShuffleOutline class="h-5 w-5" />
+									{:else if upcomingStarter && participant.playerId === upcomingStarter.playerId}
+										<RocketOutline class="h-5 w-5" />
+									{:else}
+										<div class="h-1.5 w-1.5 rounded-full bg-gray-300 dark:bg-gray-600" aria-hidden="true"></div>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					{/if}
+
+					<div class="flex justify-end items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+						<div class="flex items-center gap-1"><ShuffleOutline class="h-3.5 w-3.5" /> <span>Mischen</span></div>
+						<div class="flex items-center gap-1"><RocketOutline class="h-3.5 w-3.5" /> <span>Aufspiel</span></div>
+						<div class="flex items-center gap-1">
+							<div class="h-3.5 w-3.5 rounded-sm border-2 border-dashed border-gray-500 dark:border-gray-400" aria-hidden="true"></div>
+							<span>Re</span>
+						</div>
+						<div class="flex items-center gap-1">
+							<div class="h-3.5 w-3.5 rounded-md border border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/40" aria-hidden="true"></div>
+							<span>Sieg</span>
+						</div>
+						<div class="flex items-center gap-1">
+							<div class="h-3.5 w-3.5 rounded-md border border-rose-300 bg-rose-50 dark:border-rose-800 dark:bg-rose-900/40" aria-hidden="true"></div>
+							<span>Niederlage</span>
+						</div>
+					</div>
+				</div>
+			</div>
 		</div>
-	{/if}
+
+		{#if game.withMandatorySolos}
+			<div class="space-y-2">
+				<div class="flex items-center justify-between">
+					<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Pflichtsoli</h3>
+				</div>
+
+				<div class="space-y-1">
+					<div
+						class="grid items-center gap-2 p-0 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
+						style={`grid-template-columns: 70px repeat(${sortedParticipants.length}, minmax(0, 1fr));`}
+					>
+						<div class="text-center px-2">Runde</div>
+						{#each sortedParticipants as participant}
+							<div class="text-center truncate px-2">{participant.player?.displayName ?? 'Spieler'}</div>
+						{/each}
+					</div>
+
+					<div class="mx-1 my-2 h-px bg-gray-200 dark:bg-gray-700"></div>
+
+					{#each mandatorySoloSlots as slot, idx}
+						<div
+							role={canEditRounds && slot.entry ? 'button' : undefined}
+							aria-disabled={!slot.entry || !canEditRounds}
+							class={`grid w-full items-stretch gap-2 p-0 text-left bg-transparent ${canEditRounds && slot.entry ? 'cursor-pointer hover:bg-gray-100/60 dark:hover:bg-gray-800/60' : 'cursor-default'} ${slot.entry ? '' : 'pointer-events-none opacity-70'}`}
+							style={`grid-template-columns: 70px repeat(${sortedParticipants.length}, minmax(0, 1fr));`}
+							onclick={canEditRounds ? () => slot.entry && loadRoundIntoForm(slot.entry) : undefined}
+							onkeydown={canEditRounds ? (event) => slot.entry && (event.key === 'Enter' || event.key === ' ') && loadRoundIntoForm(slot.entry) : undefined}
+						>
+							<div class="flex flex-col justify-center gap-0.5 px-2 py-2 text-xs text-gray-900 dark:text-gray-100">
+								<span class="leading-tight font-semibold">{slot.entry ? slot.entry.round.roundNumber : '–'}</span>
+								{#if slot.entry}
+									<span class="text-[8px] truncate font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{formatRoundLabel(slot.entry.round)}</span>
+								{/if}
+							</div>
+
+							{#each sortedParticipants as participant}
+								{@const soloResult = slot.entry ? getPlayerResult(slot.entry, participant.playerId) : null}
+								{@const participantTeam = slot.entry
+									? slot.entry.round.participants.find((p) => p.playerId === participant.playerId)?.team
+									: null}
+								<div
+									class={`flex flex-col items-center justify-center rounded-md border px-2 py-3 text-sm font-semibold ${soloResult ? resultStyles[soloResult.result] : placeholderTile} ${participantTeam === TeamEnum.RE ? 'border-2 border-dashed' : ''}`}
+									title={soloResult?.result === RoundResultEnum.WON
+										? 'Sieg'
+										: soloResult?.result === RoundResultEnum.LOST
+											? 'Niederlage'
+											: soloResult?.result === RoundResultEnum.DRAW
+												? 'Remis'
+												: 'Offen'}
+								>
+									<div class="text-lg font-bold leading-none">{soloResult?.points ?? 0}</div>
+									<span class="sr-only">
+										{#if soloResult?.result === RoundResultEnum.WON}
+											Sieg
+										{:else if soloResult?.result === RoundResultEnum.LOST}
+											Niederlage
+										{:else if soloResult?.result === RoundResultEnum.DRAW}
+											Remis
+										{:else}
+											Offen
+										{/if}
+									</span>
+								</div>
+								{/each}
+							</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		<div class="space-y-2">
+			<div class="flex items-center justify-between">
+				<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Summe</h3>
+				{#if hasUpcomingRound}
+					<Button
+						color="secondary"
+						size="xs"
+						class="flex items-center gap-1 px-3 py-2"
+						aria-label={showSum ? 'Ausblenden' : 'Anzeigen'}
+						onclick={() => (showSum = !showSum)}
+					>
+						{#if showSum}
+							<EyeSlashOutline class="h-4 w-4" />
+							<span>Ausblenden</span>
+						{:else}
+							<EyeOutline class="h-4 w-4" />
+							<span>Anzeigen</span>
+						{/if}
+					</Button>
+				{/if}
+			</div>
+
+			<div
+				class="grid items-stretch gap-2 p-0 transition duration-150"
+				style={`grid-template-columns: 70px repeat(${sortedParticipants.length}, minmax(0, 1fr));`}
+			>
+				<div class="flex items-center px-2 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
+				</div>
+				{#each sortedParticipants as participant}
+					<div class="flex flex-col items-center justify-center rounded-md border border-secondary px-2 py-3 text-sm font-semibold text-gray-800 dark:border-secondary-700 dark:text-gray-100">
+						{#if showSum}
+							<div class="text-lg font-bold leading-none">{playerTotals.get(participant.playerId) ?? 0}</div>
+						{:else}
+							<div class="text-lg font-bold leading-none blur-sm select-none">000</div>
+						{/if}
+					</div>
+				{/each}
+			</div>
+		</div>
+
+		{#if !isFinished}
+			{#if !hasUpcomingRound && allMandatorySolosDone}
+				<div class="rounded-lg border border-primary bg-white p-4 shadow-sm dark:border-secondary-800 dark:bg-gray-800/60">
+					<div class="flex items-center justify-between">
+						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Spiel abschließen</h3>
+					</div>
+					<p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
+						Alle Runden sind gespielt. Wenn du das Spiel abschließt können Runden nicht mehr bearbeitet werden.
+					</p>
+					<form method="POST" action="?/finishGame" class="mt-3 flex justify-end">
+						<Button type="submit" color="primary" class="px-4 py-2">
+							Spiel abschließen
+						</Button>
+					</form>
+				</div>
+			{:else if !hasUpcomingRound && !allMandatorySolosDone}
+				<div class="rounded-lg border border-amber-200 bg-white p-4 shadow-sm dark:border-amber-700 dark:bg-gray-800/60">
+					<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Spiel abschließen</h3>
+					<p class="mt-1 text-sm text-amber-700 dark:text-amber-200">
+						Pflichtsoli fehlen noch: {remainingMandatorySoloPlayers.map((p) => p.player?.displayName ?? 'Spieler').join(', ')}
+					</p>
+				</div>
+			{/if}
+		{/if}
+	</section>
 </div>
 
-<Button pill={true} class="fixed right-6 bottom-6 z-50 p-2" onclick={() => (roundModal = true)}>
-	<PlusOutline class="h-10 w-10" />
-</Button>
+{#if hasUpcomingRound && !isFinished}
+	<Button
+		pill={true}
+		class="fixed right-6 bottom-6 z-50 p-2"
+		onclick={() => (roundModal = true)}
+		aria-label="Runde hinzufügen"
+	>
+		<PlusOutline class="h-10 w-10" />
+	</Button>
+{/if}
 
-<Modal bind:open={roundModal} fullscreen size="md" autoclose={false} class="p-2 *:border-0!">
-	<form method="POST" action="?/addRound" use:enhance={handleRoundSubmit}>
-		<div class="flex flex-col space-y-2">
-			<h3 class="mb-4 text-xl font-medium text-gray-900 dark:text-white">
-				Füge eine neue Runde hinzu
+<Modal bind:open={roundModal} fullscreen size="lg" autoclose={false} class="p-2 *:border-0!">
+	<form method="POST" action="?/saveRound" use:enhance={handleRoundSubmit}>
+ 		<div class="flex flex-col space-y-2">
+ 			<h3 class="mb-4 text-xl font-medium text-gray-900 dark:text-white">
+				{editingRoundId ? 'Runde bearbeiten' : 'Füge eine neue Runde hinzu'}
 			</h3>
 
 			<!-- Section 1: Game Type Selection -->
@@ -230,10 +635,10 @@
 						<ButtonGroup class="w-full">
 							<Button
 								type="button"
-								color={roundType === RoundType.Normal ? 'secondary' : 'light'}
+								color={roundType === RoundTypeEnum.Normal ? 'secondary' : 'light'}
 								class="flex-1 "
 								onclick={() => {
-									roundType = RoundType.Normal;
+									roundType = RoundTypeEnum.Normal;
 									soloType = null;
 									soloTypeSelection = null;
 								}}
@@ -245,7 +650,7 @@
 								color={roundType.startsWith('HOCHZEIT') ? 'secondary' : 'light'}
 								class="flex-1 "
 								onclick={() => {
-									roundType = RoundType.HochzeitNormal;
+									roundType = RoundTypeEnum.HochzeitNormal;
 									soloType = null;
 									soloTypeSelection = null;
 								}}
@@ -257,8 +662,10 @@
 								color={roundType.startsWith('SOLO') ? 'secondary' : 'light'}
 								class="flex-1 "
 								onclick={() => {
-									roundType = RoundType.SoloBuben;
-									soloType = game.withMandatorySolos ? SoloType.Pflicht : null;
+									roundType = RoundTypeEnum.SoloBuben;
+									soloType = game.withMandatorySolos
+										? (remainingMandatorySoloPlayers.length === 0 ? SoloTypeEnum.Lust : SoloTypeEnum.Pflicht)
+										: null;
 									soloTypeSelection = 'BUBEN';
 								}}
 							>
@@ -275,25 +682,25 @@
 							<ButtonGroup class="w-full">
 								<Button
 									type="button"
-									color={roundType === RoundType.HochzeitNormal ? 'secondary' : 'light'}
+									color={roundType === RoundTypeEnum.HochzeitNormal ? 'secondary' : 'light'}
 									class="flex-1  text-xs"
-									onclick={() => (roundType = RoundType.HochzeitNormal)}
+									onclick={() => (roundType = RoundTypeEnum.HochzeitNormal)}
 								>
 									Normal
 								</Button>
 								<Button
 									type="button"
-									color={roundType === RoundType.HochzeitStill ? 'secondary' : 'light'}
+									color={roundType === RoundTypeEnum.HochzeitStill ? 'secondary' : 'light'}
 									class="flex-1  text-xs"
-									onclick={() => (roundType = RoundType.HochzeitStill)}
+									onclick={() => (roundType = RoundTypeEnum.HochzeitStill)}
 								>
 									Still
 								</Button>
 								<Button
 									type="button"
-									color={roundType === RoundType.HochzeitUngeklaert ? 'secondary' : 'light'}
+									color={roundType === RoundTypeEnum.HochzeitUngeklaert ? 'secondary' : 'light'}
 									class="flex-1  text-xs"
-									onclick={() => (roundType = RoundType.HochzeitUngeklaert)}
+									onclick={() => (roundType = RoundTypeEnum.HochzeitUngeklaert)}
 								>
 									Ungeklärt
 								</Button>
@@ -309,17 +716,21 @@
 									<ButtonGroup class="w-full">
 										<Button
 											type="button"
-											color={soloType === SoloType.Pflicht ? 'secondary' : 'light'}
+											color={soloType === SoloTypeEnum.Pflicht ? 'secondary' : 'light'}
+											disabled={remainingMandatorySoloPlayers.length === 0}
 											class="flex-1 "
-											onclick={() => (soloType = SoloType.Pflicht)}
+											onclick={() => (soloType = SoloTypeEnum.Pflicht)}
 										>
 											Pflicht
 										</Button>
 										<Button
 											type="button"
-											color={soloType === SoloType.Lust ? 'secondary' : 'light'}
-											class="flex-1 "
-											onclick={() => (soloType = SoloType.Lust)}
+											color={soloType === SoloTypeEnum.Lust ? 'secondary' : 'light'}
+											disabled={editingMandatorySolo}
+											class={`flex-1 ${editingMandatorySolo ? 'cursor-not-allowed opacity-60' : ''}`}
+											onclick={() => {
+												if (!editingMandatorySolo) soloType = SoloTypeEnum.Lust;
+											}}
 										>
 											Lust
 										</Button>
@@ -337,7 +748,7 @@
 											size="sm"
 											onclick={() => {
 												soloTypeSelection = 'BUBEN';
-												roundType = RoundType.SoloBuben;
+												roundType = RoundTypeEnum.SoloBuben;
 											}}
 										>
 										Bube
@@ -349,7 +760,7 @@
 											size="sm"
 											onclick={() => {
 												soloTypeSelection = 'DAMEN';
-												roundType = RoundType.SoloDamen;
+												roundType = RoundTypeEnum.SoloDamen;
 											}}
 										>
 										Dame
@@ -361,7 +772,7 @@
 											size="sm"
 											onclick={() => {
 												soloTypeSelection = 'ASS';
-												roundType = RoundType.SoloAss;
+												roundType = RoundTypeEnum.SoloAss;
 											}}
 										>
 										Ass
@@ -373,7 +784,7 @@
 										size="sm"
 											onclick={() => {
 												soloTypeSelection = 'KREUZ';
-												roundType = RoundType.SoloKreuz;
+												roundType = RoundTypeEnum.SoloKreuz;
 											}}
 									>
 										♣
@@ -385,7 +796,7 @@
 										size="sm"
 											onclick={() => {
 												soloTypeSelection = 'PIK';
-												roundType = RoundType.SoloPik;
+												roundType = RoundTypeEnum.SoloPik;
 											}}
 									>
 										♠
@@ -397,7 +808,7 @@
 										size="sm"
 											onclick={() => {
 												soloTypeSelection = 'HERZ';
-												roundType = RoundType.SoloHerz;
+												roundType = RoundTypeEnum.SoloHerz;
 											}}
 									>
 										♥
@@ -409,7 +820,7 @@
 										size="sm"
 											onclick={() => {
 												soloTypeSelection = 'KARO';
-												roundType = RoundType.SoloKaro;
+												roundType = RoundTypeEnum.SoloKaro;
 											}}
 									>
 										♦
@@ -424,6 +835,9 @@
 				<input type="hidden" name="type" value={getFinalRoundType()} />
 				{#if soloType}
 					<input type="hidden" name="soloType" value={soloType} />
+				{/if}
+				{#if editingRoundId}
+					<input type="hidden" name="roundId" value={editingRoundId} />
 				{/if}
 			</div>
 
@@ -440,32 +854,41 @@
 						<ButtonGroup class="w-full">
 							<Button
 								type="button"
-								color={eyesTeam === Team.RE ? 'secondary' : 'light'}
+								color={eyesTeam === TeamEnum.RE ? 'secondary' : 'light'}
 								class="flex-1 "
 								onclick={() => {
 									eyesReInput = 240 - eyesReInput;
-									eyesTeam = Team.RE;
+									eyesTeam = TeamEnum.RE;
 								}}
 							>
 								Re
 							</Button>
 							<Button
 								type="button"
-								color={eyesTeam === Team.KONTRA ? 'secondary' : 'light'}
+								color={eyesTeam === TeamEnum.KONTRA ? 'secondary' : 'light'}
 								class="flex-1 "
 								onclick={() => {
 									eyesReInput = 240 - eyesReInput;
-									eyesTeam = Team.KONTRA;
+									eyesTeam = TeamEnum.KONTRA;
 								}}
 							>
 								Kontra
 							</Button>
 						</ButtonGroup>
+						{#if game.withMandatorySolos}
+							<p class="mt-1 text-[11px] text-gray-600 dark:text-gray-400">
+								{#if remainingMandatorySoloPlayers.length === 0}
+									Alle Pflichtsoli wurden gespielt.
+								{:else}
+									Offene Pflichtsoli: {remainingMandatorySoloPlayers.map((p) => p.player?.displayName ?? 'Spieler').join(', ')}
+								{/if}
+							</p>
+						{/if}
 					</div>
 
 					<div>
 									<Label class="mb-2 block text-xs text-gray-600 dark:text-gray-400"
-										>{eyesTeam === Team.RE ? 'Re' : 'Kontra'} Augen</Label
+										>{eyesTeam === TeamEnum.RE ? 'Re' : 'Kontra'} Augen</Label
 									>
 						<input
 							type="number"
@@ -484,7 +907,7 @@
 							<div class="mt-1 text-xs text-red-600 dark:text-red-400">{eyesError}</div>
 						{:else}
 							<div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-								{eyesTeam === Team.RE ? 'Kontra' : 'Re'} Augen: {240 - eyesReInput}
+								{eyesTeam === TeamEnum.RE ? 'Kontra' : 'Re'} Augen: {240 - eyesReInput}
 							</div>
 						{/if}
 					</div>
@@ -504,9 +927,9 @@
 						{@const team = playerTeams[participant.playerId]}
 						{@const calls = playerCalls[participant.playerId]}
 						<div
-							class="flex flex-col gap-2 rounded-lg border-2 p-3 transition {team === Team.RE
+							class="flex flex-col gap-2 rounded-lg border-2 p-3 transition {team === TeamEnum.RE
 								? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-								: team === Team.KONTRA
+								: team === TeamEnum.KONTRA
 									? 'border-red-500 bg-red-50 dark:bg-red-900/20'
 									: 'border-gray-400 bg-gray-100 dark:bg-gray-700'}"
 						>
@@ -663,7 +1086,7 @@
 
 			<div class="mt-2 flex justify-end gap-3">
 				<Button type="button" color="light" onclick={() => (roundModal = false)}>Abbrechen</Button>
-				<Button type="submit">Fertig</Button>
+				<Button type="submit">Speichern</Button>
 			</div>
 		</div>
 	</form>
@@ -685,20 +1108,20 @@
 					<ButtonGroup class="w-full">
 						<Button
 							type="button"
-							color={playerData.calls.team === Team.RE ? 'secondary' : 'light'}
+							color={playerData.calls.team === TeamEnum.RE ? 'secondary' : 'light'}
 							class="flex-1  py-1 text-xs"
 							onclick={() => {
-								playerData.calls.team = playerData.calls.team === Team.RE ? null : Team.RE;
+								playerData.calls.team = playerData.calls.team === TeamEnum.RE ? null : TeamEnum.RE;
 							}}
 						>
 							Re
 						</Button>
 						<Button
 							type="button"
-							color={playerData.calls.team === Team.KONTRA ? 'secondary' : 'light'}
+							color={playerData.calls.team === TeamEnum.KONTRA ? 'secondary' : 'light'}
 							class="flex-1  py-1 text-xs"
 							onclick={() => {
-								playerData.calls.team = playerData.calls.team === Team.KONTRA ? null : Team.KONTRA;
+								playerData.calls.team = playerData.calls.team === TeamEnum.KONTRA ? null : TeamEnum.KONTRA;
 							}}
 						>
 							Kontra
@@ -711,40 +1134,40 @@
 					<ButtonGroup class="w-full">
 						<Button
 							type="button"
-							color={playerData.calls.type === CallType.Keine90 ? 'secondary' : 'light'}
+							color={playerData.calls.type === CallTypeEnum.Keine90 ? 'secondary' : 'light'}
 							class="flex-1  py-1 text-xs"
 							onclick={() => {
-								playerData.calls.type = playerData.calls.type === CallType.Keine90 ? null : CallType.Keine90;
+								playerData.calls.type = playerData.calls.type === CallTypeEnum.Keine90 ? null : CallTypeEnum.Keine90;
 							}}
 						>
 							Keine 90
 						</Button>
 						<Button
 							type="button"
-							color={playerData.calls.type === CallType.Keine60 ? 'secondary' : 'light'}
+							color={playerData.calls.type === CallTypeEnum.Keine60 ? 'secondary' : 'light'}
 							class="flex-1  py-1 text-xs"
 							onclick={() => {
-								playerData.calls.type = playerData.calls.type === CallType.Keine60 ? null : CallType.Keine60;
+								playerData.calls.type = playerData.calls.type === CallTypeEnum.Keine60 ? null : CallTypeEnum.Keine60;
 							}}
 						>
 							Keine 60
 						</Button>
 						<Button
 							type="button"
-							color={playerData.calls.type === CallType.Keine30 ? 'secondary' : 'light'}
+							color={playerData.calls.type === CallTypeEnum.Keine30 ? 'secondary' : 'light'}
 							class="flex-1  py-1 text-xs"
 							onclick={() => {
-								playerData.calls.type = playerData.calls.type === CallType.Keine30 ? null : CallType.Keine30;
+								playerData.calls.type = playerData.calls.type === CallTypeEnum.Keine30 ? null : CallTypeEnum.Keine30;
 							}}
 						>
 							Keine 30
 						</Button>
 						<Button
 							type="button"
-							color={playerData.calls.type === CallType.Schwarz ? 'secondary' : 'light'}
+							color={playerData.calls.type === CallTypeEnum.Schwarz ? 'secondary' : 'light'}
 							class="flex-1  py-1 text-xs"
 							onclick={() => {
-								playerData.calls.type = playerData.calls.type === CallType.Schwarz ? null : CallType.Schwarz;
+								playerData.calls.type = playerData.calls.type === CallTypeEnum.Schwarz ? null : CallTypeEnum.Schwarz;
 							}}
 						>
 							Schwarz
