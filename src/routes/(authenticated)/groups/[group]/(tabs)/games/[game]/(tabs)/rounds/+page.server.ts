@@ -1,6 +1,7 @@
 import { GameRepository } from '$lib/server/repositories/game';
 import { RoundRepository } from '$lib/server/repositories/round';
 import { Round, type RoundData } from '$lib/domain/round';
+import { Game } from '$lib/domain/game';
 import { requireUserOrFail } from '$lib/server/auth/guard';
 import { CreateRoundSchema } from '$lib/server/db/schema';
 import { SoloType, Team as TeamEnum } from '$lib/domain/enums';
@@ -152,23 +153,27 @@ export const actions = {
 				});
 			}
 
-			if (game.withMandatorySolos) {
-				const existingMandatorySoloPlayers = new Set(
-					(game.rounds || [])
-						.filter((r) => (!roundId || r.id !== roundId) && r.type.startsWith('SOLO') && r.soloType === SoloType.Pflicht)
-						.map((r) => r.participants.find((p) => p.team === TeamEnum.RE)?.playerId)
-						.filter(Boolean) as string[]
-				);
+			// Create a hypothetical game state with the new/updated round to validate game-level constraints
+			const hypotheticalRounds = roundId
+				? game.rounds.map((r) => (r.id === roundId ? new Round(roundDraft as any) : r))
+				: [...game.rounds, new Round(roundDraft as any)];
 
-				const currentSoloPlayer = roundDraft.participants.find((p) => p.team === TeamEnum.RE)?.playerId;
-				if (roundDraft.soloType === SoloType.Pflicht) {
-					if (!currentSoloPlayer) {
-						return fail(400, { error: 'Pflichtsolo benötigt einen Solo-Spieler' });
-					}
-					if (existingMandatorySoloPlayers.has(currentSoloPlayer)) {
-						return fail(400, { error: 'Dieser Spieler hat sein Pflichtsolo bereits gespielt' });
-					}
-				}
+			const hypotheticalGame = new Game(
+				{
+					id: game.id,
+					groupId: game.groupId,
+					maxRoundCount: game.maxRoundCount,
+					withMandatorySolos: game.withMandatorySolos,
+					createdAt: game.createdAt,
+					endedAt: game.endedAt
+				},
+				game.participants,
+				hypotheticalRounds
+			);
+
+			const gameValidationError = Game.validate(hypotheticalGame);
+			if (gameValidationError) {
+				return fail(400, { error: gameValidationError });
 			}
 
 			if (roundId) {
@@ -204,22 +209,12 @@ export const actions = {
 				return fail(400, { error: 'Spiel nicht gefunden' });
 			}
 
-			if (game.withMandatorySolos) {
-				const existingMandatorySoloPlayers = new Set(
-					(game.rounds || [])
-						.filter((r) => r.type.startsWith('SOLO') && r.soloType === SoloType.Pflicht)
-						.map((r) => r.participants.find((p) => p.team === TeamEnum.RE)?.playerId)
-						.filter(Boolean) as string[]
-				);
-				const missingMandatorySolos = game.participants.filter(
-					(p) => !existingMandatorySoloPlayers.has(p.playerId)
-				);
-				if (missingMandatorySolos.length > 0) {
-					return fail(400, {
-						error: 'Spiel kann erst abgeschlossen werden, wenn alle Pflichtsoli gespielt sind'
-					});
-				}
+			// Validate game-level constraints
+			const gameValidationError = Game.validate(game);
+			if (gameValidationError) {
+				return fail(400, { error: gameValidationError });
 			}
+
 			const updated = await gameRepo.updateEndTime(gameId, groupId, new Date());
 
 			if (!updated) {

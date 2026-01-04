@@ -22,10 +22,9 @@
 	let gameModal = $state(false);
 	let withMandatorySolos = $state(false);
 	let selectedPlayers = $state<(string | null)[]>([null, null, null, null]);
-	let maxRoundCount = $state<4 | 8 | 12 | 16 | 20 | 24>(16);
+	let maxRoundCount = $state<8 | 12 | 16 | 20 | 24>(16);
 
-	const roundOptions: Array<{ value: 4 | 8 | 12 | 16 | 20 | 24; label: number }> = [
-		{ value: 4, label: 4 },
+	const roundOptions: Array<{ value: 8 | 12 | 16 | 20 | 24; label: number }> = [
 		{ value: 8, label: 8 },
 		{ value: 12, label: 12 },
 		{ value: 16, label: 16 },
@@ -162,7 +161,7 @@
 
 			<div class="space-y-2">
 				<Label class="mb-2">
-					<span>Anzahl der Spielrunden</span>
+					<span>Anzahl der Spielrunden (inkl. Pflichtsoli)</span>
 				</Label>
 				<input type="hidden" name="maxRoundCount" value={maxRoundCount} />
 				<ButtonGroup class="w-full">
@@ -181,7 +180,7 @@
 			<div class="space-y-3">
 				<div class="flex items-center justify-between">
 					<div class="text-sm font-medium text-gray-900">
-						Spieler auswählen (4 Spieler erforderlich)
+						Spieler uns Sitzposition auswählen
 					</div>
 					<Button
 						pill={true}

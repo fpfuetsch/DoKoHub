@@ -61,9 +61,9 @@ export class GameRepository {
 		if (!isMember) return null;
 
 		// Validate maxRoundCount
-		const validRoundCounts = [4, 8, 12, 16, 20, 24];
+		const validRoundCounts = [8, 12, 16, 20, 24];
 		if (!validRoundCounts.includes(maxRoundCount)) {
-			throw new Error('Gültige Rundenanzahlen sind: 4, 8, 12, 16, 20, 24');
+			throw new Error('Gültige Rundenanzahlen sind: 8, 12, 16, 20, 24');
 		}
 
 		// Validate max 4 participants

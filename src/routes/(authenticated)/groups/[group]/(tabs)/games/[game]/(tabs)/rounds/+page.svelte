@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Button, Modal, Label, Alert, ButtonGroup } from 'flowbite-svelte';
+	import { Button, Modal, Label, Alert, ButtonGroup, Indicator } from 'flowbite-svelte';
 	import {
 		PlusOutline,
 		ExclamationCircleSolid,
@@ -123,11 +123,11 @@ const allMandatorySolosDone = $derived(
 
 	const resultStyles: Record<RoundResultEnum, string> = {
 		[RoundResultEnum.WON]:
-			'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-100',
+			'border-emerald-400 bg-emerald-50 text-black dark:border-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-100',
 		[RoundResultEnum.LOST]:
-			'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-900/40 dark:text-rose-100',
+			'border-rose-400 bg-rose-50 text-black dark:border-rose-800 dark:bg-rose-900/40 dark:text-rose-100',
 		[RoundResultEnum.DRAW]:
-			'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100'
+			'border-slate-200 bg-slate-50 text-black dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100'
 	};
 
 	const placeholderTile =
@@ -181,7 +181,7 @@ const allMandatorySolosDone = $derived(
 	let playerTeams = $state<Record<string, TeamEnum | undefined>>({});
 	let showSum = $state(false);
 	let editingRoundId = $state<string | null>(null);
-	const editingMandatorySolo = $derived(Boolean(editingRoundId && soloType === SoloTypeEnum.Pflicht));
+	let editingMandatorySolo = $state(false);
 	const bonusesAllowed = $derived(
 		roundType === RoundTypeEnum.Normal || roundType === RoundTypeEnum.HochzeitNormal
 	);
@@ -282,6 +282,7 @@ const allMandatorySolosDone = $derived(
 				await invalidateAll();
 				roundModal = false;
 				// Reset form
+				form = undefined;
 				roundType = RoundTypeEnum.Normal;
 				soloType = null;
 				soloTypeSelection = null;
@@ -289,10 +290,27 @@ const allMandatorySolosDone = $derived(
 				eyesTeam = TeamEnum.RE;
 				eyesError = null;
 				playerTeams = {};
+				playerCalls = {};
 				editingRoundId = null;
+				editingMandatorySolo = false;
 			}
 			await applyAction(result);
 		};
+	};
+
+	const startNewRound = () => {
+		form = undefined;
+		roundType = RoundTypeEnum.Normal;
+		soloType = null;
+		soloTypeSelection = null;
+		eyesReInput = 120;
+		eyesTeam = TeamEnum.RE;
+		eyesError = null;
+		playerTeams = {};
+		playerCalls = {};
+		editingRoundId = null;
+		editingMandatorySolo = false;
+		roundModal = true;
 	};
 
 		const togglePlayerTeam = (playerId: string) => {
@@ -317,9 +335,11 @@ const allMandatorySolosDone = $derived(
 	};
 
 	const loadRoundIntoForm = (entry: RoundWithPoints) => {
+		form = undefined;
 		const round = entry.round;
 		roundType = round.type;
 		soloType = round.soloType;
+		editingMandatorySolo = round.soloType === SoloTypeEnum.Pflicht;
 		soloTypeSelection = round.type.startsWith('SOLO') ? round.type.replace('SOLO_', '') : null;
 		eyesReInput = round.eyesRe;
 		eyesTeam = TeamEnum.RE;
@@ -363,7 +383,7 @@ const allMandatorySolosDone = $derived(
 </script>
 
 
-<div class="flex min-h-screen flex-col bg-gray-50 p-4 sm:p-6 dark:bg-gray-900">
+<div class="flex flex-col bg-gray-50 p-4 sm:p-6 dark:bg-gray-900">
 	<section class={`space-y-4 mx-auto w-full max-w-4xl ${hasUpcomingRound ? 'pb-20' : ''}`}>
 		<div class="space-y-3">
 			<div class="flex items-center justify-between">
@@ -407,7 +427,7 @@ const allMandatorySolosDone = $derived(
 								{@const participantTeam = entry.round.participants.find((p) => p.playerId === participant.playerId)?.team}
 								{@const result = getPlayerResult(entry, participant.playerId)}
 								<div
-									class={`flex flex-col items-center justify-center rounded-md border px-2 py-3 text-sm font-semibold ${result ? resultStyles[result.result] : placeholderTile} ${participantTeam === TeamEnum.RE ? 'border-2 border-dashed' : ''}`}
+									class={`flex flex-col items-center justify-center shadow-sm rounded-md px-2 py-3 text-sm font-semibold ${result ? resultStyles[result.result] : placeholderTile} ${participantTeam === TeamEnum.RE ? 'border' : ''}`}
 									title={result?.result === RoundResultEnum.WON
 										? 'Sieg'
 										: result?.result === RoundResultEnum.LOST
@@ -452,7 +472,7 @@ const allMandatorySolosDone = $derived(
 						<div class="flex items-center gap-1"><ShuffleOutline class="h-3.5 w-3.5" /> <span>Mischen</span></div>
 						<div class="flex items-center gap-1"><RocketOutline class="h-3.5 w-3.5" /> <span>Aufspiel</span></div>
 						<div class="flex items-center gap-1">
-							<div class="h-3.5 w-3.5 rounded-sm border-2 border-dashed border-gray-500 dark:border-gray-400" aria-hidden="true"></div>
+							<div class="h-3.5 w-3.5 rounded-sm border-2 border-gray-500 dark:border-gray-400" aria-hidden="true"></div>
 							<span>Re</span>
 						</div>
 						<div class="flex items-center gap-1">
@@ -509,7 +529,7 @@ const allMandatorySolosDone = $derived(
 									? slot.entry.round.participants.find((p) => p.playerId === participant.playerId)?.team
 									: null}
 								<div
-									class={`flex flex-col items-center justify-center rounded-md border px-2 py-3 text-sm font-semibold ${soloResult ? resultStyles[soloResult.result] : placeholderTile} ${participantTeam === TeamEnum.RE ? 'border-2 border-dashed' : ''}`}
+									class={`flex flex-col items-center justify-center shadow-sm rounded-md px-2 py-3 text-sm font-semibold ${soloResult ? resultStyles[soloResult.result] : placeholderTile} ${participantTeam === TeamEnum.RE ? 'border' : ''}`}
 									title={soloResult?.result === RoundResultEnum.WON
 										? 'Sieg'
 										: soloResult?.result === RoundResultEnum.LOST
@@ -609,7 +629,7 @@ const allMandatorySolosDone = $derived(
 	<Button
 		pill={true}
 		class="fixed right-6 bottom-6 z-50 p-2"
-		onclick={() => (roundModal = true)}
+		onclick={startNewRound}
 		aria-label="Runde hinzufügen"
 	>
 		<PlusOutline class="h-10 w-10" />
@@ -619,7 +639,7 @@ const allMandatorySolosDone = $derived(
 <Modal bind:open={roundModal} fullscreen size="lg" autoclose={false} class="p-2 *:border-0!">
 	<form method="POST" action="?/saveRound" use:enhance={handleRoundSubmit}>
  		<div class="flex flex-col space-y-2">
- 			<h3 class="mb-4 text-xl font-medium text-gray-900 dark:text-white">
+ 			<h3 class="mb-6 text-xl font-medium text-gray-900 dark:text-white">
 				{editingRoundId ? 'Runde bearbeiten' : 'Füge eine neue Runde hinzu'}
 			</h3>
 

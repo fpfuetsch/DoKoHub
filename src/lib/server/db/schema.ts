@@ -58,8 +58,8 @@ export const CreateGameSchema = z.object({
 	maxRoundCount: z.coerce
 		.number()
 		.int()
-		.refine((val) => [4, 8, 12, 16, 20, 24].includes(val), {
-			message: 'Bitte wähle eine gültige Rundenanzahl (4, 8, 12, 16, 20 oder 24)'
+		.refine((val) => [8, 12, 16, 20, 24].includes(val), {
+			message: 'Bitte wähle eine gültige Rundenanzahl (8, 12, 16, 20 oder 24)'
 		}),
 	withMandatorySolos: z.coerce.boolean(),
 	player_0: z
@@ -109,7 +109,7 @@ export type GroupMemberType = InferSelectModel<typeof GroupMemberTable>;
 export const GameTable = pgTable('game', {
 	id: uuid('id').primaryKey().defaultRandom(),
 	groupId: uuid('group_id').notNull().references(() => GroupTable.id, { onDelete: 'cascade' }),
-	maxRoundCount: integer('max_round_count').notNull(), // 4, 8, 12, 16, 20, 24
+	maxRoundCount: integer('max_round_count').notNull(), // 8, 12, 16, 20, 24
 	withMandatorySolos: boolean('with_mandatory_solos').notNull(),
 	createdAt: timestamp('created_at').notNull().defaultNow(),
 	endedAt: timestamp('ended_at')
