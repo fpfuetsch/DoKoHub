@@ -1,19 +1,27 @@
 <script lang="ts">
 	import { Group } from '$lib/domain/group';
-	import { Button, Tabs, TabItem } from 'flowbite-svelte';
+	import { Button, Tabs, TabItem, Modal, Label, Alert, Dropdown, DropdownItem } from 'flowbite-svelte';
 	import {
 		ArrowLeftOutline,
 		PlayOutline,
 		ChartOutline,
-		UsersGroupSolid
+		UsersGroupSolid,
+		DotsVerticalOutline,
+		EditOutline,
+		ExclamationCircleSolid
 	} from 'flowbite-svelte-icons';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { enhance, applyAction } from '$app/forms';
+	import type { SubmitFunction } from '@sveltejs/kit';
 
 	let { data, children } = $props();
 
 	const group: Group | null = $derived(data.group);
 	const groupId = $derived($page.params.group);
+
+	let renameModal = $state(false);
+	let newName = $state('');
 
 	const tabs = [
 		{ name: 'games', label: 'Spiele', icon: PlayOutline },
@@ -24,12 +32,28 @@
 	const pathParts = $page.url.pathname.split('/');
 	const initialTab =  pathParts[pathParts.length - 1] || 'games';
 	let selected = $state(initialTab);
+
+	const handleRenameSubmit: SubmitFunction = () => {
+		return async ({ result }) => {
+			if (result.type === 'success') {
+				await invalidateAll();
+				renameModal = false;
+				newName = '';
+			}
+			await applyAction(result);
+		};
+	};
+
+	const openRenameModal = () => {
+		newName = group?.name || '';
+		renameModal = true;
+	};
 </script>
 
-<header class="bg-primary-200 shadow-sm">
+<header class="bg-primary-300 shadow-sm">
 	<div class="top-0 z-30 flex h-14 items-center px-2">
 		<Button
-			color="primary-200"
+			color="primary-300"
 			size="sm"
 			class="flex h-10 w-10 items-center justify-center "
 			pill={true}
@@ -41,8 +65,15 @@
 		<h1 class="flex-1 truncate text-center text-2xl font-semibold">
 			{group ? group.name : ''}
 		</h1>
-		<div class="h-10 w-10"></div>
-		<!-- Spacer for symmetry -->
+		<DotsVerticalOutline class="h-6 w-6 cursor-pointer" id="group-menu" />
+		<Dropdown triggeredBy="#group-menu">
+			<DropdownItem onclick={openRenameModal}>
+				<div class="flex items-center gap-2">
+					<EditOutline class="h-4 w-4" />
+					<span>Umbenennen</span>
+				</div>
+			</DropdownItem>
+		</Dropdown>
 	</div>
 
 	<!-- Tab Navigation -->
@@ -65,3 +96,44 @@
 <div class="w-full p-4">
 	{@render children()}
 </div>
+<Modal bind:open={renameModal} size="xs" autoclose={false}>
+	<form method="POST" action="?/renameGroup" use:enhance={handleRenameSubmit}>
+		<div class="flex flex-col space-y-4">
+			<h3 class="text-xl font-medium text-gray-900 dark:text-white">
+				Gruppe umbenennen
+			</h3>
+
+			{#if $page.form?.error}
+				<Alert color="red">
+					{#snippet icon()}
+						<ExclamationCircleSolid class="h-5 w-5" />
+					{/snippet}
+					<span class="font-medium">Fehler</span>
+					<div>{$page.form.error}</div>
+				</Alert>
+			{/if}
+
+			<div>
+				<Label for="groupName" class="mb-2">Neuer Gruppenname</Label>
+				<input
+					type="text"
+					id="groupName"
+					name="name"
+					bind:value={newName}
+					placeholder="Gruppenname eingeben"
+					class="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2 text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+					required
+				/>
+			</div>
+
+			<div class="flex justify-end gap-3">
+				<Button type="button" color="light" onclick={() => (renameModal = false)}>
+					Abbrechen
+				</Button>
+				<Button type="submit">
+					Umbenennen
+				</Button>
+			</div>
+		</div>
+	</form>
+</Modal>

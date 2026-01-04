@@ -57,6 +57,13 @@ export class GroupRepository {
         return result.length > 0;
     }
 
+    async updateName(id: string, name: string): Promise<boolean> {
+        const authorized = await this.isMember(id);
+        if (!authorized) return false;
+        const result = await db.update(GroupTable).set({ name }).where(eq(GroupTable.id, id)).returning();
+        return result.length > 0;
+    }
+
     async addMember(groupId: string, playerId: string): Promise<boolean> {
         const authorized = await this.isMember(groupId);
         if (!authorized) return false;

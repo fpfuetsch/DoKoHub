@@ -38,10 +38,10 @@
 	);
 </script>
 
-<header class="bg-primary-200 shadow-sm">
+<header class="bg-primary-300 shadow-sm">
 	<div class="top-0 z-30 flex h-14 items-center px-2">
 		<Button
-			color="primary-200"
+			color="primary-300"
 			size="sm"
 			class="flex h-10 w-10 items-center justify-center "
 			pill={true}

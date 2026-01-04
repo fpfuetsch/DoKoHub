@@ -9,9 +9,11 @@
 
 <div class="flex min-h-screen flex-col">
 	<div class="flex flex-1 flex-col">
-		<div class="sticky top-0 bg-primary p-4 text-white shadow-sm">
-			<h1 class="text-3xl">DoKoHub</h1>
-		</div>
+		<header class="bg-primary-300 shadow-sm">
+			<div class="top-0 z-30 flex h-16 items-center px-2">
+				<h1 class="flex-1 truncate text-center text-3xl font-semibold">DoKoHub</h1>
+			</div>
+		</header>
 		<div class="flex-1 overflow-auto p-4 pb-24">
 			{@render children()}
 		</div>

@@ -383,7 +383,7 @@ const allMandatorySolosDone = $derived(
 </script>
 
 
-<div class="flex flex-col bg-gray-50 p-4 sm:p-6 dark:bg-gray-900">
+<div class="flex flex-col p-4 sm:p-6">
 	<section class={`space-y-4 mx-auto w-full max-w-4xl ${hasUpcomingRound ? 'pb-20' : ''}`}>
 		<div class="space-y-3">
 			<div class="flex items-center justify-between">

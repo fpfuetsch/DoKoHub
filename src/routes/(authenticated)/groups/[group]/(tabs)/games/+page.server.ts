@@ -1,7 +1,7 @@
 import { GameRepository } from '$lib/server/repositories/game';
 import { GroupRepository } from '$lib/server/repositories/group';
 import { requireUserOrFail, requireUserOrRedirectToLogin } from '$lib/server/auth/guard';
-import { CreateGameSchema } from '$lib/server/db/schema';
+import { CreateGameSchema, GroupNameSchema } from '$lib/server/db/schema';
 import type { PageServerLoad, Actions } from './$types';
 import { fail } from '@sveltejs/kit';
 
@@ -90,6 +90,31 @@ export const actions: Actions = {
 					maxRoundCount: parsed.data.maxRoundCount,
 					withMandatorySolos: parsed.data.withMandatorySolos
 				}
+			});
+		}
+	},
+	renameGroup: async ({ request, params, locals }) => {
+		const user = requireUserOrFail({ locals });
+		const formData = await request.formData();
+		const newName = formData.get('name')?.toString() || '';
+
+		const parsed = GroupNameSchema.safeParse(newName);
+		if (!parsed.success) {
+			return fail(400, {
+				error: parsed.error.issues[0]?.message || 'Ungültiger Gruppenname'
+			});
+		}
+
+		try {
+			const repo = new GroupRepository(user.id);
+			const updated = await repo.updateName(params.group!, parsed.data);
+			if (!updated) {
+				return fail(400, { error: 'Gruppe konnte nicht aktualisiert werden' });
+			}
+			return { success: true };
+		} catch (error) {
+			return fail(400, {
+				error: error instanceof Error ? error.message : 'Fehler beim Aktualisieren der Gruppe'
 			});
 		}
 	}
