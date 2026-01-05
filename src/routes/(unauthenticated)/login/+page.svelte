@@ -7,7 +7,7 @@
 </script>
 
 <div class="flex min-h-screen items-center justify-center bg-white">
-	<div class="w-full max-w-md rounded-lg bg-white p-8 shadow-lg border border-primary">
+	<div class="w-full max-w-md rounded-lg border border-primary bg-white p-8 shadow-lg">
 		<h1 class="mb-2 text-3xl font-semibold text-primary">DoKoHub</h1>
 		<p class="mb-6 text-gray-600">
 			Ist eine Anwendung zum Tracken von Doppelkopf-Spielen. Melde dich an, um Spielgruppen und

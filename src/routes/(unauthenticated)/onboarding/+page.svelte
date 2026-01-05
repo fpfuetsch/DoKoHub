@@ -17,7 +17,7 @@
 </script>
 
 <div class="flex min-h-screen items-center justify-center bg-white px-4 py-8">
-	<Card class="max-w-md p-4 border border-primary shadow-lg rounded-lg bg-white">
+	<Card class="max-w-md rounded-lg border border-primary bg-white p-4 shadow-lg">
 		<div class="space-y-4">
 			<h1 class="text-center text-3xl font-semibold text-primary">Willkommen bei DoKoHub</h1>
 			<p class="text-center text-gray-600">

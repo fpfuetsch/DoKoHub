@@ -2,7 +2,15 @@
 	import { Game } from '$lib/domain/game';
 	import { formatDateTime } from '$lib/utils/format';
 	import { Button, Tabs, TabItem, Dropdown, DropdownItem, Modal, Alert } from 'flowbite-svelte';
-	import { ArrowLeftOutline, OrderedListOutline, ChartOutline, DotsVerticalOutline, ExclamationCircleSolid, StopSolid, TrashBinSolid } from 'flowbite-svelte-icons';
+	import {
+		ArrowLeftOutline,
+		OrderedListOutline,
+		ChartOutline,
+		DotsVerticalOutline,
+		ExclamationCircleSolid,
+		StopSolid,
+		TrashBinSolid
+	} from 'flowbite-svelte-icons';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { enhance } from '$app/forms';
@@ -87,7 +95,7 @@
 		>
 			<ArrowLeftOutline class="h-6 w-6" />
 		</Button>
-		<h1 class="flex-1 truncate text-primary text-center text-2xl font-semibold">
+		<h1 class="flex-1 truncate text-center text-2xl font-semibold text-primary">
 			{roundProgress}
 		</h1>
 		<Button
@@ -150,7 +158,11 @@
 </div>
 
 <Modal bind:open={finishModal} size="xs" autoclose={false}>
-	<form method="POST" action="/groups/{groupId}/games/{gameId}?/finishEarly" use:enhance={handleFinishGame}>
+	<form
+		method="POST"
+		action="/groups/{groupId}/games/{gameId}?/finishEarly"
+		use:enhance={handleFinishGame}
+	>
 		<div class="flex flex-col space-y-4">
 			<h3 class="text-xl font-medium text-gray-900 dark:text-white">Spiel vorzeitig beenden?</h3>
 
@@ -171,7 +183,11 @@
 </Modal>
 
 <Modal bind:open={deleteModal} size="xs" autoclose={false}>
-	<form method="POST" action="/groups/{groupId}/games/{gameId}?/delete" use:enhance={handleDeleteGame}>
+	<form
+		method="POST"
+		action="/groups/{groupId}/games/{gameId}?/delete"
+		use:enhance={handleDeleteGame}
+	>
 		<div class="flex flex-col space-y-4">
 			<h3 class="text-xl font-medium text-gray-900 dark:text-white">Spiel löschen</h3>
 
@@ -180,7 +196,10 @@
 					<ExclamationCircleSolid class="h-5 w-5" />
 				{/snippet}
 				<span class="font-medium">Warnung:</span>
-				<div>Das Spiel vom <strong>{game ? formatDateTime(game.createdAt) : ''}</strong> wird dauerhaft gelöscht und kann nicht wiederhergestellt werden.</div>
+				<div>
+					Das Spiel vom <strong>{game ? formatDateTime(game.createdAt) : ''}</strong> wird dauerhaft gelöscht
+					und kann nicht wiederhergestellt werden.
+				</div>
 			</Alert>
 
 			<div class="flex justify-end gap-3">

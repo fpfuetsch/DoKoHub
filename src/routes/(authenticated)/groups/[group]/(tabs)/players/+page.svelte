@@ -186,8 +186,8 @@
 	<div class="space-y-4">
 		<Alert color="red">
 			{#snippet icon()}<TrashBinOutline class="h-5 w-5" />{/snippet}
-			Lokaler Spieler <strong>{playerToDelete?.displayName}</strong> wird dauerhaft gelöscht und kann nicht
-			wiederhergestellt werden.
+			Lokaler Spieler <strong>{playerToDelete?.displayName}</strong> wird dauerhaft gelöscht und kann
+			nicht wiederhergestellt werden.
 		</Alert>
 		<form
 			method="POST"

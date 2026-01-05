@@ -198,7 +198,10 @@
 					<ExclamationCircleSolid class="h-5 w-5" />
 				{/snippet}
 				<span class="font-medium">Warnung:</span>
-				<div>Die Gruppe <strong>{group?.name}</strong> und alle zugehörigen Spieldaten werden dauerhaft gelöscht und können nicht wiederhergestellt werden.</div>
+				<div>
+					Die Gruppe <strong>{group?.name}</strong> und alle zugehörigen Spieldaten werden dauerhaft gelöscht
+					und können nicht wiederhergestellt werden.
+				</div>
 			</Alert>
 
 			<div class="flex justify-end gap-3">
