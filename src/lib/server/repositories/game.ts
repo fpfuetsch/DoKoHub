@@ -1,6 +1,11 @@
 import { RoundRepository } from '$lib/server/repositories/round';
 import { db } from '$lib/server/db';
-import { GameTable, GameParticipantTable, PlayerTable, GroupMemberTable } from '$lib/server/db/schema';
+import {
+	GameTable,
+	GameParticipantTable,
+	PlayerTable,
+	GroupMemberTable
+} from '$lib/server/db/schema';
 import { Game, type GameParticipant } from '$lib/domain/game';
 import { Player } from '$lib/domain/player';
 import type { GameType, PlayerType } from '$lib/server/db/schema';
@@ -173,7 +178,9 @@ export class GameRepository {
 
 		const result = await db
 			.delete(GameParticipantTable)
-			.where(and(eq(GameParticipantTable.gameId, gameId), eq(GameParticipantTable.playerId, playerId)))
+			.where(
+				and(eq(GameParticipantTable.gameId, gameId), eq(GameParticipantTable.playerId, playerId))
+			)
 			.returning();
 
 		return result.length > 0;
@@ -215,7 +222,9 @@ export class GameRepository {
 		const result = await db
 			.select({})
 			.from(GroupMemberTable)
-			.where(and(eq(GroupMemberTable.groupId, groupId), eq(GroupMemberTable.playerId, this.principalId)))
+			.where(
+				and(eq(GroupMemberTable.groupId, groupId), eq(GroupMemberTable.playerId, this.principalId))
+			)
 			.limit(1);
 		return result.length > 0;
 	}

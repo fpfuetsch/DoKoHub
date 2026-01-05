@@ -4,16 +4,16 @@ import { Player } from '$lib/domain/player';
 import type { Transport } from '@sveltejs/kit';
 
 export const transport: Transport = {
-    Group: {
-        encode: (value) => value instanceof Group && value.toJSON(),
-        decode: (value) => Group.fromJSON(value)
-    },
-    Player: {
-        encode: (value) => value instanceof Player && value.toJSON(),
-        decode: (value) => Player.fromJSON(value)
-    },
-    Game: {
-        encode: (value) => value instanceof Game && value.toJSON(),
-        decode: (value) => Game.fromJSON(value)
-    }
+	Group: {
+		encode: (value) => value instanceof Group && value.toJSON(),
+		decode: (value) => Group.fromJSON(value)
+	},
+	Player: {
+		encode: (value) => value instanceof Player && value.toJSON(),
+		decode: (value) => Player.fromJSON(value)
+	},
+	Game: {
+		encode: (value) => value instanceof Game && value.toJSON(),
+		decode: (value) => Game.fromJSON(value)
+	}
 };

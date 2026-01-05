@@ -16,10 +16,10 @@
 	});
 </script>
 
-<div class="flex min-h-screen items-center justify-center bg-primary-300 px-4 py-8">
-	<Card class="max-w-md p-4">
+<div class="flex min-h-screen items-center justify-center bg-white px-4 py-8">
+	<Card class="max-w-md p-4 border border-primary shadow-lg rounded-lg bg-white">
 		<div class="space-y-4">
-			<h1 class="text-center text-3xl font-semibold text-gray-900">Willkommen bei DoKoHub</h1>
+			<h1 class="text-center text-3xl font-semibold text-primary">Willkommen bei DoKoHub</h1>
 			<p class="text-center text-gray-600">
 				Wähle deinen Anzeigenamen und Benutzernamen.<br />
 				Du kannst diese später in deinem Profil ändern.

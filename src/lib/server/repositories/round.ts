@@ -11,11 +11,13 @@ import {
 	PlayerTable
 } from '$lib/server/db/schema';
 import { RoundType, Team, CallType, BonusType, SoloType, RoundResult } from '$lib/server/enums';
+import type { GameRoundType, PlayerType } from '$lib/server/db/schema';
 import type {
-	GameRoundType,
-	PlayerType
-} from '$lib/server/db/schema';
-import type { RoundData, GameRoundParticipant, GameRoundCall, GameRoundBonus } from '$lib/domain/round';
+	RoundData,
+	GameRoundParticipant,
+	GameRoundCall,
+	GameRoundBonus
+} from '$lib/domain/round';
 import { Round } from '$lib/domain/round';
 import { Player } from '$lib/domain/player';
 import { and, eq } from 'drizzle-orm';
@@ -49,20 +51,27 @@ export class RoundRepository {
 			const roundData = roundRow as GameRoundType;
 			const participants = await this.getParticipantsForRound(roundData.id);
 
-			rounds.push(new Round({
-				id: roundData.id,
-				roundNumber: roundData.roundNumber,
-				type: roundData.type,
-				soloType: roundData.soloType,
-				eyesRe: roundData.eyesRe,
-				participants
-			}));
+			rounds.push(
+				new Round({
+					id: roundData.id,
+					roundNumber: roundData.roundNumber,
+					type: roundData.type,
+					soloType: roundData.soloType,
+					eyesRe: roundData.eyesRe,
+					participants
+				})
+			);
 		}
 
 		return rounds.sort((a, b) => a.roundNumber - b.roundNumber);
 	}
 
-	async updateRound(roundId: string, gameId: string, groupId: string, round: RoundData): Promise<Round | null> {
+	async updateRound(
+		roundId: string,
+		gameId: string,
+		groupId: string,
+		round: RoundData
+	): Promise<Round | null> {
 		if (!(await this.roundBelongsToUserGroup(roundId, gameId, groupId))) return null;
 
 		const existing = await this.getRoundById(roundId);
@@ -70,7 +79,10 @@ export class RoundRepository {
 
 		const gameParticipantIds = await this.getGameParticipantIds(gameId);
 		const roundParticipantIds = new Set(round.participants.map((p) => p.playerId));
-		if (gameParticipantIds.size !== roundParticipantIds.size || ![...roundParticipantIds].every((id) => gameParticipantIds.has(id))) {
+		if (
+			gameParticipantIds.size !== roundParticipantIds.size ||
+			![...roundParticipantIds].every((id) => gameParticipantIds.has(id))
+		) {
 			throw new Error('Teilnehmer stimmen nicht mit dem Spiel überein');
 		}
 
@@ -81,7 +93,8 @@ export class RoundRepository {
 		};
 
 		// Get game's mandatory solos setting for validation
-		const [game] = await db.select({ withMandatorySolos: GameTable.withMandatorySolos })
+		const [game] = await db
+			.select({ withMandatorySolos: GameTable.withMandatorySolos })
 			.from(GameTable)
 			.where(eq(GameTable.id, gameId));
 		if (!game) throw new Error('Spiel nicht gefunden');
@@ -89,16 +102,29 @@ export class RoundRepository {
 		const validationError = Round.validate(draft, game.withMandatorySolos);
 		if (validationError) throw new Error(validationError);
 
-		await db.update(GameRoundTable).set({ type: draft.type as RoundType, soloType: draft.soloType as SoloType | null, eyesRe: draft.eyesRe }).where(eq(GameRoundTable.id, roundId));
+		await db
+			.update(GameRoundTable)
+			.set({
+				type: draft.type as RoundType,
+				soloType: draft.soloType as SoloType | null,
+				eyesRe: draft.eyesRe
+			})
+			.where(eq(GameRoundTable.id, roundId));
 
 		await db.delete(GameRoundCallTable).where(eq(GameRoundCallTable.roundId, roundId));
 		await db.delete(GameRoundBonusTable).where(eq(GameRoundBonusTable.roundId, roundId));
-		await db.delete(GameRoundParticipantTable).where(eq(GameRoundParticipantTable.roundId, roundId));
+		await db
+			.delete(GameRoundParticipantTable)
+			.where(eq(GameRoundParticipantTable.roundId, roundId));
 
 		for (const participant of draft.participants) {
-			await db.insert(GameRoundParticipantTable).values({ roundId, playerId: participant.playerId, team: participant.team as Team });
+			await db
+				.insert(GameRoundParticipantTable)
+				.values({ roundId, playerId: participant.playerId, team: participant.team as Team });
 			for (const call of participant.calls) {
-				await db.insert(GameRoundCallTable).values({ roundId, playerId: participant.playerId, callType: call.callType as CallType });
+				await db
+					.insert(GameRoundCallTable)
+					.values({ roundId, playerId: participant.playerId, callType: call.callType as CallType });
 			}
 			for (const bonus of participant.bonuses) {
 				await db.insert(GameRoundBonusTable).values({
@@ -127,9 +153,14 @@ export class RoundRepository {
 
 		await db.delete(GameRoundBonusTable).where(eq(GameRoundBonusTable.roundId, roundId));
 		await db.delete(GameRoundCallTable).where(eq(GameRoundCallTable.roundId, roundId));
-		await db.delete(GameRoundParticipantTable).where(eq(GameRoundParticipantTable.roundId, roundId));
+		await db
+			.delete(GameRoundParticipantTable)
+			.where(eq(GameRoundParticipantTable.roundId, roundId));
 
-		const result = await db.delete(GameRoundTable).where(eq(GameRoundTable.id, roundId)).returning();
+		const result = await db
+			.delete(GameRoundTable)
+			.where(eq(GameRoundTable.id, roundId))
+			.returning();
 		return result.length > 0;
 	}
 
@@ -146,11 +177,17 @@ export class RoundRepository {
 
 		const gameParticipantIds = await this.getGameParticipantIds(gameId);
 		const roundParticipantIds = new Set(round.participants.map((p) => p.playerId));
-		if (gameParticipantIds.size !== roundParticipantIds.size || ![...roundParticipantIds].every((id) => gameParticipantIds.has(id))) {
+		if (
+			gameParticipantIds.size !== roundParticipantIds.size ||
+			![...roundParticipantIds].every((id) => gameParticipantIds.has(id))
+		) {
 			throw new Error('Teilnehmer stimmen nicht mit dem Spiel überein');
 		}
 
-		const roundCount = await db.select().from(GameRoundTable).where(eq(GameRoundTable.gameId, gameId));
+		const roundCount = await db
+			.select()
+			.from(GameRoundTable)
+			.where(eq(GameRoundTable.gameId, gameId));
 		const nextRoundNumber = roundCount.length + 1;
 
 		const draft: RoundData = {
@@ -160,7 +197,8 @@ export class RoundRepository {
 		};
 
 		// Get game's mandatory solos setting for validation
-		const [game] = await db.select({ withMandatorySolos: GameTable.withMandatorySolos })
+		const [game] = await db
+			.select({ withMandatorySolos: GameTable.withMandatorySolos })
 			.from(GameTable)
 			.where(eq(GameTable.id, gameId));
 		if (!game) throw new Error('Spiel nicht gefunden');
@@ -170,15 +208,25 @@ export class RoundRepository {
 
 		const [insertedRound] = await db
 			.insert(GameRoundTable)
-			.values({ gameId, roundNumber: nextRoundNumber, type: draft.type as RoundType, soloType: draft.soloType as SoloType | null, eyesRe: draft.eyesRe })
+			.values({
+				gameId,
+				roundNumber: nextRoundNumber,
+				type: draft.type as RoundType,
+				soloType: draft.soloType as SoloType | null,
+				eyesRe: draft.eyesRe
+			})
 			.returning();
 
 		const roundId = insertedRound.id;
 
 		for (const participant of draft.participants) {
-			await db.insert(GameRoundParticipantTable).values({ roundId, playerId: participant.playerId, team: participant.team as Team });
+			await db
+				.insert(GameRoundParticipantTable)
+				.values({ roundId, playerId: participant.playerId, team: participant.team as Team });
 			for (const call of participant.calls) {
-				await db.insert(GameRoundCallTable).values({ roundId, playerId: participant.playerId, callType: call.callType as CallType });
+				await db
+					.insert(GameRoundCallTable)
+					.values({ roundId, playerId: participant.playerId, callType: call.callType as CallType });
 			}
 			for (const bonus of participant.bonuses) {
 				await db.insert(GameRoundBonusTable).values({
@@ -246,7 +294,10 @@ export class RoundRepository {
 	}
 
 	private async getGameParticipantIds(gameId: string): Promise<Set<string>> {
-		const rows = await db.select().from(GameParticipantTable).where(eq(GameParticipantTable.gameId, gameId));
+		const rows = await db
+			.select()
+			.from(GameParticipantTable)
+			.where(eq(GameParticipantTable.gameId, gameId));
 		return new Set(rows.map((row) => row.playerId));
 	}
 
@@ -274,25 +325,43 @@ export class RoundRepository {
 		return participants;
 	}
 
-	private async getCallsForRoundPlayer(roundId: string, playerId: string): Promise<GameRoundCall[]> {
+	private async getCallsForRoundPlayer(
+		roundId: string,
+		playerId: string
+	): Promise<GameRoundCall[]> {
 		const rows = await db
 			.select()
 			.from(GameRoundCallTable)
-			.where(and(eq(GameRoundCallTable.roundId, roundId), eq(GameRoundCallTable.playerId, playerId)));
+			.where(
+				and(eq(GameRoundCallTable.roundId, roundId), eq(GameRoundCallTable.playerId, playerId))
+			);
 
 		return rows.map((row) => ({ playerId: row.playerId, callType: row.callType }));
 	}
 
-	private async getBonusesForRoundPlayer(roundId: string, playerId: string): Promise<GameRoundBonus[]> {
+	private async getBonusesForRoundPlayer(
+		roundId: string,
+		playerId: string
+	): Promise<GameRoundBonus[]> {
 		const rows = await db
 			.select()
 			.from(GameRoundBonusTable)
-			.where(and(eq(GameRoundBonusTable.roundId, roundId), eq(GameRoundBonusTable.playerId, playerId)));
+			.where(
+				and(eq(GameRoundBonusTable.roundId, roundId), eq(GameRoundBonusTable.playerId, playerId))
+			);
 
-		return rows.map((row) => ({ playerId: row.playerId, bonusType: row.bonusType, count: row.count }));
+		return rows.map((row) => ({
+			playerId: row.playerId,
+			bonusType: row.bonusType,
+			count: row.count
+		}));
 	}
 
-	private async roundBelongsToUserGroup(roundId: string, gameId: string, groupId: string): Promise<boolean> {
+	private async roundBelongsToUserGroup(
+		roundId: string,
+		gameId: string,
+		groupId: string
+	): Promise<boolean> {
 		if (!(await this.isGroupMember(groupId))) return false;
 
 		const roundRow = await db
@@ -300,7 +369,11 @@ export class RoundRepository {
 			.from(GameRoundTable)
 			.innerJoin(GameTable, eq(GameRoundTable.gameId, GameTable.id))
 			.where(
-				and(eq(GameRoundTable.id, roundId), eq(GameRoundTable.gameId, gameId), eq(GameTable.groupId, groupId))
+				and(
+					eq(GameRoundTable.id, roundId),
+					eq(GameRoundTable.gameId, gameId),
+					eq(GameTable.groupId, groupId)
+				)
 			)
 			.limit(1);
 
@@ -311,7 +384,9 @@ export class RoundRepository {
 		const result = await db
 			.select({})
 			.from(GroupMemberTable)
-			.where(and(eq(GroupMemberTable.groupId, groupId), eq(GroupMemberTable.playerId, this.principalId)))
+			.where(
+				and(eq(GroupMemberTable.groupId, groupId), eq(GroupMemberTable.playerId, this.principalId))
+			)
 			.limit(1);
 		return result.length > 0;
 	}

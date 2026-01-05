@@ -5,14 +5,17 @@ import { Game } from '$lib/domain/game';
 import { requireUserOrFail } from '$lib/server/auth/guard';
 import { CreateRoundSchema } from '$lib/server/db/schema';
 import { SoloType, Team as TeamEnum } from '$lib/domain/enums';
-import type { TeamEnumValue as Team, CallTypeEnumValue, BonusTypeEnumValue } from '$lib/domain/enums';
+import type {
+	TeamEnumValue as Team,
+	CallTypeEnumValue,
+	BonusTypeEnumValue
+} from '$lib/domain/enums';
 import { CallType } from '$lib/server/enums';
 import { fail, type RequestEvent, type ServerLoad } from '@sveltejs/kit';
 
 export const load: ServerLoad = async ({ parent }) => {
 	return parent();
 };
-
 
 function parseTeamsFromFormData(formData: FormData): Record<string, string> {
 	const teamsObj: Record<string, string> = {};
@@ -24,8 +27,17 @@ function parseTeamsFromFormData(formData: FormData): Record<string, string> {
 	return teamsObj;
 }
 
-function parseCallsFromFormData(formData: FormData): Record<string, { playerId: string; callType: CallTypeEnumValue }[]> {
-	const allowedCalls = new Set<CallTypeEnumValue>([CallType.RE, CallType.KONTRA, CallType.Keine90, CallType.Keine60, CallType.Keine30, CallType.Schwarz]);
+function parseCallsFromFormData(
+	formData: FormData
+): Record<string, { playerId: string; callType: CallTypeEnumValue }[]> {
+	const allowedCalls = new Set<CallTypeEnumValue>([
+		CallType.RE,
+		CallType.KONTRA,
+		CallType.Keine90,
+		CallType.Keine60,
+		CallType.Keine30,
+		CallType.Schwarz
+	]);
 	const callsObj: Record<string, { playerId: string; callType: CallTypeEnumValue }[]> = {};
 	for (const [key, value] of formData.entries()) {
 		if (key.startsWith('player_') && key.includes('_call_')) {
@@ -40,8 +52,13 @@ function parseCallsFromFormData(formData: FormData): Record<string, { playerId: 
 	return callsObj;
 }
 
-function parseBonusesFromFormData(formData: FormData): Record<string, { playerId: string; bonusType: BonusTypeEnumValue; count: number }[]> {
-	const bonusObj: Record<string, { playerId: string; bonusType: BonusTypeEnumValue; count: number }[]> = {};
+function parseBonusesFromFormData(
+	formData: FormData
+): Record<string, { playerId: string; bonusType: BonusTypeEnumValue; count: number }[]> {
+	const bonusObj: Record<
+		string,
+		{ playerId: string; bonusType: BonusTypeEnumValue; count: number }[]
+	> = {};
 	for (const [key, value] of formData.entries()) {
 		if (key.startsWith('player_') && key.includes('_bonus_')) {
 			const playerKey = key.replace(/_bonus_.*/, '');
@@ -55,10 +72,7 @@ function parseBonusesFromFormData(formData: FormData): Record<string, { playerId
 	return bonusObj;
 }
 
-function buildTeamAssignments(
-	teams: Record<string, string>,
-	game: any
-): Map<string, Team> {
+function buildTeamAssignments(teams: Record<string, string>, game: any): Map<string, Team> {
 	const teamAssignments = new Map<string, Team>();
 
 	for (const [key, team] of Object.entries(teams)) {
@@ -121,7 +135,9 @@ export const actions = {
 				const wasMandatory = targetRound.soloType === SoloType.Pflicht;
 				const willBeMandatory = parsed.data.soloType === SoloType.Pflicht;
 				if (wasMandatory !== willBeMandatory) {
-					return fail(400, { error: 'Pflichtsoli können nicht in andere Soloarten geändert werden (und umgekehrt).' });
+					return fail(400, {
+						error: 'Pflichtsoli können nicht in andere Soloarten geändert werden (und umgekehrt).'
+					});
 				}
 			}
 
@@ -195,8 +211,7 @@ export const actions = {
 				values: { type: formData.get('type'), eyesRe: formData.get('eyesRe') }
 			});
 		}
-	}
-	,
+	},
 	finishGame: async ({ locals, params }: RequestEvent) => {
 		const gameId = params.game!;
 		const groupId = params.group!;

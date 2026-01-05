@@ -38,7 +38,7 @@
 	);
 </script>
 
-<header class="bg-light shadow-sm">
+<header class="bg-white shadow-sm">
 	<div class="top-0 z-30 flex h-14 items-center px-2">
 		<Button
 			color="light"
@@ -59,7 +59,12 @@
 
 	<!-- Tab Navigation -->
 	<div class="top-14 z-20">
-		<Tabs tabStyle="underline" classes={{ content: 'hidden' }} divider={false} class="flex justify-center">
+		<Tabs
+			tabStyle="underline"
+			classes={{ content: 'hidden' }}
+			divider={false}
+			class="flex justify-center"
+		>
 			{#each tabs as tab}
 				<TabItem
 					open={selected === tab.name}

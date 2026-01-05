@@ -1,13 +1,21 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { PlayerRepository } from '$lib/server/repositories/player';
-import { PlayerProfileSchema, PlayerNameSchema, PlayerDisplayNameSchema } from '$lib/server/db/schema';
+import {
+	PlayerProfileSchema,
+	PlayerNameSchema,
+	PlayerDisplayNameSchema
+} from '$lib/server/db/schema';
 import {
 	ONBOARDING_COOKIE,
 	onboardingCookieAttributes,
 	verifyOnboardingToken
 } from '$lib/server/auth/onboarding';
-import { SESSION_COOKIE_NAME, createSessionToken, sessionCookieAttributes } from '$lib/server/auth/session';
+import {
+	SESSION_COOKIE_NAME,
+	createSessionToken,
+	sessionCookieAttributes
+} from '$lib/server/auth/session';
 import { AuthProvider } from '$lib/server/enums';
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {

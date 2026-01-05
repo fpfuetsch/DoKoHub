@@ -25,7 +25,9 @@ export class PlayerRepository {
 		const result = await db
 			.select()
 			.from(PlayerTable)
-			.where(and(eq(PlayerTable.authProviderId, providerId), eq(PlayerTable.authProvider, provider)))
+			.where(
+				and(eq(PlayerTable.authProviderId, providerId), eq(PlayerTable.authProvider, provider))
+			)
 			.limit(1);
 		if (result.length === 0) return null;
 		return new Player(result[0] as PlayerType);
@@ -44,7 +46,11 @@ export class PlayerRepository {
 		if (this.principalId && id !== this.principalId) {
 			return null;
 		}
-		const [updated] = await db.update(PlayerTable).set(data).where(eq(PlayerTable.id, id)).returning();
+		const [updated] = await db
+			.update(PlayerTable)
+			.set(data)
+			.where(eq(PlayerTable.id, id))
+			.returning();
 		return updated ? new Player(updated as PlayerType) : null;
 	}
 

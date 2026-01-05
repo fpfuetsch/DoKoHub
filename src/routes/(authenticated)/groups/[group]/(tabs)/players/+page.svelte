@@ -72,11 +72,7 @@
 	</ul>
 </div>
 
-<Button
-	pill={true}
-	class="fixed right-6 bottom-6 z-50  p-2"
-	onclick={() => (formModal = true)}
->
+<Button pill={true} class="fixed right-6 bottom-6 z-50  p-2" onclick={() => (formModal = true)}>
 	<PlusOutline class="h-10 w-10" />
 </Button>
 
@@ -115,8 +111,8 @@
 							required
 						/>
 						<Helper>
-							Gib den Benutzernamen des Spielers ein, um ihn hinzuzufügen. Den Benutzernamen
-							findest du auf der Profilseite des Spielers.
+							Gib den Benutzernamen des Spielers ein, um ihn hinzuzufügen. Den Benutzernamen findest
+							du auf der Profilseite des Spielers.
 						</Helper>
 
 						<div class="flex justify-end gap-3">

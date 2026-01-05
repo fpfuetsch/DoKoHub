@@ -1,6 +1,15 @@
 <script lang="ts">
 	import { Group } from '$lib/domain/group';
-	import { Button, Tabs, TabItem, Modal, Label, Alert, Dropdown, DropdownItem } from 'flowbite-svelte';
+	import {
+		Button,
+		Tabs,
+		TabItem,
+		Modal,
+		Label,
+		Alert,
+		Dropdown,
+		DropdownItem
+	} from 'flowbite-svelte';
 	import {
 		ArrowLeftOutline,
 		PlayOutline,
@@ -30,7 +39,7 @@
 	];
 
 	const pathParts = $page.url.pathname.split('/');
-	const initialTab =  pathParts[pathParts.length - 1] || 'games';
+	const initialTab = pathParts[pathParts.length - 1] || 'games';
 	let selected = $state(initialTab);
 
 	const handleRenameSubmit: SubmitFunction = () => {
@@ -50,7 +59,7 @@
 	};
 </script>
 
-<header class="bg-light shadow-sm">
+<header class="bg-white shadow-sm">
 	<div class="top-0 z-30 flex h-14 items-center px-2">
 		<Button
 			color="light"
@@ -62,7 +71,7 @@
 		>
 			<ArrowLeftOutline class="h-6 w-6" />
 		</Button>
-		<h1 class="flex-1 text-primary truncate text-center text-2xl font-semibold">
+		<h1 class="flex-1 truncate text-center text-2xl font-semibold text-primary">
 			{group ? group.name : ''}
 		</h1>
 		<Button
@@ -86,7 +95,13 @@
 
 	<!-- Tab Navigation -->
 	<div class="top-14 z-20">
-		<Tabs tabStyle="underline" classes={{ content: "hidden" }} divider={false} bind:selected class="flex justify-center">
+		<Tabs
+			tabStyle="underline"
+			classes={{ content: 'hidden' }}
+			divider={false}
+			bind:selected
+			class="flex justify-center"
+		>
 			{#each tabs as tab}
 				<TabItem key={tab.name} onclick={() => goto(`/groups/${groupId}/${tab.name}`)}>
 					{#snippet titleSlot()}
@@ -107,9 +122,7 @@
 <Modal bind:open={renameModal} size="xs" autoclose={false}>
 	<form method="POST" action="?/renameGroup" use:enhance={handleRenameSubmit}>
 		<div class="flex flex-col space-y-4">
-			<h3 class="text-xl font-medium text-gray-900 dark:text-white">
-				Gruppe umbenennen
-			</h3>
+			<h3 class="text-xl font-medium text-gray-900 dark:text-white">Gruppe umbenennen</h3>
 
 			{#if $page.form?.error}
 				<Alert color="red">
@@ -135,12 +148,8 @@
 			</div>
 
 			<div class="flex justify-end gap-3">
-				<Button type="button" color="light" onclick={() => (renameModal = false)}>
-					Abbrechen
-				</Button>
-				<Button type="submit">
-					Umbenennen
-				</Button>
+				<Button type="button" color="light" onclick={() => (renameModal = false)}>Abbrechen</Button>
+				<Button type="submit">Umbenennen</Button>
 			</div>
 		</div>
 	</form>

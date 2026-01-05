@@ -19,11 +19,7 @@ export class Game implements GameType {
 	participants: GameParticipant[] = [];
 	rounds: Round[] = [];
 
-	constructor(
-		data: GameType,
-		participants: GameParticipant[] = [],
-		rounds: Round[] = []
-	) {
+	constructor(data: GameType, participants: GameParticipant[] = [], rounds: Round[] = []) {
 		this.id = data.id;
 		this.groupId = data.groupId;
 		this.maxRoundCount = data.maxRoundCount;
@@ -53,9 +49,7 @@ export class Game implements GameType {
 	 */
 	static validate(game: Game): string | null {
 		// Validate that Pflicht solo rounds only exist if game has mandatory solos
-		const mandatorySoloRounds = game.rounds.filter(
-			(r) => r.soloType === SoloType.Pflicht
-		);
+		const mandatorySoloRounds = game.rounds.filter((r) => r.soloType === SoloType.Pflicht);
 
 		if (mandatorySoloRounds.length > 0 && !game.withMandatorySolos) {
 			return 'Pflichtsolo-Runden sind nur bei Spielen mit Pflichtsolo erlaubt';

@@ -26,7 +26,9 @@ export const actions: Actions = {
 		}
 
 		if (player.authProvider === AuthProvider.Local) {
-			return fail(400, { error: 'Lokale Spieler können nicht auf diese Weise hinzugefügt werden.' });
+			return fail(400, {
+				error: 'Lokale Spieler können nicht auf diese Weise hinzugefügt werden.'
+			});
 		}
 
 		// Check if player is already in group
@@ -103,6 +105,6 @@ export const actions: Actions = {
 			success_delete = await playerRepo.delete(playerId);
 		}
 
-		return { success: success_remove && success_delete};
+		return { success: success_remove && success_delete };
 	}
 };

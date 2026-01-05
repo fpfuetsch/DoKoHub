@@ -37,7 +37,7 @@
 			{#each groups as group}
 				<a
 					href="/groups/{group.id}"
-					class="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition cursor-pointer"
+					class="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-3 transition hover:border-gray-300 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
 				>
 					<div class="flex-1 space-y-1 font-medium dark:text-white">
 						<div class="font-semibold text-gray-900 dark:text-white">

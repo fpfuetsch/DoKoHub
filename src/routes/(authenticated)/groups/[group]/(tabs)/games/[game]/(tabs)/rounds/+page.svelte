@@ -46,7 +46,11 @@
 	const roundsWithPoints: RoundWithPoints[] = $derived(
 		allRoundsWithPoints.filter((entry) => {
 			// Filter out mandatory solos if game has them
-			if (game.withMandatorySolos && entry.round.type.startsWith('SOLO') && entry.round.soloType === SoloTypeEnum.Pflicht) {
+			if (
+				game.withMandatorySolos &&
+				entry.round.type.startsWith('SOLO') &&
+				entry.round.soloType === SoloTypeEnum.Pflicht
+			) {
 				return false;
 			}
 			return true;
@@ -85,7 +89,9 @@
 			: null
 	);
 	const upcomingStarter = $derived(
-		sortedParticipants.length ? sortedParticipants[nextVisibleRoundNumber % sortedParticipants.length] : null
+		sortedParticipants.length
+			? sortedParticipants[nextVisibleRoundNumber % sortedParticipants.length]
+			: null
 	);
 
 	const mandatorySoloSlots = $derived(
@@ -104,22 +110,24 @@
 		})()
 	);
 
-const mandatorySoloPlayerIds = $derived(
-	new Set(
-		allRoundsWithPoints
-			.filter(({ round }) => round.type.startsWith('SOLO') && round.soloType === SoloTypeEnum.Pflicht)
-			.map(({ round }) => round.participants.find((p) => p.team === TeamEnum.RE)?.playerId)
-			.filter(Boolean) as string[]
-	)
-);
+	const mandatorySoloPlayerIds = $derived(
+		new Set(
+			allRoundsWithPoints
+				.filter(
+					({ round }) => round.type.startsWith('SOLO') && round.soloType === SoloTypeEnum.Pflicht
+				)
+				.map(({ round }) => round.participants.find((p) => p.team === TeamEnum.RE)?.playerId)
+				.filter(Boolean) as string[]
+		)
+	);
 
-const remainingMandatorySoloPlayers = $derived(
-	sortedParticipants.filter((p) => !mandatorySoloPlayerIds.has(p.playerId))
-);
+	const remainingMandatorySoloPlayers = $derived(
+		sortedParticipants.filter((p) => !mandatorySoloPlayerIds.has(p.playerId))
+	);
 
-const allMandatorySolosDone = $derived(
-	!game.withMandatorySolos || remainingMandatorySoloPlayers.length === 0
-);
+	const allMandatorySolosDone = $derived(
+		!game.withMandatorySolos || remainingMandatorySoloPlayers.length === 0
+	);
 
 	const resultStyles: Record<RoundResultEnum, string> = {
 		[RoundResultEnum.WON]:
@@ -151,13 +159,13 @@ const allMandatorySolosDone = $derived(
 
 			// Map solo types to names
 			const soloTypeMap: Record<string, string> = {
-				'kreuz': 'Kreuz',
-				'pik': 'Pik',
-				'herz': 'Herz',
-				'karo': 'Karo',
-				'buben': 'Buben',
-				'damen': 'Damen',
-				'ass': 'Ass'
+				kreuz: 'Kreuz',
+				pik: 'Pik',
+				herz: 'Herz',
+				karo: 'Karo',
+				buben: 'Buben',
+				damen: 'Damen',
+				ass: 'Ass'
 			};
 
 			const displayType = soloTypeMap[variant] || variant;
@@ -313,16 +321,16 @@ const allMandatorySolosDone = $derived(
 		roundModal = true;
 	};
 
-		const togglePlayerTeam = (playerId: string) => {
-			const current = playerTeams[playerId];
-			if (current === undefined) {
-				playerTeams[playerId] = TeamEnum.RE;
-			} else if (current === TeamEnum.RE) {
-				playerTeams[playerId] = TeamEnum.KONTRA;
-			} else {
-				playerTeams[playerId] = undefined;
-			}
-		};
+	const togglePlayerTeam = (playerId: string) => {
+		const current = playerTeams[playerId];
+		if (current === undefined) {
+			playerTeams[playerId] = TeamEnum.RE;
+		} else if (current === TeamEnum.RE) {
+			playerTeams[playerId] = TeamEnum.KONTRA;
+		} else {
+			playerTeams[playerId] = undefined;
+		}
+	};
 
 	// Get the final round type based on selections
 	const getFinalRoundType = (): string => {
@@ -357,10 +365,12 @@ const allMandatorySolosDone = $derived(
 			const absageCall = participant?.calls.find(
 				(c) => ![CallTypeEnum.RE, CallTypeEnum.KONTRA].includes(c.callType)
 			);
-			const fuchs = participant?.bonuses.find((b) => b.bonusType === BonusTypeEnum.Fuchs)?.count ?? 0;
+			const fuchs =
+				participant?.bonuses.find((b) => b.bonusType === BonusTypeEnum.Fuchs)?.count ?? 0;
 			const doko = participant?.bonuses.find((b) => b.bonusType === BonusTypeEnum.Doko)?.count ?? 0;
 			const karlchen =
-				participant?.bonuses.find((b) => b.bonusType === BonusTypeEnum.Karlchen)?.count === 1 || false;
+				participant?.bonuses.find((b) => b.bonusType === BonusTypeEnum.Karlchen)?.count === 1 ||
+				false;
 
 			calls[p.playerId] = {
 				calls: {
@@ -382,9 +392,8 @@ const allMandatorySolosDone = $derived(
 	};
 </script>
 
-
 <div class="flex flex-col p-4 sm:p-6">
-	<section class={`space-y-4 mx-auto w-full max-w-4xl ${hasUpcomingRound ? 'pb-20' : ''}`}>
+	<section class={`mx-auto w-full max-w-4xl space-y-4 ${hasUpcomingRound ? 'pb-20' : ''}`}>
 		<div class="space-y-3">
 			<div class="flex items-center justify-between">
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Standardrunden</h2>
@@ -393,13 +402,13 @@ const allMandatorySolosDone = $derived(
 			<div class="overflow-x-auto">
 				<div class="min-w-full space-y-2">
 					<div
-						class="grid items-center gap-2 p-0 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
+						class="grid items-center gap-2 p-0 text-[11px] font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-400"
 						style={`grid-template-columns: 70px repeat(${sortedParticipants.length}, minmax(0, 1fr));`}
 					>
-						<div class="text-center px-2">Runde</div>
+						<div class="px-2 text-center">Runde</div>
 						{#each sortedParticipants as participant}
 							<div
-								class="text-center truncate px-2"
+								class="truncate px-2 text-center"
 								title={participant.player?.displayName ?? 'Spieler'}
 							>
 								{participant.player?.displayName ?? 'Spieler'}
@@ -415,19 +424,28 @@ const allMandatorySolosDone = $derived(
 							class={`grid w-full items-stretch gap-2 p-0 text-left transition ${canEditRounds ? 'cursor-pointer hover:bg-gray-100/60 dark:hover:bg-gray-800/60' : 'cursor-default'} focus:outline-none`}
 							style={`grid-template-columns: 70px repeat(${sortedParticipants.length}, minmax(0, 1fr));`}
 							onclick={canEditRounds ? () => loadRoundIntoForm(entry) : undefined}
-							onkeydown={canEditRounds ? (event) => (event.key === 'Enter' || event.key === ' ') && loadRoundIntoForm(entry) : undefined}
+							onkeydown={canEditRounds
+								? (event) =>
+										(event.key === 'Enter' || event.key === ' ') && loadRoundIntoForm(entry)
+								: undefined}
 						>
-							<div class="flex flex-col justify-center gap-0.5 px-2 py-2 text-xs text-gray-900 dark:text-gray-100">
+							<div
+								class="flex flex-col justify-center gap-0.5 px-2 py-2 text-xs text-gray-900 dark:text-gray-100"
+							>
 								<span class="leading-tight font-semibold">{entry.round.roundNumber}</span>
-								<span class="text-[8px] truncate font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+								<span
+									class="truncate text-[8px] font-medium tracking-wide text-gray-500 uppercase dark:text-gray-400"
+								>
 									{formatRoundLabel(entry.round)}
 								</span>
 							</div>
 							{#each sortedParticipants as participant}
-								{@const participantTeam = entry.round.participants.find((p) => p.playerId === participant.playerId)?.team}
+								{@const participantTeam = entry.round.participants.find(
+									(p) => p.playerId === participant.playerId
+								)?.team}
 								{@const result = getPlayerResult(entry, participant.playerId)}
 								<div
-									class={`flex flex-col items-center justify-center shadow-sm rounded-md px-2 py-3 text-sm font-semibold ${result ? resultStyles[result.result] : placeholderTile} ${participantTeam === TeamEnum.RE ? 'border' : ''}`}
+									class={`flex flex-col items-center justify-center rounded-md px-2 py-3 text-sm font-semibold shadow-sm ${result ? resultStyles[result.result] : placeholderTile} ${participantTeam === TeamEnum.RE ? 'border' : ''}`}
 									title={result?.result === RoundResultEnum.WON
 										? 'Sieg'
 										: result?.result === RoundResultEnum.LOST
@@ -436,7 +454,7 @@ const allMandatorySolosDone = $derived(
 												? 'Remis'
 												: 'Offen'}
 								>
-									<div class="text-lg font-bold leading-none">{result?.points ?? 0}</div>
+									<div class="text-lg leading-none font-bold">{result?.points ?? 0}</div>
 								</div>
 							{/each}
 						</div>
@@ -451,36 +469,56 @@ const allMandatorySolosDone = $derived(
 							class="grid items-stretch gap-2 p-0"
 							style={`grid-template-columns: 70px repeat(${sortedParticipants.length}, minmax(0, 1fr));`}
 						>
-							<div class="flex flex-col justify-center gap-0.5 px-2 py-2 text-xs font-semibold text-gray-800 dark:text-gray-100">
+							<div
+								class="flex flex-col justify-center gap-0.5 px-2 py-2 text-xs font-semibold text-gray-800 dark:text-gray-100"
+							>
 								<span class="leading-tight">{nextRoundNumber}</span>
 							</div>
 							{#each sortedParticipants as participant}
-								<div class="flex flex-col items-center justify-center rounded-md border border-dashed border-slate-700 px-2 py-3 text-xs font-semibold text-gray-600 dark:border-gray-700 dark:text-gray-200">
+								<div
+									class="flex flex-col items-center justify-center rounded-md border border-dashed border-slate-700 px-2 py-3 text-xs font-semibold text-gray-600 dark:border-gray-700 dark:text-gray-200"
+								>
 									{#if upcomingDealer && participant.playerId === upcomingDealer.playerId}
 										<ShuffleOutline class="h-5 w-5" />
 									{:else if upcomingStarter && participant.playerId === upcomingStarter.playerId}
 										<RocketOutline class="h-5 w-5" />
 									{:else}
-										<div class="h-1.5 w-1.5 rounded-full bg-gray-300 dark:bg-gray-600" aria-hidden="true"></div>
+										<div
+											class="h-1.5 w-1.5 rounded-full bg-gray-300 dark:bg-gray-600"
+											aria-hidden="true"
+										></div>
 									{/if}
 								</div>
 							{/each}
 						</div>
 					{/if}
 
-					<div class="flex justify-end items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-						<div class="flex items-center gap-1"><ShuffleOutline class="h-3.5 w-3.5" /> <span>Mischen</span></div>
-						<div class="flex items-center gap-1"><RocketOutline class="h-3.5 w-3.5" /> <span>Aufspiel</span></div>
+					<div class="flex items-center justify-end gap-2 text-xs text-gray-500 dark:text-gray-400">
 						<div class="flex items-center gap-1">
-							<div class="h-3.5 w-3.5 rounded-sm border-2 border-gray-500 dark:border-gray-400" aria-hidden="true"></div>
+							<ShuffleOutline class="h-3.5 w-3.5" /> <span>Mischen</span>
+						</div>
+						<div class="flex items-center gap-1">
+							<RocketOutline class="h-3.5 w-3.5" /> <span>Aufspiel</span>
+						</div>
+						<div class="flex items-center gap-1">
+							<div
+								class="h-3.5 w-3.5 rounded-sm border-2 border-gray-500 dark:border-gray-400"
+								aria-hidden="true"
+							></div>
 							<span>Re</span>
 						</div>
 						<div class="flex items-center gap-1">
-							<div class="h-3.5 w-3.5 rounded-md border border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/40" aria-hidden="true"></div>
+							<div
+								class="h-3.5 w-3.5 rounded-md border border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/40"
+								aria-hidden="true"
+							></div>
 							<span>Sieg</span>
 						</div>
 						<div class="flex items-center gap-1">
-							<div class="h-3.5 w-3.5 rounded-md border border-rose-300 bg-rose-50 dark:border-rose-800 dark:bg-rose-900/40" aria-hidden="true"></div>
+							<div
+								class="h-3.5 w-3.5 rounded-md border border-rose-300 bg-rose-50 dark:border-rose-800 dark:bg-rose-900/40"
+								aria-hidden="true"
+							></div>
 							<span>Niederlage</span>
 						</div>
 					</div>
@@ -496,12 +534,14 @@ const allMandatorySolosDone = $derived(
 
 				<div class="space-y-1">
 					<div
-						class="grid items-center gap-2 p-0 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
+						class="grid items-center gap-2 p-0 text-[11px] font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-400"
 						style={`grid-template-columns: 70px repeat(${sortedParticipants.length}, minmax(0, 1fr));`}
 					>
-						<div class="text-center px-2">Runde</div>
+						<div class="px-2 text-center">Runde</div>
 						{#each sortedParticipants as participant}
-							<div class="text-center truncate px-2">{participant.player?.displayName ?? 'Spieler'}</div>
+							<div class="truncate px-2 text-center">
+								{participant.player?.displayName ?? 'Spieler'}
+							</div>
 						{/each}
 					</div>
 
@@ -511,25 +551,42 @@ const allMandatorySolosDone = $derived(
 						<div
 							role={canEditRounds && slot.entry ? 'button' : undefined}
 							aria-disabled={!slot.entry || !canEditRounds}
-							class={`grid w-full items-stretch gap-2 p-0 text-left bg-transparent ${canEditRounds && slot.entry ? 'cursor-pointer hover:bg-gray-100/60 dark:hover:bg-gray-800/60' : 'cursor-default'} ${slot.entry ? '' : 'pointer-events-none opacity-70'}`}
+							class={`grid w-full items-stretch gap-2 bg-transparent p-0 text-left ${canEditRounds && slot.entry ? 'cursor-pointer hover:bg-gray-100/60 dark:hover:bg-gray-800/60' : 'cursor-default'} ${slot.entry ? '' : 'pointer-events-none opacity-70'}`}
 							style={`grid-template-columns: 70px repeat(${sortedParticipants.length}, minmax(0, 1fr));`}
-							onclick={canEditRounds ? () => slot.entry && loadRoundIntoForm(slot.entry) : undefined}
-							onkeydown={canEditRounds ? (event) => slot.entry && (event.key === 'Enter' || event.key === ' ') && loadRoundIntoForm(slot.entry) : undefined}
+							onclick={canEditRounds
+								? () => slot.entry && loadRoundIntoForm(slot.entry)
+								: undefined}
+							onkeydown={canEditRounds
+								? (event) =>
+										slot.entry &&
+										(event.key === 'Enter' || event.key === ' ') &&
+										loadRoundIntoForm(slot.entry)
+								: undefined}
 						>
-							<div class="flex flex-col justify-center gap-0.5 px-2 py-2 text-xs text-gray-900 dark:text-gray-100">
-								<span class="leading-tight font-semibold">{slot.entry ? slot.entry.round.roundNumber : '–'}</span>
+							<div
+								class="flex flex-col justify-center gap-0.5 px-2 py-2 text-xs text-gray-900 dark:text-gray-100"
+							>
+								<span class="leading-tight font-semibold"
+									>{slot.entry ? slot.entry.round.roundNumber : '–'}</span
+								>
 								{#if slot.entry}
-									<span class="text-[8px] truncate font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{formatRoundLabel(slot.entry.round)}</span>
+									<span
+										class="truncate text-[8px] font-medium tracking-wide text-gray-500 uppercase dark:text-gray-400"
+										>{formatRoundLabel(slot.entry.round)}</span
+									>
 								{/if}
 							</div>
 
 							{#each sortedParticipants as participant}
-								{@const soloResult = slot.entry ? getPlayerResult(slot.entry, participant.playerId) : null}
+								{@const soloResult = slot.entry
+									? getPlayerResult(slot.entry, participant.playerId)
+									: null}
 								{@const participantTeam = slot.entry
-									? slot.entry.round.participants.find((p) => p.playerId === participant.playerId)?.team
+									? slot.entry.round.participants.find((p) => p.playerId === participant.playerId)
+											?.team
 									: null}
 								<div
-									class={`flex flex-col items-center justify-center shadow-sm rounded-md px-2 py-3 text-sm font-semibold ${soloResult ? resultStyles[soloResult.result] : placeholderTile} ${participantTeam === TeamEnum.RE ? 'border' : ''}`}
+									class={`flex flex-col items-center justify-center rounded-md px-2 py-3 text-sm font-semibold shadow-sm ${soloResult ? resultStyles[soloResult.result] : placeholderTile} ${participantTeam === TeamEnum.RE ? 'border' : ''}`}
 									title={soloResult?.result === RoundResultEnum.WON
 										? 'Sieg'
 										: soloResult?.result === RoundResultEnum.LOST
@@ -538,7 +595,7 @@ const allMandatorySolosDone = $derived(
 												? 'Remis'
 												: 'Offen'}
 								>
-									<div class="text-lg font-bold leading-none">{soloResult?.points ?? 0}</div>
+									<div class="text-lg leading-none font-bold">{soloResult?.points ?? 0}</div>
 									<span class="sr-only">
 										{#if soloResult?.result === RoundResultEnum.WON}
 											Sieg
@@ -551,8 +608,8 @@ const allMandatorySolosDone = $derived(
 										{/if}
 									</span>
 								</div>
-								{/each}
-							</div>
+							{/each}
+						</div>
 					{/each}
 				</div>
 			</div>
@@ -584,14 +641,19 @@ const allMandatorySolosDone = $derived(
 				class="grid items-stretch gap-2 p-0 transition duration-150"
 				style={`grid-template-columns: 70px repeat(${sortedParticipants.length}, minmax(0, 1fr));`}
 			>
-				<div class="flex items-center px-2 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
-				</div>
+				<div
+					class="flex items-center px-2 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100"
+				></div>
 				{#each sortedParticipants as participant}
-					<div class="flex flex-col items-center justify-center shadow-sm rounded-md border border-gray-200 px-2 py-3 text-sm font-semibold text-gray-800 dark:border-secondary-700 dark:text-gray-100">
+					<div
+						class="flex flex-col items-center justify-center rounded-md border border-gray-200 px-2 py-3 text-sm font-semibold text-gray-800 shadow-sm dark:border-secondary-700 dark:text-gray-100"
+					>
 						{#if showSum}
-							<div class="text-lg font-bold leading-none">{playerTotals.get(participant.playerId) ?? 0}</div>
+							<div class="text-lg leading-none font-bold">
+								{playerTotals.get(participant.playerId) ?? 0}
+							</div>
 						{:else}
-							<div class="text-lg font-bold leading-none blur-sm select-none">000</div>
+							<div class="text-lg leading-none font-bold blur-sm select-none">000</div>
 						{/if}
 					</div>
 				{/each}
@@ -600,24 +662,29 @@ const allMandatorySolosDone = $derived(
 
 		{#if !isFinished}
 			{#if !hasUpcomingRound && allMandatorySolosDone}
-				<div class="rounded-lg border border-primary bg-white p-4 shadow-sm dark:border-secondary-800 dark:bg-gray-800/60">
+				<div
+					class="rounded-lg border border-primary bg-white p-4 shadow-sm dark:border-secondary-800 dark:bg-gray-800/60"
+				>
 					<div class="flex items-center justify-between">
 						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Spiel abschließen</h3>
 					</div>
 					<p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
-						Alle Runden sind gespielt. Wenn du das Spiel abschließt können Runden nicht mehr bearbeitet werden.
+						Alle Runden sind gespielt. Wenn du das Spiel abschließt können Runden nicht mehr
+						bearbeitet werden.
 					</p>
 					<form method="POST" action="?/finishGame" class="mt-3 flex justify-end">
-						<Button type="submit" color="primary" class="px-4 py-2">
-							Spiel abschließen
-						</Button>
+						<Button type="submit" color="primary" class="px-4 py-2">Spiel abschließen</Button>
 					</form>
 				</div>
 			{:else if !hasUpcomingRound && !allMandatorySolosDone}
-				<div class="rounded-lg border border-amber-200 bg-white p-4 shadow-sm dark:border-amber-700 dark:bg-gray-800/60">
+				<div
+					class="rounded-lg border border-amber-200 bg-white p-4 shadow-sm dark:border-amber-700 dark:bg-gray-800/60"
+				>
 					<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Spiel abschließen</h3>
 					<p class="mt-1 text-sm text-amber-700 dark:text-amber-200">
-						Pflichtsoli fehlen noch: {remainingMandatorySoloPlayers.map((p) => p.player?.displayName ?? 'Spieler').join(', ')}
+						Pflichtsoli fehlen noch: {remainingMandatorySoloPlayers
+							.map((p) => p.player?.displayName ?? 'Spieler')
+							.join(', ')}
 					</p>
 				</div>
 			{/if}
@@ -638,8 +705,8 @@ const allMandatorySolosDone = $derived(
 
 <Modal bind:open={roundModal} fullscreen size="lg" autoclose={false} class="p-2 *:border-0!">
 	<form method="POST" action="?/saveRound" use:enhance={handleRoundSubmit}>
- 		<div class="flex flex-col space-y-2">
- 			<h3 class="mb-6 text-xl font-medium text-gray-900 dark:text-white">
+		<div class="flex flex-col space-y-2">
+			<h3 class="mb-6 text-xl font-medium text-gray-900 dark:text-white">
 				{editingRoundId ? 'Runde bearbeiten' : 'Füge eine neue Runde hinzu'}
 			</h3>
 
@@ -684,7 +751,9 @@ const allMandatorySolosDone = $derived(
 								onclick={() => {
 									roundType = RoundTypeEnum.SoloBuben;
 									soloType = game.withMandatorySolos
-										? (remainingMandatorySoloPlayers.length === 0 ? SoloTypeEnum.Lust : SoloTypeEnum.Pflicht)
+										? remainingMandatorySoloPlayers.length === 0
+											? SoloTypeEnum.Lust
+											: SoloTypeEnum.Pflicht
 										: null;
 									soloTypeSelection = 'BUBEN';
 								}}
@@ -761,40 +830,40 @@ const allMandatorySolosDone = $derived(
 							<div>
 								<Label class="mb-2 block text-xs text-gray-600 dark:text-gray-400">Solotyp</Label>
 								<ButtonGroup class="w-full">
-										<Button
-											type="button"
-											color={soloTypeSelection === 'BUBEN' ? 'secondary' : 'light'}
-											class="flex-1  px-1 py-1 text-xs"
-											size="sm"
-											onclick={() => {
-												soloTypeSelection = 'BUBEN';
-												roundType = RoundTypeEnum.SoloBuben;
-											}}
-										>
+									<Button
+										type="button"
+										color={soloTypeSelection === 'BUBEN' ? 'secondary' : 'light'}
+										class="flex-1  px-1 py-1 text-xs"
+										size="sm"
+										onclick={() => {
+											soloTypeSelection = 'BUBEN';
+											roundType = RoundTypeEnum.SoloBuben;
+										}}
+									>
 										Bube
 									</Button>
-										<Button
-											type="button"
-											color={soloTypeSelection === 'DAMEN' ? 'secondary' : 'light'}
-											class="flex-1  px-1 py-1 text-xs"
-											size="sm"
-											onclick={() => {
-												soloTypeSelection = 'DAMEN';
-												roundType = RoundTypeEnum.SoloDamen;
-											}}
-										>
+									<Button
+										type="button"
+										color={soloTypeSelection === 'DAMEN' ? 'secondary' : 'light'}
+										class="flex-1  px-1 py-1 text-xs"
+										size="sm"
+										onclick={() => {
+											soloTypeSelection = 'DAMEN';
+											roundType = RoundTypeEnum.SoloDamen;
+										}}
+									>
 										Dame
 									</Button>
-										<Button
-											type="button"
-											color={soloTypeSelection === 'ASS' ? 'secondary' : 'light'}
-											class="flex-1  px-1 py-1 text-xs"
-											size="sm"
-											onclick={() => {
-												soloTypeSelection = 'ASS';
-												roundType = RoundTypeEnum.SoloAss;
-											}}
-										>
+									<Button
+										type="button"
+										color={soloTypeSelection === 'ASS' ? 'secondary' : 'light'}
+										class="flex-1  px-1 py-1 text-xs"
+										size="sm"
+										onclick={() => {
+											soloTypeSelection = 'ASS';
+											roundType = RoundTypeEnum.SoloAss;
+										}}
+									>
 										Ass
 									</Button>
 									<Button
@@ -802,10 +871,10 @@ const allMandatorySolosDone = $derived(
 										color={soloTypeSelection === 'KREUZ' ? 'secondary' : 'light'}
 										class="flex-1  px-1 py-1"
 										size="sm"
-											onclick={() => {
-												soloTypeSelection = 'KREUZ';
-												roundType = RoundTypeEnum.SoloKreuz;
-											}}
+										onclick={() => {
+											soloTypeSelection = 'KREUZ';
+											roundType = RoundTypeEnum.SoloKreuz;
+										}}
 									>
 										♣
 									</Button>
@@ -814,10 +883,10 @@ const allMandatorySolosDone = $derived(
 										color={soloTypeSelection === 'PIK' ? 'secondary' : 'light'}
 										class="flex-1  px-1 py-1"
 										size="sm"
-											onclick={() => {
-												soloTypeSelection = 'PIK';
-												roundType = RoundTypeEnum.SoloPik;
-											}}
+										onclick={() => {
+											soloTypeSelection = 'PIK';
+											roundType = RoundTypeEnum.SoloPik;
+										}}
 									>
 										♠
 									</Button>
@@ -826,10 +895,10 @@ const allMandatorySolosDone = $derived(
 										color={soloTypeSelection === 'HERZ' ? 'secondary' : 'light'}
 										class="flex-1  px-1 py-1"
 										size="sm"
-											onclick={() => {
-												soloTypeSelection = 'HERZ';
-												roundType = RoundTypeEnum.SoloHerz;
-											}}
+										onclick={() => {
+											soloTypeSelection = 'HERZ';
+											roundType = RoundTypeEnum.SoloHerz;
+										}}
 									>
 										♥
 									</Button>
@@ -838,10 +907,10 @@ const allMandatorySolosDone = $derived(
 										color={soloTypeSelection === 'KARO' ? 'secondary' : 'light'}
 										class="flex-1  px-1 py-1"
 										size="sm"
-											onclick={() => {
-												soloTypeSelection = 'KARO';
-												roundType = RoundTypeEnum.SoloKaro;
-											}}
+										onclick={() => {
+											soloTypeSelection = 'KARO';
+											roundType = RoundTypeEnum.SoloKaro;
+										}}
 									>
 										♦
 									</Button>
@@ -900,16 +969,18 @@ const allMandatorySolosDone = $derived(
 								{#if remainingMandatorySoloPlayers.length === 0}
 									Alle Pflichtsoli wurden gespielt.
 								{:else}
-									Offene Pflichtsoli: {remainingMandatorySoloPlayers.map((p) => p.player?.displayName ?? 'Spieler').join(', ')}
+									Offene Pflichtsoli: {remainingMandatorySoloPlayers
+										.map((p) => p.player?.displayName ?? 'Spieler')
+										.join(', ')}
 								{/if}
 							</p>
 						{/if}
 					</div>
 
 					<div>
-									<Label class="mb-2 block text-xs text-gray-600 dark:text-gray-400"
-										>{eyesTeam === TeamEnum.RE ? 'Re' : 'Kontra'} Augen</Label
-									>
+						<Label class="mb-2 block text-xs text-gray-600 dark:text-gray-400"
+							>{eyesTeam === TeamEnum.RE ? 'Re' : 'Kontra'} Augen</Label
+						>
 						<input
 							type="number"
 							name="eyesRe"
@@ -1141,7 +1212,8 @@ const allMandatorySolosDone = $derived(
 							color={playerData.calls.team === TeamEnum.KONTRA ? 'secondary' : 'light'}
 							class="flex-1  py-1 text-xs"
 							onclick={() => {
-								playerData.calls.team = playerData.calls.team === TeamEnum.KONTRA ? null : TeamEnum.KONTRA;
+								playerData.calls.team =
+									playerData.calls.team === TeamEnum.KONTRA ? null : TeamEnum.KONTRA;
 							}}
 						>
 							Kontra
@@ -1157,7 +1229,8 @@ const allMandatorySolosDone = $derived(
 							color={playerData.calls.type === CallTypeEnum.Keine90 ? 'secondary' : 'light'}
 							class="flex-1  py-1 text-xs"
 							onclick={() => {
-								playerData.calls.type = playerData.calls.type === CallTypeEnum.Keine90 ? null : CallTypeEnum.Keine90;
+								playerData.calls.type =
+									playerData.calls.type === CallTypeEnum.Keine90 ? null : CallTypeEnum.Keine90;
 							}}
 						>
 							Keine 90
@@ -1167,7 +1240,8 @@ const allMandatorySolosDone = $derived(
 							color={playerData.calls.type === CallTypeEnum.Keine60 ? 'secondary' : 'light'}
 							class="flex-1  py-1 text-xs"
 							onclick={() => {
-								playerData.calls.type = playerData.calls.type === CallTypeEnum.Keine60 ? null : CallTypeEnum.Keine60;
+								playerData.calls.type =
+									playerData.calls.type === CallTypeEnum.Keine60 ? null : CallTypeEnum.Keine60;
 							}}
 						>
 							Keine 60
@@ -1177,7 +1251,8 @@ const allMandatorySolosDone = $derived(
 							color={playerData.calls.type === CallTypeEnum.Keine30 ? 'secondary' : 'light'}
 							class="flex-1  py-1 text-xs"
 							onclick={() => {
-								playerData.calls.type = playerData.calls.type === CallTypeEnum.Keine30 ? null : CallTypeEnum.Keine30;
+								playerData.calls.type =
+									playerData.calls.type === CallTypeEnum.Keine30 ? null : CallTypeEnum.Keine30;
 							}}
 						>
 							Keine 30
@@ -1187,7 +1262,8 @@ const allMandatorySolosDone = $derived(
 							color={playerData.calls.type === CallTypeEnum.Schwarz ? 'secondary' : 'light'}
 							class="flex-1  py-1 text-xs"
 							onclick={() => {
-								playerData.calls.type = playerData.calls.type === CallTypeEnum.Schwarz ? null : CallTypeEnum.Schwarz;
+								playerData.calls.type =
+									playerData.calls.type === CallTypeEnum.Schwarz ? null : CallTypeEnum.Schwarz;
 							}}
 						>
 							Schwarz

@@ -18,7 +18,10 @@ export const actions: Actions = {
 		const groupName = formData.get('groupName');
 
 		if (typeof groupName !== 'string') {
-			return fail(400, { error: 'Bitte einen gültigen Gruppennamen eingeben.', values: { groupName: '' } });
+			return fail(400, {
+				error: 'Bitte einen gültigen Gruppennamen eingeben.',
+				values: { groupName: '' }
+			});
 		}
 
 		const parsed = GroupNameSchema.safeParse(groupName);
