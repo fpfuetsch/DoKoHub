@@ -81,7 +81,7 @@
 </Button>
 
 <Modal bind:open={formModal} size="md">
-	<div class="flex flex-col space-y-2">
+	<div class="flex flex-col">
 		<h3 class="text-xl font-medium text-gray-900 dark:text-white">Spieler hinzufügen</h3>
 
 		<Tabs tabStyle="underline" divider={false}>
@@ -98,7 +98,7 @@
 						};
 					}}
 				>
-					<div class="flex flex-col space-y-4">
+					<div class="flex flex-col space-y-2">
 						{#if form?.error}
 							<Alert color="red">
 								{#snippet icon()}<InfoCircleSolid class="h-5 w-5" />{/snippet}
@@ -115,8 +115,8 @@
 							required
 						/>
 						<Helper>
-							Geben Sie den Benutzernamen des Spielers ein, um ihn hinzuzufügen. Den Benutzernamen
-							finden Sie auf der Profilseite des Spielers.
+							Gib den Benutzernamen des Spielers ein, um ihn hinzuzufügen. Den Benutzernamen
+							findest du auf der Profilseite des Spielers.
 						</Helper>
 
 						<div class="flex justify-end gap-3">
@@ -142,7 +142,7 @@
 						};
 					}}
 				>
-					<div class="flex flex-col space-y-4">
+					<div class="flex flex-col space-y-2">
 						<Label for="playerName">Spielername</Label>
 						<Input
 							id="playerName"

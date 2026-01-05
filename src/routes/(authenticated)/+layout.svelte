@@ -9,8 +9,8 @@
 
 <div class="flex min-h-screen flex-col">
 	<div class="flex flex-1 flex-col">
-		<header class="bg-primary-300 shadow-sm">
-			<div class="top-0 z-30 flex h-16 items-center px-2">
+		<header class="bg-light shadow-sm">
+			<div class="text-primary top-0 z-30 flex h-16 items-center px-2">
 				<h1 class="flex-1 truncate text-center text-3xl font-semibold">DoKoHub</h1>
 			</div>
 		</header>

@@ -50,10 +50,10 @@
 	};
 </script>
 
-<header class="bg-primary-300 shadow-sm">
+<header class="bg-light shadow-sm">
 	<div class="top-0 z-30 flex h-14 items-center px-2">
 		<Button
-			color="primary-300"
+			color="light"
 			size="sm"
 			class="flex h-10 w-10 items-center justify-center "
 			pill={true}
@@ -62,11 +62,19 @@
 		>
 			<ArrowLeftOutline class="h-6 w-6" />
 		</Button>
-		<h1 class="flex-1 truncate text-center text-2xl font-semibold">
+		<h1 class="flex-1 text-primary truncate text-center text-2xl font-semibold">
 			{group ? group.name : ''}
 		</h1>
-		<DotsVerticalOutline class="h-6 w-6 cursor-pointer" id="group-menu" />
-		<Dropdown triggeredBy="#group-menu">
+		<Button
+			color="light"
+			size="sm"
+			class="flex h-10 w-10 items-center justify-center"
+			pill={true}
+			aria-label="Gruppenmenü"
+		>
+			<DotsVerticalOutline class="h-6 w-6" id="group-menu" />
+		</Button>
+		<Dropdown simple triggeredBy="#group-menu">
 			<DropdownItem onclick={openRenameModal}>
 				<div class="flex items-center gap-2">
 					<EditOutline class="h-4 w-4" />

@@ -455,7 +455,7 @@ const allMandatorySolosDone = $derived(
 								<span class="leading-tight">{nextRoundNumber}</span>
 							</div>
 							{#each sortedParticipants as participant}
-								<div class="flex flex-col items-center justify-center rounded-md border border-dashed border-gray-300 px-2 py-3 text-xs font-semibold text-gray-600 dark:border-gray-700 dark:text-gray-200">
+								<div class="flex flex-col items-center justify-center rounded-md border border-dashed border-slate-700 px-2 py-3 text-xs font-semibold text-gray-600 dark:border-gray-700 dark:text-gray-200">
 									{#if upcomingDealer && participant.playerId === upcomingDealer.playerId}
 										<ShuffleOutline class="h-5 w-5" />
 									{:else if upcomingStarter && participant.playerId === upcomingStarter.playerId}
@@ -587,7 +587,7 @@ const allMandatorySolosDone = $derived(
 				<div class="flex items-center px-2 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
 				</div>
 				{#each sortedParticipants as participant}
-					<div class="flex flex-col items-center justify-center rounded-md border border-secondary px-2 py-3 text-sm font-semibold text-gray-800 dark:border-secondary-700 dark:text-gray-100">
+					<div class="flex flex-col items-center justify-center shadow-sm rounded-md border border-gray-200 px-2 py-3 text-sm font-semibold text-gray-800 dark:border-secondary-700 dark:text-gray-100">
 						{#if showSum}
 							<div class="text-lg font-bold leading-none">{playerTotals.get(participant.playerId) ?? 0}</div>
 						{:else}

@@ -53,7 +53,7 @@
 
 <div class="flex flex-col items-center gap-4">
 	{#if !canCreateGame}
-		<Alert color="yellow" class="w-full max-w-xl">
+		<Alert color="secondary" class="w-full max-w-xl">
 			{#snippet icon()}
 				<ExclamationCircleSolid class="h-5 w-5" />
 			{/snippet}
@@ -62,6 +62,7 @@
 		</Alert>
 	{/if}
 	{#if games.length === 0}
+		{#if canCreateGame }
 		<Alert color="secondary" class="w-full max-w-xl">
 			{#snippet icon()}
 				<InfoCircleSolid class="h-5 w-5" />
@@ -69,6 +70,7 @@
 			<span class="font-medium">Es wurden noch keine Spiele erstellt.</span>
 			<div>Erstelle ein neues Spiel über den Button unten rechts.</div>
 		</Alert>
+		{/if}
 	{:else}
 		<ul class="w-full max-w-xl space-y-2">
 			{#each games as game}
@@ -112,7 +114,7 @@
 								<span>Beendet</span>
 							</div>
 						{:else}
-							<div class="flex items-center gap-1 text-sm text-amber-600">
+							<div class="flex items-center gap-1 text-sm text-secondary-600">
 								<ExclamationCircleSolid class="h-4 w-4" />
 								<span>Läuft noch</span>
 							</div>
