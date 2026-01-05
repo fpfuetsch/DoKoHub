@@ -5,7 +5,8 @@
 		ExclamationCircleSolid,
 		CheckCircleSolid,
 		InfoCircleSolid,
-		ShuffleOutline
+		ShuffleOutline,
+		RefreshOutline
 	} from 'flowbite-svelte-icons';
 	import { Game } from '$lib/domain/game';
 	import { formatDateTime } from '$lib/utils/format';
@@ -62,21 +63,21 @@
 		</Alert>
 	{/if}
 	{#if games.length === 0}
-		{#if canCreateGame }
-		<Alert color="secondary" class="w-full max-w-xl">
-			{#snippet icon()}
-				<InfoCircleSolid class="h-5 w-5" />
-			{/snippet}
-			<span class="font-medium">Es wurden noch keine Spiele erstellt.</span>
-			<div>Erstelle ein neues Spiel über den Button unten rechts.</div>
-		</Alert>
+		{#if canCreateGame}
+			<Alert color="secondary" class="w-full max-w-xl">
+				{#snippet icon()}
+					<InfoCircleSolid class="h-5 w-5" />
+				{/snippet}
+				<span class="font-medium">Es wurden noch keine Spiele erstellt.</span>
+				<div>Erstelle ein neues Spiel über den Button unten rechts.</div>
+			</Alert>
 		{/if}
 	{:else}
 		<ul class="w-full max-w-xl space-y-2">
 			{#each games as game}
 				<a
 					href="/groups/{group.id}/games/{game.id}/rounds"
-					class="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition cursor-pointer"
+					class="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-3 transition hover:border-gray-300 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
 				>
 					<div class="flex-1 space-y-1 font-medium dark:text-white">
 						<div class="font-semibold text-gray-900 dark:text-white">
@@ -115,7 +116,7 @@
 							</div>
 						{:else}
 							<div class="flex items-center gap-1 text-sm text-secondary-600">
-								<ExclamationCircleSolid class="h-4 w-4" />
+								<RefreshOutline class="h-4 w-4" />
 								<span>Läuft noch</span>
 							</div>
 						{/if}
@@ -181,13 +182,10 @@
 
 			<div class="space-y-3">
 				<div class="flex items-center justify-between">
-					<div class="text-sm font-medium text-gray-900">
-						Spieler uns Sitzposition auswählen
-					</div>
+					<div class="text-sm font-medium text-gray-900">Spieler uns Sitzposition auswählen</div>
 					<Button
 						pill={true}
 						color="primary"
-
 						onclick={randomizeSeats}
 						title="Spieler zufällig zuweisen"
 					>
@@ -214,7 +212,7 @@
 				{/each}
 			</div>
 			<div class="flex justify-end gap-3">
-				<Button type="submit" value="create" >Erstellen</Button>
+				<Button type="submit" value="create">Erstellen</Button>
 			</div>
 		</div>
 	</form>

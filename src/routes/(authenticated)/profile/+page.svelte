@@ -1,46 +1,50 @@
 <script lang="ts">
 	import { Button, Label, Input, Helper, Alert, Toast } from 'flowbite-svelte';
-	import { CheckCircleOutline, OpenDoorOutline } from 'flowbite-svelte-icons';
+	import { CheckCircleOutline } from 'flowbite-svelte-icons';
 	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
-	import { page } from '$app/stores';
+	import { slide } from "svelte/transition";
 
 	let { data, form }: PageProps = $props();
 	const user = $derived(data.user);
 	const authProviderDisplay = $derived(
 		user?.authProvider ? user.authProvider.toLowerCase().charAt(0).toUpperCase() + user.authProvider.toLowerCase().slice(1) : 'unbekannt'
 	);
-	let showSuccess = $state(false);
+	let toastStatus = $state(false);
+	let counter = $state(5);
+	let nameInput = $derived(user?.name || '');
+	let displayNameInput = $derived(user?.displayName || '');
 
-	const showSuccessIfUpdated = () => {
-		if ($page.url.searchParams.has('updated')) {
-			showSuccess = true;
-			setTimeout(() => {
-				showSuccess = false;
-			}, 5000);
-		}
-	};
+	function showSuccessToast() {
+		toastStatus = true;
+		counter = 5;
+		timeout();
+	}
 
-	$effect(() => {
-		$page.url.searchParams;
-		showSuccessIfUpdated();
-	});
+	function timeout() {
+		if (--counter > 0) return setTimeout(timeout, 1000);
+		toastStatus = false;
+	}
 </script>
 
 <div class="flex justify-center px-4">
-	<div class="space-y-6 w-full max-w-md">
+	<div class="space-y-2 w-full max-w-md">
 		<div class="flex justify-between items-center">
 			<h1 class="text-xl">Angemeldet via <span class="font-bold">{authProviderDisplay}</span></h1>
 			<form method="POST" action="/logout">
-				<Button type="submit" size="sm" color="red">
-					<OpenDoorOutline class="w-4 h-4 mr-2" />
+				<Button type="submit" size="sm" color="secondary">
 					Abmelden
 				</Button>
 			</form>
 		</div>
+		<div class="my-4 h-px bg-gray-200 dark:bg-gray-700"></div>
 
+		<h1 class="text-lg font-semibold">Namen bearbeiten</h1>
 		<form method="POST" action="?/save" use:enhance={() => {
 			return async ({ result, update }) => {
+				if (result.type === 'success') {
+					showSuccessToast();
+				}
 				await update();
 			};
 		}} class="space-y-6">
@@ -50,14 +54,12 @@
 					{form.message}
 				</Alert>
 			{/if}
-			{#if showSuccess}
-				<Toast position="top-right" color="green">
-					{#snippet icon()}
-						<CheckCircleOutline class="text-green-600 bg-green-100 dark:bg-green-800 dark:text-green-200 h-6 w-6" />
-					{/snippet}
-					Deine Änderungen wurden erfolgreich gespeichert!
-				</Toast>
-			{/if}
+			<Toast transition={slide} bind:toastStatus position="top-right" color="green">
+				{#snippet icon()}
+					<CheckCircleOutline class="text-green-600 bg-green-100 dark:bg-green-800 dark:text-green-200 h-6 w-6" />
+				{/snippet}
+				Erfolgreich gespeichert!
+			</Toast>
 
 			<div>
 				<Label for="name">Benutzername</Label>
@@ -65,7 +67,7 @@
 					id="name"
 					type="text"
 					name="name"
-					value={user?.name}
+					bind:value={nameInput}
 					required
 				/>
 				<Helper>Eindeutiger Benutzername für Verknüpfungen und Spielgruppen.</Helper>
@@ -79,10 +81,10 @@
 					id="displayName"
 					type="text"
 					name="displayName"
-					value={user?.displayName}
+					bind:value={displayNameInput}
 					required
 				/>
-				<Helper>Der angezeigte Name für andere Spieler.</Helper>
+				<Helper>Der Name, unter dem du anderen Spielern angezeigt wirst.</Helper>
 				{#if form?.errors?.displayName}
 					<Helper color="red">{form.errors.displayName[0]}</Helper>
 				{/if}
@@ -91,7 +93,7 @@
 		</div>
 
 		<div class="flex justify-end">
-			<Button type="submit">Änderungen speichern</Button>
+			<Button type="submit">Speichern</Button>
 		</div>
 	</form>
 	</div>

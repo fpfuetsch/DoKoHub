@@ -30,6 +30,6 @@ export const actions: Actions = {
 
 		await repo.update(user.id, { name, displayName });
 
-		throw redirect(303, '/profile?updated=1');
+		return { success: true };
 	}
 };
