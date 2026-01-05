@@ -77,7 +77,7 @@
 		})()
 	);
 
-	const hasUpcomingRound = $derived(game.rounds.length < game.maxRoundCount);
+	const hasUpcomingRound = $derived(game.rounds.length < game.maxRoundCount && !game.isFinished());
 	const isFinished = $derived(game.isFinished());
 	const canEditRounds = $derived(!isFinished);
 	const visibleRoundCount = $derived(roundsWithPoints.length);

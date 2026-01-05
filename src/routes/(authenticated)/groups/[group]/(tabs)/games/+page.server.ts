@@ -93,7 +93,7 @@ export const actions: Actions = {
 			});
 		}
 	},
-	renameGroup: async ({ request, params, locals }) => {
+	rename: async ({ request, params, locals }) => {
 		const user = requireUserOrFail({ locals });
 		const formData = await request.formData();
 		const newName = formData.get('name')?.toString() || '';
@@ -115,6 +115,23 @@ export const actions: Actions = {
 		} catch (error) {
 			return fail(400, {
 				error: error instanceof Error ? error.message : 'Fehler beim Aktualisieren der Gruppe'
+			});
+		}
+	},
+
+	deleteGroup: async ({ params, locals }) => {
+		const user = requireUserOrFail({ locals });
+
+		try {
+			const repo = new GroupRepository(user.id);
+			const deleted = await repo.delete(params.group!);
+			if (!deleted) {
+				return fail(400, { error: 'Gruppe konnte nicht gelöscht werden' });
+			}
+			return { success: true };
+		} catch (error) {
+			return fail(400, {
+				error: error instanceof Error ? error.message : 'Fehler beim Löschen der Gruppe'
 			});
 		}
 	}

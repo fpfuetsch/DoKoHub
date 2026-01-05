@@ -17,7 +17,8 @@
 		UsersGroupSolid,
 		DotsVerticalOutline,
 		EditOutline,
-		ExclamationCircleSolid
+		ExclamationCircleSolid,
+		TrashBinSolid
 	} from 'flowbite-svelte-icons';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -31,6 +32,9 @@
 
 	let renameModal = $state(false);
 	let newName = $state('');
+	let deleteModal = $state(false);
+	let deleteCounter = $state(10);
+	let deleteEnabled = $state(false);
 
 	const tabs = [
 		{ name: 'games', label: 'Spiele', icon: PlayOutline },
@@ -53,10 +57,33 @@
 		};
 	};
 
+	const handleDeleteGroup: SubmitFunction = () => {
+		return async ({ result }) => {
+			if (result.type === 'success') {
+				await goto('/groups');
+			}
+		};
+	};
+
 	const openRenameModal = () => {
 		newName = group?.name || '';
 		renameModal = true;
 	};
+
+	$effect(() => {
+		if (deleteModal) {
+			deleteCounter = 10;
+			deleteEnabled = false;
+			setTimeout(function tick() {
+				deleteCounter--;
+				if (deleteCounter > 0) {
+					setTimeout(tick, 1000);
+				} else {
+					deleteEnabled = true;
+				}
+			}, 1000);
+		}
+	});
 </script>
 
 <header class="bg-white shadow-sm">
@@ -90,6 +117,12 @@
 					<span>Umbenennen</span>
 				</div>
 			</DropdownItem>
+			<DropdownItem onclick={() => (deleteModal = true)}>
+				<div class="flex items-center gap-2">
+					<TrashBinSolid class="h-4 w-4" />
+					<span>Löschen</span>
+				</div>
+			</DropdownItem>
 		</Dropdown>
 	</div>
 
@@ -120,7 +153,7 @@
 	{@render children()}
 </div>
 <Modal bind:open={renameModal} size="xs" autoclose={false}>
-	<form method="POST" action="?/renameGroup" use:enhance={handleRenameSubmit}>
+	<form method="POST" action="/groups/{groupId}/games?/rename" use:enhance={handleRenameSubmit}>
 		<div class="flex flex-col space-y-4">
 			<h3 class="text-xl font-medium text-gray-900 dark:text-white">Gruppe umbenennen</h3>
 
@@ -150,6 +183,29 @@
 			<div class="flex justify-end gap-3">
 				<Button type="button" color="light" onclick={() => (renameModal = false)}>Abbrechen</Button>
 				<Button type="submit">Umbenennen</Button>
+			</div>
+		</div>
+	</form>
+</Modal>
+
+<Modal bind:open={deleteModal} size="xs" autoclose={false}>
+	<form method="POST" action="/groups/{groupId}/games?/deleteGroup" use:enhance={handleDeleteGroup}>
+		<div class="flex flex-col space-y-4">
+			<h3 class="text-xl font-medium text-gray-900 dark:text-white">Gruppe löschen</h3>
+
+			<Alert color="red">
+				{#snippet icon()}
+					<ExclamationCircleSolid class="h-5 w-5" />
+				{/snippet}
+				<span class="font-medium">Warnung:</span>
+				<div>Die Gruppe <strong>{group?.name}</strong> und alle zugehörigen Spieldaten werden dauerhaft gelöscht und können nicht wiederhergestellt werden.</div>
+			</Alert>
+
+			<div class="flex justify-end gap-3">
+				<Button type="button" color="light" onclick={() => (deleteModal = false)}>Abbrechen</Button>
+				<Button type="submit" disabled={!deleteEnabled}>
+					{deleteEnabled ? 'Gruppe löschen' : `Gruppe löschen (${deleteCounter})`}
+				</Button>
 			</div>
 		</div>
 	</form>

@@ -28,6 +28,23 @@
 	let formModal = $state(false);
 	let confirmDeleteModal = $state(false);
 	let playerToDelete = $state<Player | null>(null);
+	let deleteCounter = $state(10);
+	let deleteEnabled = $state(false);
+
+	$effect(() => {
+		if (confirmDeleteModal) {
+			deleteCounter = 10;
+			deleteEnabled = false;
+			setTimeout(function tick() {
+				deleteCounter--;
+				if (deleteCounter > 0) {
+					setTimeout(tick, 1000);
+				} else {
+					deleteEnabled = true;
+				}
+			}, 1000);
+		}
+	});
 </script>
 
 <div class="flex flex-col items-center gap-4">
@@ -164,12 +181,12 @@
 	</div>
 </Modal>
 
-<Modal bind:open={confirmDeleteModal} size="md" autoclose={false}>
+<Modal bind:open={confirmDeleteModal} size="sm" autoclose={false}>
 	<h3 class="text-xl font-medium text-gray-900 dark:text-white">Spieler entfernen</h3>
 	<div class="space-y-4">
 		<Alert color="red">
 			{#snippet icon()}<TrashBinOutline class="h-5 w-5" />{/snippet}
-			Lokaler Spiele <strong>{playerToDelete?.displayName}</strong> wird dauerhaft gelöscht und kann nicht
+			Lokaler Spieler <strong>{playerToDelete?.displayName}</strong> wird dauerhaft gelöscht und kann nicht
 			wiederhergestellt werden.
 		</Alert>
 		<form
@@ -194,7 +211,9 @@
 						playerToDelete = null;
 					}}>Abbrechen</Button
 				>
-				<Button color="red" type="submit">Ja, löschen</Button>
+				<Button color="red" type="submit" disabled={!deleteEnabled}>
+					{deleteEnabled ? 'Ja, löschen' : `Ja, löschen (${deleteCounter})`}
+				</Button>
 			</div>
 		</form>
 	</div>
