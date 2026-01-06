@@ -1,7 +1,6 @@
 import { Google, generateCodeVerifier, generateState } from 'arctic';
 import { env } from '$env/dynamic/private';
 
-
 export const GOOGLE_STATE_COOKIE = 'google_oauth_state';
 export const GOOGLE_VERIFIER_COOKIE = 'google_oauth_verifier';
 export const GOOGLE_REDIRECT_COOKIE = 'google_oauth_redirect';
