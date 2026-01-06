@@ -1,22 +1,9 @@
 <script lang="ts">
-	import {
-		LineChart
-	} from 'layerchart';
+	import { LineChart, PieChart, BarChart } from 'layerchart';
 	import { Card } from 'flowbite-svelte';
 	import type { PageProps } from './$types';
 
 	const { data }: PageProps = $props();
-
-	// Color palette for different players
-	const playerColors: Record<string, string> = {
-		'#ef562f': '#ef562f',
-		'#0284c7': '#0284c7',
-		'#16a34a': '#16a34a',
-		'#eab308': '#eab308'
-	};
-
-	// Create color assignments for each player
-	const colors = Object.values(playerColors);
 </script>
 
 <div class="p-4 sm:p-6">
@@ -40,30 +27,48 @@
 					</div>
 				</Card>
 			</div>
+			<div class="w-full sm:w-80 md:w-90 lg:w-100">
+				<Card class="h-full p-4 shadow-lg">
+					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">
+						Durchschnittspunkte Paare
+					</h3>
+
+					<BarChart
+						data={data.chart?.avgPairs ?? []}
+						y="key"
+						x="value"
+						orientation="horizontal"
+						padding={{ top: 20, right: 20, bottom: 20, left: 80 }}
+					/>
+				</Card>
+			</div>
 
 			<div class="w-full sm:w-80 md:w-90 lg:w-100">
 				<Card class="h-full p-4 shadow-lg">
-					<h3 class="mb-3 text-lg font-bold text-gray-900 dark:text-white">Gewinnrate</h3>
-					<div class="flex h-48 items-center justify-center text-gray-400">
-						<p>Chart or stats coming soon</p>
+					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">Re Häufigkeit</h3>
+					<div class="flex h-48 items-center justify-center">
+						<PieChart legend data={data.chart?.pie ?? []} key="key" value="value" c="color" />
 					</div>
 				</Card>
 			</div>
 
 			<div class="w-full sm:w-80 md:w-90 lg:w-100">
 				<Card class="h-full p-4 shadow-lg">
-					<h3 class="mb-3 text-lg font-bold text-gray-900 dark:text-white">Total Spiele</h3>
-					<div class="flex h-48 items-center justify-center text-gray-400">
-						<p>Content here</p>
+					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">Gewonnene Runden</h3>
+					<div class="flex h-48 items-center justify-center">
+						<PieChart legend data={data.chart?.winPie ?? []} key="key" value="value" c="color" />
 					</div>
 				</Card>
 			</div>
 
 			<div class="w-full sm:w-80 md:w-90 lg:w-100">
 				<Card class="h-full p-4 shadow-lg">
-					<h3 class="mb-3 text-lg font-bold text-gray-900 dark:text-white">Durchschnitt</h3>
-					<div class="flex h-48 items-center justify-center text-gray-400">
-						<p>Content here</p>
+					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">
+						Durschnitt je Sieg vs. Niederlage
+					</h3>
+					<!-- <BarChart data={data.chart?.avgWinLoss ?? []} x="player" y="winAvg" /> -->
+					<div class="flex h-60 items-center justify-center">
+						<BarChart data={data.chart?.avgWinLoss ?? []} x="key" series={[{ key: 'winAvg', label:"Sieg", color: 'var(--color-primary)' }, { key: 'loseAvg', label:"Niederlage", color: 'var(--color-secondary)'}]}	 />
 					</div>
 				</Card>
 			</div>
