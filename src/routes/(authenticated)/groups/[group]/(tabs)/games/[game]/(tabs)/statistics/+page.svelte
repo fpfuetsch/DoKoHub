@@ -1,5 +1,7 @@
 <script lang="ts">
-	import { Chart, Axis, Layer, Spline, Circle, Text, Highlight, Tooltip } from 'layerchart';
+	import {
+		LineChart
+	} from 'layerchart';
 	import { Card } from 'flowbite-svelte';
 	import type { PageProps } from './$types';
 
@@ -15,97 +17,56 @@
 
 	// Create color assignments for each player
 	const colors = Object.values(playerColors);
-	const playerColorMap = $derived(
-		(() => {
-			const map = new Map<string, string>();
-			data.data.forEach((series, index) => {
-				map.set(series.series, colors[index % colors.length]);
-			});
-			return map;
-		})()
-	);
-
-	// Flatten data for the chart
-	const flatData = $derived(
-		data.data.flatMap((series) =>
-			series.data.map((point) => ({
-				round: point.round,
-				points: point.points,
-				player: series.series
-			}))
-		)
-	);
-
-	// Group data by player for rendering
-	const dataByPlayer = $derived(
-		data.data.map((series) => [
-			series.series,
-			series.data.map((d) => ({ ...d, player: series.series }))
-		])
-	);
 </script>
 
-<div class="flex flex-row items-center p-4 sm:p-6">
-	<section class="mx-auto w-full max-w-6xl space-y-6">
-		<!-- Point Progression Chart -->
-		<div>
-			<Card class="h-full p-4 shadow-lg">
-				<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">Punktentwicklung</h3>
+<div class="p-4 sm:p-6">
+	<div class="mx-auto max-w-5xl">
+		<!-- Simple flex row with wrapping and centered items -->
+		<div class="mx-auto flex flex-wrap justify-center gap-2">
+			<div class="w-full sm:w-80 md:w-90 lg:w-100">
+				<Card class="h-full p-4 shadow-lg">
+					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">Punktentwicklung</h3>
 
-				<div
-					class="h-96 rounded-lg border border-gray-200 bg-gray-50/50 dark:border-gray-700 dark:bg-gray-800/50"
-				>
-					<Chart
-						data={flatData}
-						x="round"
-						y="points"
-						yDomain={[null, null]}
-						yNice
-						c="player"
-						cDomain={data.data.map((s) => s.series)}
-						cRange={data.data.map((s) => playerColorMap.get(s.series) || '#666')}
-						padding={32}
-						tooltip={{ mode: 'quadtree' }}
+					<div
+						class=" h-96 rounded-lg border border-gray-200 bg-gray-50/50 dark:border-gray-700 dark:bg-gray-800/50"
 					>
-						{#snippet children({ context })}
-							<Layer type="svg">
-								<Axis placement="left" grid rule />
-								<Axis placement="bottom" rule />
-								{#each dataByPlayer as [player, playerData] (player)}
-									{@const active =
-										context.tooltip.data == null || context.tooltip.data.player === player}
-									{@const color = context.cScale?.(player)}
-									<g class={!active ? 'opacity-30 saturate-0 transition-opacity' : ''}>
-										<Spline data={playerData} class="stroke-2" stroke={color}>
-											{#snippet endContent()}
-												<Circle r={4} fill={color} />
-												<Text
-													value={String(player)}
-													verticalAnchor="middle"
-													dx={6}
-													dy={-2}
-													class="text-xs font-medium"
-													fill={color}
-												/>
-											{/snippet}
-										</Spline>
-									</g>
-								{/each}
-								<Highlight points lines />
-							</Layer>
-							<Tooltip.Root>
-								<Tooltip.Header value={`Runde ${context.tooltip.data?.round}`} />
-								<Tooltip.List>
-									<Tooltip.Item
-										label={context.tooltip.data?.player}
-										value={context.tooltip.data?.points}
-									/>
-								</Tooltip.List>
-							</Tooltip.Root>
-						{/snippet}
-					</Chart>
-				</div>
-			</Card>
+						<LineChart
+							data={data?.chart?.rows ?? []}
+							x="round"
+							series={data?.chart?.series ?? []}
+							padding={{ top: 20, right: 20, bottom: 50, left: 20 }}
+							legend
+						/>
+					</div>
+				</Card>
+			</div>
+
+			<div class="w-full sm:w-80 md:w-90 lg:w-100">
+				<Card class="h-full p-4 shadow-lg">
+					<h3 class="mb-3 text-lg font-bold text-gray-900 dark:text-white">Gewinnrate</h3>
+					<div class="flex h-48 items-center justify-center text-gray-400">
+						<p>Chart or stats coming soon</p>
+					</div>
+				</Card>
+			</div>
+
+			<div class="w-full sm:w-80 md:w-90 lg:w-100">
+				<Card class="h-full p-4 shadow-lg">
+					<h3 class="mb-3 text-lg font-bold text-gray-900 dark:text-white">Total Spiele</h3>
+					<div class="flex h-48 items-center justify-center text-gray-400">
+						<p>Content here</p>
+					</div>
+				</Card>
+			</div>
+
+			<div class="w-full sm:w-80 md:w-90 lg:w-100">
+				<Card class="h-full p-4 shadow-lg">
+					<h3 class="mb-3 text-lg font-bold text-gray-900 dark:text-white">Durchschnitt</h3>
+					<div class="flex h-48 items-center justify-center text-gray-400">
+						<p>Content here</p>
+					</div>
+				</Card>
+			</div>
 		</div>
-	</section>
+	</div>
 </div>
