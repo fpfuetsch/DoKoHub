@@ -85,7 +85,12 @@
 	</ul>
 </div>
 
-<Button pill={true} class="fixed right-6 bottom-6 z-50  p-2" onclick={() => (formModal = true)}>
+
+<Button
+	pill={false}
+	class="fixed right-6 bottom-6 z-50 rounded-2xl p-2 shadow-lg"
+	onclick={() => (formModal = true)}
+>
 	<PlusOutline class="h-10 w-10" />
 </Button>
 
