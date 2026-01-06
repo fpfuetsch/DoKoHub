@@ -703,7 +703,7 @@
 	</Button>
 {/if}
 
-<Modal bind:open={roundModal} fullscreen size="lg" autoclose={false} class="p-2 *:border-0!">
+<Modal bind:open={roundModal} size="lg" autoclose={false} class="p-2 *:border-0!">
 	<form method="POST" action="?/saveRound" use:enhance={handleRoundSubmit}>
 		<div class="flex flex-col space-y-2">
 			<h3 class="mb-6 text-xl font-medium text-gray-900 dark:text-white">

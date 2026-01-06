@@ -5,10 +5,43 @@ services:
     ports:
       - 5432:5432
     environment:
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: mysecretpassword
-      POSTGRES_DB: local
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  db-setup:
+    build:
+      context: .
+      target: builder
+      dockerfile: Containerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    command: npm run db:migrate
+
+  app:
+    build:
+      context: .
+      dockerfile: Containerfile
+    restart: unless-stopped
+    depends_on:
+      - db-setup
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      PORT: 3000
+      ORIGIN: http://localhost:3000
+    ports:
+      - 3000:3000
 volumes:
   pgdata:

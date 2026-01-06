@@ -1,0 +1,10 @@
+services:
+  dev-db:
+    image: postgres:18
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: localuser
+      POSTGRES_PASSWORD: localpassword
+      POSTGRES_DB: dokohub
