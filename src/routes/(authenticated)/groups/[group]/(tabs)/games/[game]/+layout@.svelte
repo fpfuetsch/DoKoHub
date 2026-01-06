@@ -75,7 +75,6 @@
 			}
 		};
 	};
-
 </script>
 
 <header class="bg-white shadow-sm">
@@ -209,13 +208,15 @@
 				</div>
 
 				<div class="flex justify-end gap-3">
-					<Button type="button" color="light" onclick={() => {
-						deleteModal = false;
-						deleteConfirmText = '';
-					}}>Abbrechen</Button>
-					<Button type="submit" disabled={deleteConfirmText !== 'löschen'}>
-						Spiel löschen
-					</Button>
+					<Button
+						type="button"
+						color="light"
+						onclick={() => {
+							deleteModal = false;
+							deleteConfirmText = '';
+						}}>Abbrechen</Button
+					>
+					<Button type="submit" disabled={deleteConfirmText !== 'löschen'}>Spiel löschen</Button>
 				</div>
 			</div>
 		</div>

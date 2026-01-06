@@ -62,9 +62,8 @@ export class PlayerRepository {
 		}
 
 		// Authorization: only if caller is a member of the provided group
-		const canDeleteInGroup = this.principalId && groupId
-			? await this.isMemberOfGroup(groupId)
-			: false;
+		const canDeleteInGroup =
+			this.principalId && groupId ? await this.isMemberOfGroup(groupId) : false;
 
 		if (!canDeleteInGroup) {
 			return false;

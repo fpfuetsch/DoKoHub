@@ -6,7 +6,17 @@
 		TrashBinOutline,
 		OpenDoorSolid
 	} from 'flowbite-svelte-icons';
-	import { Button, Modal, Label, Input, Tabs, TabItem, Avatar, Alert, Helper } from 'flowbite-svelte';
+	import {
+		Button,
+		Modal,
+		Label,
+		Input,
+		Tabs,
+		TabItem,
+		Avatar,
+		Alert,
+		Helper
+	} from 'flowbite-svelte';
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import type { PageProps } from './$types';
@@ -84,7 +94,6 @@
 		{/each}
 	</ul>
 </div>
-
 
 <Button
 	pill={false}

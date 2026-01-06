@@ -70,7 +70,6 @@
 		newName = group?.name || '';
 		renameModal = true;
 	};
-
 </script>
 
 <header class="bg-white shadow-sm">
@@ -210,11 +209,9 @@
 						onclick={() => {
 							deleteModal = false;
 							deleteConfirmText = '';
-						}}
-					>Abbrechen</Button>
-					<Button type="submit" disabled={deleteConfirmText !== 'löschen'}>
-						Gruppe löschen
-					</Button>
+						}}>Abbrechen</Button
+					>
+					<Button type="submit" disabled={deleteConfirmText !== 'löschen'}>Gruppe löschen</Button>
 				</div>
 			</div>
 		</div>

@@ -121,9 +121,7 @@ export const actions: Actions = {
 		}
 
 		// Check if this is the last non-local player
-		const nonLocalPlayers = group.players.filter(
-			(p) => p.authProvider !== AuthProvider.Local
-		);
+		const nonLocalPlayers = group.players.filter((p) => p.authProvider !== AuthProvider.Local);
 		const isLastNonLocalPlayer = nonLocalPlayers.length === 1;
 
 		if (isLastNonLocalPlayer) {
