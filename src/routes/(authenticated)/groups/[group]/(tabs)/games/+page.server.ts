@@ -3,7 +3,7 @@ import { GroupRepository } from '$lib/server/repositories/group';
 import { requireUserOrFail, requireUserOrRedirectToLogin } from '$lib/server/auth/guard';
 import { CreateGameSchema, GroupNameSchema } from '$lib/server/db/schema';
 import type { PageServerLoad, Actions } from './$types';
-import { fail } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
 	const user = requireUserOrRedirectToLogin({ locals, url });
@@ -11,7 +11,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	const group = await groupRepo.getById(params.group);
 
 	if (!group) {
-		throw new Error('Group not found');
+		throw error(404, 'Gruppe nicht gefunden');
 	}
 
 	const gameRepo = new GameRepository(user.id);

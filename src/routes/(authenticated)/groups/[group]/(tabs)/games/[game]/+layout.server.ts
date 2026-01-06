@@ -1,5 +1,6 @@
 import { GameRepository } from '$lib/server/repositories/game';
 import { requireUserOrRedirectToLogin } from '$lib/server/auth/guard';
+import { error } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = async ({ params, locals, url }) => {
@@ -8,7 +9,7 @@ export const load: LayoutServerLoad = async ({ params, locals, url }) => {
 	const game = await gameRepo.getById(params.game, params.group);
 
 	if (!game) {
-		throw new Error('Game not found');
+		throw error(404, 'Spiel nicht gefunden');
 	}
 
 	return { game };
