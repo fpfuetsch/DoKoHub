@@ -10,5 +10,5 @@ export const load: LayoutServerLoad = async ({ params, locals, url }) => {
 	if (!group) {
 		throw new Error('Group not found');
 	}
-	return { group };
+	return { group, user };
 };

@@ -1,5 +1,5 @@
 import { db } from '$lib/server/db';
-import { PlayerTable } from '$lib/server/db/schema';
+import { GroupMemberTable, PlayerTable } from '$lib/server/db/schema';
 import type { AuthProviderType } from '$lib/server/enums';
 import { and, eq } from 'drizzle-orm';
 import { Player } from '$lib/domain/player';
@@ -54,16 +54,35 @@ export class PlayerRepository {
 		return updated ? new Player(updated as PlayerType) : null;
 	}
 
-	async delete(id: string): Promise<boolean> {
-		// Only allow deleting local players and own profile
+	async delete(id: string, groupId?: string): Promise<boolean> {
+		// Only allow deleting local players
 		const player = await this.getById(id);
 		if (!player || player.authProvider !== AuthProvider.Local) {
 			return false;
 		}
-		if (this.principalId && id !== this.principalId) {
+
+		// Authorization: only if caller is a member of the provided group
+		const canDeleteInGroup = this.principalId && groupId
+			? await this.isMemberOfGroup(groupId)
+			: false;
+
+		if (!canDeleteInGroup) {
 			return false;
 		}
+
 		const result = await db.delete(PlayerTable).where(eq(PlayerTable.id, id)).returning();
+		return result.length > 0;
+	}
+
+	private async isMemberOfGroup(groupId: string): Promise<boolean> {
+		if (!this.principalId) return false;
+		const result = await db
+			.select({})
+			.from(GroupMemberTable)
+			.where(
+				and(eq(GroupMemberTable.groupId, groupId), eq(GroupMemberTable.playerId, this.principalId))
+			)
+			.limit(1);
 		return result.length > 0;
 	}
 }

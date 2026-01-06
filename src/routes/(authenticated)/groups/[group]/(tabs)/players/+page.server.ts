@@ -100,11 +100,56 @@ export const actions: Actions = {
 		// Remove from group
 		const success_remove = await groupRepo.removeMember(groupId, playerId);
 		let success_delete = true;
-		// If local player, delete completely
+		// If local player, delete completely (authorized because current user is in this group)
 		if (player.authProvider === AuthProvider.Local) {
-			success_delete = await playerRepo.delete(playerId);
+			success_delete = await playerRepo.delete(playerId, groupId);
 		}
 
 		return { success: success_remove && success_delete };
+	},
+
+	leaveGroup: async ({ params, locals }) => {
+		const user = requireUserOrFail({ locals });
+		const groupId = params.group;
+
+		const groupRepo = new GroupRepository(user.id);
+
+		// Verify player is in the group
+		const group = await groupRepo.getById(groupId);
+		if (!group?.players.some((p) => p.id === user.id)) {
+			return fail(400, { error: 'Du bist nicht Mitglied dieser Gruppe.' });
+		}
+
+		// Check if this is the last non-local player
+		const nonLocalPlayers = group.players.filter(
+			(p) => p.authProvider !== AuthProvider.Local
+		);
+		const isLastNonLocalPlayer = nonLocalPlayers.length === 1;
+
+		if (isLastNonLocalPlayer) {
+			// Delete all local players first
+			const localPlayers = group.players.filter((p) => p.authProvider === AuthProvider.Local);
+			const playerRepo = new PlayerRepository(user.id);
+			for (const localPlayer of localPlayers) {
+				const success = await playerRepo.delete(localPlayer.id, groupId);
+				if (!success) {
+					return fail(400, { error: 'Fehler beim Löschen lokaler Spieler.' });
+				}
+			}
+
+			// Delete the entire group
+			const success = await groupRepo.delete(groupId);
+			if (!success) {
+				return fail(400, { error: 'Fehler beim Löschen der Gruppe.' });
+			}
+			return { success: true, leftGroup: true, deletedGroup: true };
+		} else {
+			// Remove from group
+			const success = await groupRepo.removeMember(groupId, user.id);
+			if (!success) {
+				return fail(400, { error: 'Fehler beim Verlassen der Gruppe.' });
+			}
+			return { success: true, leftGroup: true };
+		}
 	}
 };

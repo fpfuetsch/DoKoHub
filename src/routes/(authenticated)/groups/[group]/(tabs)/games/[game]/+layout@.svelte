@@ -1,7 +1,17 @@
 <script lang="ts">
 	import { Game } from '$lib/domain/game';
 	import { formatDateTime } from '$lib/utils/format';
-	import { Button, Tabs, TabItem, Dropdown, DropdownItem, Modal, Alert } from 'flowbite-svelte';
+	import {
+		Button,
+		Tabs,
+		TabItem,
+		Dropdown,
+		DropdownItem,
+		Modal,
+		Alert,
+		Input,
+		Helper
+	} from 'flowbite-svelte';
 	import {
 		ArrowLeftOutline,
 		OrderedListOutline,
@@ -48,8 +58,7 @@
 
 	let finishModal = $state(false);
 	let deleteModal = $state(false);
-	let deleteCounter = $state(10);
-	let deleteEnabled = $state(false);
+	let deleteConfirmText = $state('');
 
 	const handleFinishGame: SubmitFunction = () => {
 		return async ({ result }) => {
@@ -67,20 +76,6 @@
 		};
 	};
 
-	$effect(() => {
-		if (deleteModal) {
-			deleteCounter = 10;
-			deleteEnabled = false;
-			setTimeout(function tick() {
-				deleteCounter--;
-				if (deleteCounter > 0) {
-					setTimeout(tick, 1000);
-				} else {
-					deleteEnabled = true;
-				}
-			}, 1000);
-		}
-	});
 </script>
 
 <header class="bg-white shadow-sm">
@@ -104,8 +99,9 @@
 			class="flex h-10 w-10 items-center justify-center"
 			pill={true}
 			aria-label="Spielmenü"
+			id="game-menu"
 		>
-			<DotsVerticalOutline class="h-6 w-6" id="game-menu" />
+			<DotsVerticalOutline class="h-6 w-6" />
 		</Button>
 		<Dropdown simple triggeredBy="#game-menu">
 			{#if !game?.isFinished()}
@@ -170,7 +166,6 @@
 				{#snippet icon()}
 					<ExclamationCircleSolid class="h-5 w-5" />
 				{/snippet}
-				<span class="font-medium">Warnung:</span>
 				<div>Das Spiel wird sofort beendet und kann nicht mehr bearbeitet werden.</div>
 			</Alert>
 
@@ -195,18 +190,33 @@
 				{#snippet icon()}
 					<ExclamationCircleSolid class="h-5 w-5" />
 				{/snippet}
-				<span class="font-medium">Warnung:</span>
 				<div>
 					Das Spiel vom <strong>{game ? formatDateTime(game.createdAt) : ''}</strong> wird dauerhaft gelöscht
 					und kann nicht wiederhergestellt werden.
 				</div>
 			</Alert>
 
-			<div class="flex justify-end gap-3">
-				<Button type="button" color="light" onclick={() => (deleteModal = false)}>Abbrechen</Button>
-				<Button type="submit" disabled={!deleteEnabled}>
-					{deleteEnabled ? 'Spiel löschen' : `Spiel löschen (${deleteCounter})`}
-				</Button>
+			<div class="space-y-4">
+				<div>
+					<Input
+						id="gameDeleteConfirm"
+						type="text"
+						bind:value={deleteConfirmText}
+						autocomplete="off"
+						aria-label="Gib löschen ein, um zu bestätigen"
+					/>
+					<Helper>Bestätige mit dem Wort <strong>löschen</strong>.</Helper>
+				</div>
+
+				<div class="flex justify-end gap-3">
+					<Button type="button" color="light" onclick={() => {
+						deleteModal = false;
+						deleteConfirmText = '';
+					}}>Abbrechen</Button>
+					<Button type="submit" disabled={deleteConfirmText !== 'löschen'}>
+						Spiel löschen
+					</Button>
+				</div>
 			</div>
 		</div>
 	</form>

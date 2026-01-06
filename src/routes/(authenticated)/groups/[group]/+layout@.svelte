@@ -6,6 +6,8 @@
 		TabItem,
 		Modal,
 		Label,
+		Input,
+		Helper,
 		Alert,
 		Dropdown,
 		DropdownItem
@@ -33,8 +35,7 @@
 	let renameModal = $state(false);
 	let newName = $state('');
 	let deleteModal = $state(false);
-	let deleteCounter = $state(10);
-	let deleteEnabled = $state(false);
+	let deleteConfirmText = $state('');
 
 	const tabs = [
 		{ name: 'games', label: 'Spiele', icon: PlayOutline },
@@ -70,20 +71,6 @@
 		renameModal = true;
 	};
 
-	$effect(() => {
-		if (deleteModal) {
-			deleteCounter = 10;
-			deleteEnabled = false;
-			setTimeout(function tick() {
-				deleteCounter--;
-				if (deleteCounter > 0) {
-					setTimeout(tick, 1000);
-				} else {
-					deleteEnabled = true;
-				}
-			}, 1000);
-		}
-	});
 </script>
 
 <header class="bg-white shadow-sm">
@@ -107,8 +94,9 @@
 			class="flex h-10 w-10 items-center justify-center"
 			pill={true}
 			aria-label="Gruppenmenü"
+			id="group-menu"
 		>
-			<DotsVerticalOutline class="h-6 w-6" id="group-menu" />
+			<DotsVerticalOutline class="h-6 w-6" />
 		</Button>
 		<Dropdown simple triggeredBy="#group-menu">
 			<DropdownItem onclick={openRenameModal}>
@@ -197,18 +185,37 @@
 				{#snippet icon()}
 					<ExclamationCircleSolid class="h-5 w-5" />
 				{/snippet}
-				<span class="font-medium">Warnung:</span>
 				<div>
 					Die Gruppe <strong>{group?.name}</strong> und alle zugehörigen Spieldaten werden dauerhaft gelöscht
 					und können nicht wiederhergestellt werden.
 				</div>
 			</Alert>
 
-			<div class="flex justify-end gap-3">
-				<Button type="button" color="light" onclick={() => (deleteModal = false)}>Abbrechen</Button>
-				<Button type="submit" disabled={!deleteEnabled}>
-					{deleteEnabled ? 'Gruppe löschen' : `Gruppe löschen (${deleteCounter})`}
-				</Button>
+			<div class="space-y-4">
+				<div>
+					<Input
+						id="groupDeleteConfirm"
+						type="text"
+						bind:value={deleteConfirmText}
+						autocomplete="off"
+						aria-label="Gib löschen ein, um zu bestätigen"
+					/>
+					<Helper>Bestätige mit dem Wort <strong>löschen</strong>.</Helper>
+				</div>
+
+				<div class="flex justify-end gap-3">
+					<Button
+						type="button"
+						color="light"
+						onclick={() => {
+							deleteModal = false;
+							deleteConfirmText = '';
+						}}
+					>Abbrechen</Button>
+					<Button type="submit" disabled={deleteConfirmText !== 'löschen'}>
+						Gruppe löschen
+					</Button>
+				</div>
 			</div>
 		</div>
 	</form>

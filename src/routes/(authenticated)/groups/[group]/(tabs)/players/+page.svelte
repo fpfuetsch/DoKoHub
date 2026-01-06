@@ -3,20 +3,12 @@
 		LinkBreakOutline,
 		PlusOutline,
 		InfoCircleSolid,
-		TrashBinOutline
+		TrashBinOutline,
+		OpenDoorSolid
 	} from 'flowbite-svelte-icons';
-	import {
-		Button,
-		Modal,
-		Label,
-		Input,
-		Tabs,
-		TabItem,
-		Avatar,
-		Alert,
-		Helper
-	} from 'flowbite-svelte';
+	import { Button, Modal, Label, Input, Tabs, TabItem, Avatar, Alert, Helper } from 'flowbite-svelte';
 	import { enhance } from '$app/forms';
+	import { goto } from '$app/navigation';
 	import type { PageProps } from './$types';
 	import type { Player } from '$lib/domain/player';
 	import { AuthProvider } from '$lib/domain/enums';
@@ -24,27 +16,20 @@
 	let { data, form }: PageProps = $props();
 
 	let players = $derived(data.group?.players || []);
+	let currentUser = $derived(data.user);
+	let currentUserPlayer = $derived(
+		players.find((p) => p.authProvider !== AuthProvider.Local && p.id === currentUser?.id)
+	);
+	let isLastNonLocalMember = $derived(
+		currentUserPlayer && players.filter((p) => p.authProvider !== AuthProvider.Local).length === 1
+	);
 
 	let formModal = $state(false);
 	let confirmDeleteModal = $state(false);
+	let confirmLeaveModal = $state(false);
 	let playerToDelete = $state<Player | null>(null);
-	let deleteCounter = $state(10);
-	let deleteEnabled = $state(false);
-
-	$effect(() => {
-		if (confirmDeleteModal) {
-			deleteCounter = 10;
-			deleteEnabled = false;
-			setTimeout(function tick() {
-				deleteCounter--;
-				if (deleteCounter > 0) {
-					setTimeout(tick, 1000);
-				} else {
-					deleteEnabled = true;
-				}
-			}, 1000);
-		}
-	});
+	let deleteConfirmText = $state('');
+	let leaveConfirmText = $state('');
 </script>
 
 <div class="flex flex-col items-center gap-4">
@@ -82,6 +67,17 @@
 						}}
 					>
 						<TrashBinOutline class="h-4 w-4" />
+					</Button>
+				{:else if currentUserPlayer && player.id === currentUserPlayer.id}
+					<Button
+						color="red"
+						outline={true}
+						pill={true}
+						size="xs"
+						class="shrink-0"
+						onclick={() => (confirmLeaveModal = true)}
+					>
+						<OpenDoorSolid class="h-4 w-4" />
 					</Button>
 				{/if}
 			</li>
@@ -198,22 +194,88 @@
 						await update();
 						confirmDeleteModal = false;
 						playerToDelete = null;
+						deleteConfirmText = '';
 					}
 				};
 			}}
 		>
 			<input type="hidden" name="playerId" value={playerToDelete?.id} />
-			<div class="flex justify-end gap-4">
-				<Button
-					color="alternative"
-					onclick={() => {
-						confirmDeleteModal = false;
-						playerToDelete = null;
-					}}>Abbrechen</Button
-				>
-				<Button color="red" type="submit" disabled={!deleteEnabled}>
-					{deleteEnabled ? 'Ja, löschen' : `Ja, löschen (${deleteCounter})`}
-				</Button>
+			<div class="space-y-4">
+				<div>
+					<Input
+						id="deleteConfirm"
+						type="text"
+						bind:value={deleteConfirmText}
+						autocomplete="off"
+						aria-label="Gib löschen ein, um zu bestätigen"
+					/>
+					<Helper>Bestätige mit dem Wort <strong>löschen</strong>.</Helper>
+				</div>
+				<div class="flex justify-end gap-4">
+					<Button
+						color="alternative"
+						onclick={() => {
+							confirmDeleteModal = false;
+							playerToDelete = null;
+							deleteConfirmText = '';
+						}}>Abbrechen</Button
+					>
+					<Button color="red" type="submit" disabled={deleteConfirmText !== 'löschen'}>
+						Ja, löschen
+					</Button>
+				</div>
+			</div>
+		</form>
+	</div>
+</Modal>
+
+<Modal bind:open={confirmLeaveModal} size="sm" autoclose={false}>
+	<h3 class="text-xl font-medium text-gray-900 dark:text-white">Gruppe verlassen</h3>
+	<div class="space-y-4">
+		<Alert color="red">
+			{#snippet icon()}<OpenDoorSolid class="h-5 w-5" />{/snippet}
+			{#if isLastNonLocalMember}
+				Du bist das letzte angemeldete Mitglied der Gruppe <strong>{data.group?.name}</strong>. Wenn
+				du die Gruppe verlässt, wird sie dauerhaft gelöscht und alle zugehörigen Spieldaten sowie
+				lokale Spieler gehen verloren.
+			{:else}
+				Möchtest du die Gruppe <strong>{data.group?.name}</strong> wirklich verlassen?
+			{/if}
+		</Alert>
+		<form
+			method="POST"
+			action="?/leaveGroup"
+			use:enhance={() => {
+				return async ({ result }) => {
+					if (result.type === 'success') {
+						await goto('/groups');
+					}
+				};
+			}}
+		>
+			<div class="space-y-4">
+				<div>
+					<Input
+						id="leaveConfirm"
+						type="text"
+						bind:value={leaveConfirmText}
+						autocomplete="off"
+						aria-label="Gib verlassen ein, um zu bestätigen"
+					/>
+					<Helper>Bestätige mit dem Wort <strong>verlassen</strong>.</Helper>
+				</div>
+				<div class="flex justify-end gap-4">
+					<Button
+						color="alternative"
+						onclick={() => {
+							confirmLeaveModal = false;
+							leaveConfirmText = '';
+						}}>Abbrechen</Button
+					>
+					<Button color="red" type="submit" disabled={leaveConfirmText !== 'verlassen'}>
+						Ja, verlassen
+					</Button>
+				</div>
 			</div>
 		</form>
 	</div>
