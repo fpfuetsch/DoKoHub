@@ -67,7 +67,7 @@ export const load: ServerLoad = async ({ locals, params }) => {
 
     const playerList = game.participants
         .filter((p) => p.player)
-        .map((p) => ({ id: p.player!.id, name: p.player!.displayName || p.player!.name || 'Unknown' }));
+        .map((p) => ({ id: p.player!.id, name: p.player!.getTruncatedDisplayName() || p.player!.name || 'Unknown' }));
 
     // Prepare a palette and map players to colors
     const palette = ['#ef562f', '#0284c7', '#16a34a', '#eab308'];

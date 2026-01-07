@@ -14,14 +14,12 @@
 				<Card class="h-full p-4 shadow-lg">
 					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">Punktentwicklung</h3>
 
-					<div
-						class=" h-96 rounded-lg border border-gray-200 bg-gray-50/50 dark:border-gray-700 dark:bg-gray-800/50"
-					>
+					<div class="flex h-80 items-center justify-center">
 						<LineChart
 							data={data?.chart?.rows ?? []}
 							x="round"
 							series={data?.chart?.series ?? []}
-							padding={{ top: 20, right: 20, bottom: 50, left: 20 }}
+							props={{ spline: { draw: true } }}
 							legend
 						/>
 					</div>
@@ -29,25 +27,31 @@
 			</div>
 			<div class="w-full sm:w-80 md:w-90 lg:w-100">
 				<Card class="h-full p-4 shadow-lg">
-					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">
-						Durchschnittspunkte Paare
-					</h3>
-
-					<BarChart
-						data={data.chart?.avgPairs ?? []}
-						y="key"
-						x="value"
-						orientation="horizontal"
-						padding={{ top: 20, right: 20, bottom: 20, left: 80 }}
-					/>
+					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">Durchschnitt je Paar</h3>
+					<div class="flex h-80 items-center justify-center">
+						<BarChart
+							data={data.chart?.avgPairs ?? []}
+							y="key"
+							x="value"
+							orientation="horizontal"
+							padding={{ top: 10, right: 10, bottom: 10, left: 120 }}
+						/>
+					</div>
 				</Card>
 			</div>
 
 			<div class="w-full sm:w-80 md:w-90 lg:w-100">
 				<Card class="h-full p-4 shadow-lg">
-					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">Re Häufigkeit</h3>
-					<div class="flex h-48 items-center justify-center">
-						<PieChart legend data={data.chart?.pie ?? []} key="key" value="value" c="color" />
+					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">Re-Anteil</h3>
+					<div class="flex h-50 items-center justify-center">
+						<PieChart
+							legend
+							data={data.chart?.pie ?? []}
+							key="key"
+							value="value"
+							c="color"
+							props={{ pie: { motion: 'tween', sort: (a, b) => a.key.localeCompare(b.key) } }}
+						/>
 					</div>
 				</Card>
 			</div>
@@ -55,8 +59,15 @@
 			<div class="w-full sm:w-80 md:w-90 lg:w-100">
 				<Card class="h-full p-4 shadow-lg">
 					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">Gewonnene Runden</h3>
-					<div class="flex h-48 items-center justify-center">
-						<PieChart legend data={data.chart?.winPie ?? []} key="key" value="value" c="color" />
+					<div class="flex h-50 items-center justify-center">
+						<PieChart
+							legend
+							data={data.chart?.winPie ?? []}
+							key="key"
+							value="value"
+							c="color"
+							props={{ pie: { motion: 'tween', sort: (a, b) => a.key.localeCompare(b.key) } }}
+						/>
 					</div>
 				</Card>
 			</div>
@@ -67,8 +78,17 @@
 						Durschnitt je Sieg vs. Niederlage
 					</h3>
 					<!-- <BarChart data={data.chart?.avgWinLoss ?? []} x="player" y="winAvg" /> -->
-					<div class="flex h-60 items-center justify-center">
-						<BarChart data={data.chart?.avgWinLoss ?? []} x="key" series={[{ key: 'winAvg', label:"Sieg", color: 'var(--color-primary)' }, { key: 'loseAvg', label:"Niederlage", color: 'var(--color-secondary)'}]}	 />
+					<div class="flex h-80 items-center justify-center">
+						<BarChart
+							data={data.chart?.avgWinLoss ?? []}
+							x="key"
+							props={{ bars: { motion: 'tween' } }}
+							series={[
+								{ key: 'winAvg', label: 'Sieg', color: 'var(--color-primary)' },
+								{ key: 'loseAvg', label: 'Niederlage', color: 'var(--color-secondary)' }
+							]}
+							legend
+						/>
 					</div>
 				</Card>
 			</div>
