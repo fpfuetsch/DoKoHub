@@ -227,7 +227,7 @@
 </Modal>
 
 <Modal bind:open={takeoverModal} size="sm" autoclose={false}>
-	<h3 class="text-xl font-medium text-gray-900 dark:text-white">Lokalen Spieler übernehmen</h3>
+	<h3 class="text-xl font-medium text-gray-900 dark:text-white">Lokalen Spieler verknüpfen</h3>
 	<div class="space-y-4">
 		<Alert color="orange">
 			{#snippet icon()}<LinkBreakOutline class="h-5 w-5" />{/snippet}
@@ -272,7 +272,7 @@
 			{/if}
 			<input type="hidden" name="localPlayerId" value={playerToTakeover?.id} />
 			<div>
-				<Label for="takeoverUsername">Benutzername des bestehenden Kontos</Label>
+				<Label for="takeoverUsername">Benutzername des Accounts</Label>
 				<Input id="takeoverUsername" name="username" bind:value={takeoverUsername} required />
 				<Helper
 					>Gib den Benutzernamen des bestehenden Accounts ein, welcher den lokalen Spieler
