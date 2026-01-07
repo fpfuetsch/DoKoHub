@@ -4,6 +4,7 @@
 		PlusOutline,
 		InfoCircleSolid,
 		TrashBinOutline,
+		DotsVerticalOutline,
 		OpenDoorSolid
 	} from 'flowbite-svelte-icons';
 	import {
@@ -15,7 +16,9 @@
 		TabItem,
 		Avatar,
 		Alert,
-		Helper
+		Helper,
+		Dropdown,
+		DropdownItem
 	} from 'flowbite-svelte';
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
@@ -37,9 +40,14 @@
 	let formModal = $state(false);
 	let confirmDeleteModal = $state(false);
 	let confirmLeaveModal = $state(false);
+	let takeoverModal = $state(false);
 	let playerToDelete = $state<Player | null>(null);
+	let playerToTakeover = $state<Player | null>(null);
 	let deleteConfirmText = $state('');
 	let leaveConfirmText = $state('');
+	let takeoverUsername = $state('');
+	let takeoverError = $state('');
+	let deleteError = $state('');
 </script>
 
 <div class="flex flex-col items-center gap-4">
@@ -65,29 +73,56 @@
 					</div>
 				</div>
 				{#if player.authProvider == AuthProvider.Local}
-					<Button
-						color="red"
-						outline={true}
-						pill={true}
-						size="xs"
-						class="shrink-0"
-						onclick={() => {
-							playerToDelete = player;
-							confirmDeleteModal = true;
-						}}
-					>
-						<TrashBinOutline class="h-4 w-4" />
-					</Button>
+					<div>
+						<Button
+							color="light"
+							size="sm"
+							class="flex h-10 w-10 items-center justify-center"
+							pill={true}
+							aria-label="Spieleraktionen"
+							id={'player-menu-' + player.id}
+						>
+							<DotsVerticalOutline class="h-6 w-6" />
+						</Button>
+						<Dropdown simple triggeredBy={'#player-menu-' + player.id} class="list-none">
+							<DropdownItem
+								onclick={() => {
+									playerToTakeover = player;
+									takeoverModal = true;
+									takeoverError = '';
+								}}
+							>
+								<div class="flex items-center gap-2">
+									<LinkBreakOutline class="h-6 w-6" />
+									<span>Account verknüpfen</span>
+								</div>
+							</DropdownItem>
+							<DropdownItem
+								onclick={() => {
+									playerToDelete = player;
+									confirmDeleteModal = true;
+								}}
+							>
+								<div class="flex items-center gap-2">
+									<TrashBinOutline class="h-6 w-6" />
+									<span>Löschen</span>
+								</div>
+							</DropdownItem>
+						</Dropdown>
+					</div>
 				{:else if currentUserPlayer && player.id === currentUserPlayer.id}
 					<Button
 						color="red"
 						outline={true}
 						pill={true}
-						size="xs"
-						class="shrink-0"
-						onclick={() => (confirmLeaveModal = true)}
+						size="sm"
+						class="flex h-10 w-10 items-center justify-center"
+						onclick={() => {
+							confirmLeaveModal = true;
+							leaveConfirmText = '';
+						}}
 					>
-						<OpenDoorSolid class="h-4 w-4" />
+						<OpenDoorSolid class="h-6 w-6" />
 					</Button>
 				{/if}
 			</li>
@@ -191,6 +226,75 @@
 	</div>
 </Modal>
 
+<Modal bind:open={takeoverModal} size="sm" autoclose={false}>
+	<h3 class="text-xl font-medium text-gray-900 dark:text-white">Lokalen Spieler übernehmen</h3>
+	<div class="space-y-4">
+		<Alert color="orange">
+			{#snippet icon()}<LinkBreakOutline class="h-5 w-5" />{/snippet}
+			<div>
+				<div>
+					Der lokale Spieler <strong>{playerToTakeover?.displayName}</strong> kann von einem bestehenden
+					Account übernommen werden.
+				</div>
+				<div class="pt-2">
+					Alle zugehörigen Daten des lokalen Spielers (Spiele, Runden, Ergebnisse, Boni usw.) werden
+					auf den Account übertragen.
+				</div>
+				<div class="pt-2">
+					<strong>Dieser Vorgang kann nicht rückgängig gemacht werden!</strong>
+				</div>
+			</div>
+		</Alert>
+		<form
+			method="POST"
+			action="?/takeoverLocal"
+			use:enhance={() => {
+				return async ({ result, update }) => {
+					await update();
+					if (result.type === 'success') {
+						takeoverModal = false;
+						playerToTakeover = null;
+						takeoverUsername = '';
+						takeoverError = '';
+					} else {
+						// If action returned an error, populate takeoverError from form
+						takeoverError =
+							result.type === 'failure' && result.data?.error ? String(result.data.error) : '';
+					}
+				};
+			}}
+		>
+			{#if takeoverError}
+				<Alert color="red" class="mb-4">
+					{#snippet icon()}<InfoCircleSolid class="h-5 w-5" />{/snippet}
+					{takeoverError}
+				</Alert>
+			{/if}
+			<input type="hidden" name="localPlayerId" value={playerToTakeover?.id} />
+			<div>
+				<Label for="takeoverUsername">Benutzername des bestehenden Kontos</Label>
+				<Input id="takeoverUsername" name="username" bind:value={takeoverUsername} required />
+				<Helper
+					>Gib den Benutzernamen des bestehenden Accounts ein, welcher den lokalen Spieler
+					übernehmen soll.</Helper
+				>
+			</div>
+			<div class="mt-4 flex justify-end gap-4">
+				<Button
+					type="button"
+					color="alternative"
+					onclick={() => {
+						takeoverModal = false;
+						playerToTakeover = null;
+						takeoverUsername = '';
+					}}>Abbrechen</Button
+				>
+				<Button type="submit">Übernehmen</Button>
+			</div>
+		</form>
+	</div>
+</Modal>
+
 <Modal bind:open={confirmDeleteModal} size="sm" autoclose={false}>
 	<h3 class="text-xl font-medium text-gray-900 dark:text-white">Spieler entfernen</h3>
 	<div class="space-y-4">
@@ -201,29 +305,42 @@
 		</Alert>
 		<form
 			method="POST"
-			action="?/removePlayer"
+			action="?/removeLocalPlayer"
 			use:enhance={() => {
 				return async ({ result, update }) => {
+					await update();
 					if (result.type === 'success') {
-						await update();
 						confirmDeleteModal = false;
 						playerToDelete = null;
 						deleteConfirmText = '';
+						deleteError = '';
+					} else {
+						deleteError = result.type === 'failure' && result.data?.error ? String(result.data.error) : (form?.error ? String(form.error) : 'Fehler beim Löschen.');
 					}
 				};
 			}}
 		>
+			{#if deleteError}
+				<Alert color="red" class="mb-4">
+					{#snippet icon()}<InfoCircleSolid class="h-5 w-5" />{/snippet}
+					{deleteError}
+				</Alert>
+			{/if}
 			<input type="hidden" name="playerId" value={playerToDelete?.id} />
 			<div class="space-y-4">
 				<div>
-						<Input
-							id="deleteConfirm"
-							type="text"
-							bind:value={deleteConfirmText}
-							autocomplete="off"
-							aria-label="Gib den Namen des Spielers ein, um zu bestätigen"
-						/>
-						<Helper>Bestätige, indem du den Namen des Spielers <strong>{playerToDelete?.displayName}</strong> eingibst.</Helper>
+					<Input
+						id="deleteConfirm"
+						type="text"
+						bind:value={deleteConfirmText}
+						autocomplete="off"
+						aria-label="Gib den Namen des Spielers ein, um zu bestätigen"
+					/>
+					<Helper
+						>Bestätige, indem du den Namen des Spielers <strong
+							>{playerToDelete?.displayName}</strong
+						> eingibst.</Helper
+					>
 				</div>
 				<div class="flex justify-end gap-4">
 					<Button
@@ -234,7 +351,11 @@
 							deleteConfirmText = '';
 						}}>Abbrechen</Button
 					>
-					<Button color="red" type="submit" disabled={deleteConfirmText !== playerToDelete?.displayName}>
+					<Button
+						color="red"
+						type="submit"
+						disabled={deleteConfirmText !== playerToDelete?.displayName}
+					>
 						Ja, löschen
 					</Button>
 				</div>
@@ -274,9 +395,9 @@
 						type="text"
 						bind:value={leaveConfirmText}
 						autocomplete="off"
-						aria-label="Gib verlassen ein, um zu bestätigen"
+						aria-label="Gib den Namen der Gruppe ein, um zu bestätigen"
 					/>
-					<Helper>Bestätige mit dem Wort <strong>verlassen</strong>.</Helper>
+					<Helper>Bestätige, indem du den Gruppennamen <strong>{data.group?.name}</strong> eingibst.</Helper>
 				</div>
 				<div class="flex justify-end gap-4">
 					<Button
@@ -286,7 +407,7 @@
 							leaveConfirmText = '';
 						}}>Abbrechen</Button
 					>
-					<Button color="red" type="submit" disabled={leaveConfirmText !== 'verlassen'}>
+					<Button color="red" type="submit" disabled={leaveConfirmText !== data.group?.name}>
 						Ja, verlassen
 					</Button>
 				</div>

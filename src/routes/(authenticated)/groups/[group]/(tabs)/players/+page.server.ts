@@ -77,7 +77,8 @@ export const actions: Actions = {
 		return { success: true };
 	},
 
-	removePlayer: async ({ params, request, locals }) => {
+	// Delete a specific local player (called from UI when deleting a local player)
+	removeLocalPlayer: async ({ params, request, locals }) => {
 		const user = requireUserOrFail({ locals });
 		const formData = await request.formData();
 		const playerId = formData.get('playerId') as string;
@@ -88,26 +89,37 @@ export const actions: Actions = {
 
 		const groupId = params.group;
 		const groupRepo = new GroupRepository(user.id);
+		const playerRepo = new PlayerRepository(user.id);
 
 		// Get player info to check if local
-		const playerRepo = new PlayerRepository(user.id);
 		const player = await playerRepo.getById(playerId);
 
 		if (!player) {
 			return fail(404, { error: 'Spieler nicht gefunden.' });
 		}
 
+		if (player.authProvider !== AuthProvider.Local) {
+			return fail(400, { error: 'Nur lokale Spieler können auf diese Weise gelöscht werden.' });
+		}
+
+		// If local player, ensure they have no participations before deleting
+		const hasParts = await playerRepo.hasParticipations(playerId);
+		if (hasParts) {
+			return fail(400, {
+				error: 'Lokaler Spieler war an Spielen/Runden beteiligt. Lösche entweder zuerst alle betreffenden Spiele oder übernimm den lokalen Spieler mit einem Account.'
+			});
+		}
+
 		// Remove from group
 		const success_remove = await groupRepo.removeMember(groupId, playerId);
 		let success_delete = true;
-		// If local player, delete completely (authorized because current user is in this group)
-		if (player.authProvider === AuthProvider.Local) {
-			success_delete = await playerRepo.delete(playerId, groupId);
-		}
+		// Delete local player completely (authorized because current user is in this group)
+		success_delete = await playerRepo.delete(playerId, groupId);
 
 		return { success: success_remove && success_delete };
 	},
 
+	// Current user leaves the group
 	leaveGroup: async ({ params, locals }) => {
 		const user = requireUserOrFail({ locals });
 		const groupId = params.group;
@@ -149,5 +161,29 @@ export const actions: Actions = {
 			}
 			return { success: true, leftGroup: true };
 		}
-	}
+	},
+	takeoverLocal: async ({ params, request, locals }) => {
+		const user = requireUserOrFail({ locals });
+		const formData = await request.formData();
+		const localPlayerId = formData.get('localPlayerId') as string;
+		const username = (formData.get('username') as string)?.trim();
+
+		if (!localPlayerId || !username) {
+			return fail(400, { error: 'Daten fehlen.' });
+		}
+
+		const playerRepo = new PlayerRepository(user.id);
+		try {
+			const target = await playerRepo.getByName(username);
+			if (!target) {
+				return fail(404, { error: 'Account nicht gefunden.' });
+			}
+
+			await playerRepo.takeoverLocalPlayer(localPlayerId, target.id, params.group!);
+			return { success: true };
+		} catch (e) {
+			if (e instanceof Error) return fail(400, { error: e.message });
+			return fail(400, { error: 'Übernahme fehlgeschlagen.' });
+		}
+	},
 };

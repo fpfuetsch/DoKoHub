@@ -103,7 +103,8 @@ export class GroupRepository {
 			})
 			.from(GroupMemberTable)
 			.innerJoin(PlayerTable, eq(GroupMemberTable.playerId, PlayerTable.id))
-			.where(eq(GroupMemberTable.groupId, groupId));
+			.where(eq(GroupMemberTable.groupId, groupId))
+			.orderBy(PlayerTable.displayName);
 		return rows.map((row) => new Player(row.player as PlayerType));
 	}
 }
