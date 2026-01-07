@@ -216,14 +216,14 @@
 			<input type="hidden" name="playerId" value={playerToDelete?.id} />
 			<div class="space-y-4">
 				<div>
-					<Input
-						id="deleteConfirm"
-						type="text"
-						bind:value={deleteConfirmText}
-						autocomplete="off"
-						aria-label="Gib löschen ein, um zu bestätigen"
-					/>
-					<Helper>Bestätige mit dem Wort <strong>löschen</strong>.</Helper>
+						<Input
+							id="deleteConfirm"
+							type="text"
+							bind:value={deleteConfirmText}
+							autocomplete="off"
+							aria-label="Gib den Namen des Spielers ein, um zu bestätigen"
+						/>
+						<Helper>Bestätige, indem du den Namen des Spielers <strong>{playerToDelete?.displayName}</strong> eingibst.</Helper>
 				</div>
 				<div class="flex justify-end gap-4">
 					<Button
@@ -234,7 +234,7 @@
 							deleteConfirmText = '';
 						}}>Abbrechen</Button
 					>
-					<Button color="red" type="submit" disabled={deleteConfirmText !== 'löschen'}>
+					<Button color="red" type="submit" disabled={deleteConfirmText !== playerToDelete?.displayName}>
 						Ja, löschen
 					</Button>
 				</div>

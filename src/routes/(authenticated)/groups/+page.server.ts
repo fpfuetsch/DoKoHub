@@ -34,8 +34,8 @@ export const actions: Actions = {
 		}
 
 		const repo = new GroupRepository(user.id);
-		await repo.create({ name: parsed.data });
+		const group = await repo.create({ name: parsed.data });
 
-		return { success: true };
+		return { success: true, groupId: group.id };
 	}
 };

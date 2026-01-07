@@ -4,7 +4,7 @@
 	import { Group } from '$lib/domain/group';
 	import { formatDate } from '$lib/utils/format';
 	import { enhance, applyAction } from '$app/forms';
-	import { invalidateAll } from '$app/navigation';
+	import { invalidateAll, goto } from '$app/navigation';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import type { PageProps } from './$types';
 
@@ -15,6 +15,11 @@
 	const handleGroupSubmit: SubmitFunction = () => {
 		return async ({ result }) => {
 			if (result.type === 'success') {
+				const newGroupId = result.data?.groupId;
+				if (newGroupId) {
+					await goto(`/groups/${newGroupId}`);
+					return;
+				}
 				await invalidateAll();
 				formModal = false;
 			}

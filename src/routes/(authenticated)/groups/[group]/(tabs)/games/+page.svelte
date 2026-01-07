@@ -12,7 +12,7 @@
 	import { formatDateTime } from '$lib/utils/format';
 	import type { PageProps } from './$types';
 	import { enhance, applyAction } from '$app/forms';
-	import { invalidateAll } from '$app/navigation';
+	import { invalidateAll, goto } from '$app/navigation';
 	import type { SubmitFunction } from '@sveltejs/kit';
 
 	let { data, form }: PageProps = $props();
@@ -36,6 +36,12 @@
 	const handleGameSubmit: SubmitFunction = () => {
 		return async ({ result }) => {
 			if (result.type === 'success') {
+				const newGameId = result.data?.gameId;
+				if (newGameId) {
+					// navigate directly to the new game's rounds using SvelteKit navigation
+					await goto(`/groups/${data.group?.id}/games/${newGameId}/rounds`);
+					return;
+				}
 				await invalidateAll();
 				gameModal = false;
 				withMandatorySolos = false;

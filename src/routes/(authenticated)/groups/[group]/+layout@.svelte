@@ -197,9 +197,9 @@
 						type="text"
 						bind:value={deleteConfirmText}
 						autocomplete="off"
-						aria-label="Gib löschen ein, um zu bestätigen"
+						aria-label="Gib den Namen der Gruppe ein, um zu bestätigen"
 					/>
-					<Helper>Bestätige mit dem Wort <strong>löschen</strong>.</Helper>
+					<Helper>Bestätige, indem du den Gruppenname <strong>{group?.name}</strong> eingibst.</Helper>
 				</div>
 
 				<div class="flex justify-end gap-3">
@@ -211,7 +211,7 @@
 							deleteConfirmText = '';
 						}}>Abbrechen</Button
 					>
-					<Button type="submit" disabled={deleteConfirmText !== 'löschen'}>Gruppe löschen</Button>
+					<Button type="submit" disabled={deleteConfirmText !== group?.name}>Gruppe löschen</Button>
 				</div>
 			</div>
 		</div>

@@ -82,7 +82,7 @@ export const actions: Actions = {
 				});
 			}
 
-			return { success: true };
+			return { success: true, gameId: game.id };
 		} catch (error) {
 			return fail(400, {
 				error: error instanceof Error ? error.message : 'Fehler beim Erstellen des Spiels',
