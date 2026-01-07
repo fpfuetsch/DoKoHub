@@ -39,9 +39,9 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-      PORT: 3000
-      ORIGIN: http://localhost:3000
+      PORT: 5173
+      ORIGIN: http://localhost:5173
     ports:
-      - 3000:3000
+      - 127.0.0.1:5173:5173
 volumes:
   pgdata:
