@@ -52,7 +52,7 @@ export class Game implements GameType {
 		const mandatorySoloRounds = game.rounds.filter((r) => r.soloType === SoloType.Pflicht);
 
 		if (mandatorySoloRounds.length > 0 && !game.withMandatorySolos) {
-			return 'Pflichtsolo-Runden sind nur bei Spielen mit Pflichtsolo erlaubt';
+			return 'Pflichtsolo-Runden sind nur bei Spielen mit Pflichtsolo erlaubt.';
 		}
 
 		// If game requires mandatory solos, validate constraints
@@ -78,7 +78,7 @@ export class Game implements GameType {
 				if (count > 1) {
 					const player = game.participants.find((p) => p.playerId === playerId);
 					const playerName = player?.player?.displayName ?? 'Spieler';
-					return `${playerName} hat bereits ein Pflichtsolo gespielt`;
+					return `${playerName} hat bereits ein Pflichtsolo gespielt.`;
 				}
 			}
 
@@ -88,7 +88,7 @@ export class Game implements GameType {
 					if (count === 0) {
 						const player = game.participants.find((p) => p.playerId === playerId);
 						const playerName = player?.player?.displayName ?? 'Spieler';
-						return `${playerName} hat sein Pflichtsolo noch nicht gespielt`;
+						return `${playerName} hat sein Pflichtsolo noch nicht gespielt.`;
 					}
 				}
 			} else {

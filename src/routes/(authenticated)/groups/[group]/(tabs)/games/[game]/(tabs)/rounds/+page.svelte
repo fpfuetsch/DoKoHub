@@ -353,6 +353,10 @@
 		roundType = round.type;
 		soloType = round.soloType;
 		editingMandatorySolo = round.soloType === SoloTypeEnum.Pflicht;
+		// If editing a non-mandatory solo, ensure Lust is preselected immediately
+		if (round.type.startsWith('SOLO') && !editingMandatorySolo) {
+			soloType = SoloTypeEnum.Lust;
+		}
 		soloTypeSelection = round.type.startsWith('SOLO') ? round.type.replace('SOLO_', '') : null;
 		eyesReInput = round.eyesRe;
 		eyesTeam = TeamEnum.RE;
@@ -722,8 +726,8 @@
 							<Button
 								type="button"
 								color={roundType === RoundTypeEnum.Normal ? 'secondary' : 'light'}
-								class={`flex-1 ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
-								disabled={!canEditRounds}
+								class={`flex-1 ${!canEditRounds || editingMandatorySolo ? 'cursor-not-allowed opacity-60' : ''}`}
+								disabled={!canEditRounds || editingMandatorySolo}
 								onclick={() => {
 									roundType = RoundTypeEnum.Normal;
 									soloType = null;
@@ -735,8 +739,8 @@
 							<Button
 								type="button"
 								color={roundType.startsWith('HOCHZEIT') ? 'secondary' : 'light'}
-								class={`flex-1 ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
-								disabled={!canEditRounds}
+								class={`flex-1 ${!canEditRounds || editingMandatorySolo ? 'cursor-not-allowed opacity-60' : ''}`}
+								disabled={!canEditRounds || editingMandatorySolo}
 								onclick={() => {
 									roundType = RoundTypeEnum.HochzeitNormal;
 									soloType = null;
@@ -748,8 +752,8 @@
 							<Button
 								type="button"
 								color={roundType.startsWith('SOLO') ? 'secondary' : 'light'}
-								class={`flex-1 ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
-								disabled={!canEditRounds}
+								class={`flex-1 ${!canEditRounds || editingMandatorySolo ? 'cursor-not-allowed opacity-60' : ''}`}
+								disabled={!canEditRounds || editingMandatorySolo}
 								onclick={() => {
 									roundType = RoundTypeEnum.SoloBuben;
 									soloType = game.withMandatorySolos
@@ -808,8 +812,13 @@
 										<Button
 											type="button"
 											color={soloType === SoloTypeEnum.Pflicht ? 'secondary' : 'light'}
-											disabled={remainingMandatorySoloPlayers.length === 0 || !canEditRounds}
-											class={`flex-1 ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
+											disabled={!!(
+												remainingMandatorySoloPlayers.length === 0 ||
+												!canEditRounds ||
+												editingMandatorySolo ||
+												(editingRoundId && !editingMandatorySolo && roundType.startsWith('SOLO'))
+											)}
+											class={`flex-1 ${!!(!canEditRounds || editingMandatorySolo || (editingRoundId && !editingMandatorySolo && roundType.startsWith('SOLO'))) ? 'cursor-not-allowed opacity-60' : ''}`}
 											onclick={() => (soloType = SoloTypeEnum.Pflicht)}
 										>
 											Pflicht
@@ -1114,18 +1123,18 @@
 										<span class="text-xs font-medium text-gray-700 dark:text-gray-300"
 											>An/Absagen:</span
 										>
-											<Button
-												pill
-												size="xs"
-												color="secondary"
-												disabled={!canEditRounds}
-												onclick={() => {
-													editingPlayerId = participant.playerId;
-													callsEditModal = true;
-												}}
-												class={`p-2! ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
-												title="Ansagen bearbeiten"
-											>
+										<Button
+											pill
+											size="xs"
+											color="secondary"
+											disabled={!canEditRounds}
+											onclick={() => {
+												editingPlayerId = participant.playerId;
+												callsEditModal = true;
+											}}
+											class={`p-2! ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
+											title="Ansagen bearbeiten"
+										>
 											<EditOutline class="h-4 w-4" />
 										</Button>
 									</div>
