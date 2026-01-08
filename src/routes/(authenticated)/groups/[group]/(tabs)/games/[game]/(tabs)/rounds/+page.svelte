@@ -136,11 +136,11 @@
 
 	const resultStyles: Record<RoundResultEnum, string> = {
 		[RoundResultEnum.WON]:
-			'border-emerald-400 bg-emerald-50 text-black dark:border-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-100',
+			'border-emerald-400 bg-emerald-100 text-black dark:border-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-100',
 		[RoundResultEnum.LOST]:
-			'border-rose-400 bg-rose-50 text-black dark:border-rose-800 dark:bg-rose-900/40 dark:text-rose-100',
+			'border-rose-400 bg-rose-100 text-black dark:border-rose-800 dark:bg-rose-900/40 dark:text-rose-100',
 		[RoundResultEnum.DRAW]:
-			'border-slate-200 bg-slate-50 text-black dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100'
+			'border-slate-200 bg-slate-100 text-black dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100'
 	};
 
 	const placeholderTile =
@@ -516,14 +516,14 @@
 						</div>
 						<div class="flex items-center gap-1">
 							<div
-								class="h-3.5 w-3.5 rounded-md border border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/40"
+								class="h-3.5 w-3.5 rounded-md border border-emerald-300 bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-900/40"
 								aria-hidden="true"
 							></div>
 							<span>Sieg</span>
 						</div>
 						<div class="flex items-center gap-1">
 							<div
-								class="h-3.5 w-3.5 rounded-md border border-rose-300 bg-rose-50 dark:border-rose-800 dark:bg-rose-900/40"
+								class="h-3.5 w-3.5 rounded-md border border-rose-300 bg-rose-100 dark:border-rose-800 dark:bg-rose-900/40"
 								aria-hidden="true"
 							></div>
 							<span>Niederlage</span>

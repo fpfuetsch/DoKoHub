@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { LineChart, PieChart, BarChart } from 'layerchart';
+	import { LineChart, BarChart } from 'layerchart';
 	import { Card } from 'flowbite-svelte';
 	import type { PageProps } from './$types';
 
@@ -16,10 +16,10 @@
 
 					<div class="flex h-80 items-center justify-center">
 						<LineChart
-							data={data?.chart?.rows ?? []}
+							data={data.stats?.playerSeries?.rows ?? []}
 							x="round"
-							series={data?.chart?.series ?? []}
-							props={{ spline: { draw: true } }}
+							series={data.stats?.playerSeries?.series ?? []}
+							props={{ spline: { draw: true, strokeWidth: 3 } }}
 							legend
 						/>
 					</div>
@@ -27,66 +27,105 @@
 			</div>
 			<div class="w-full sm:w-80 md:w-90 lg:w-100">
 				<Card class="h-full p-4 shadow-lg">
-					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">Durchschnitt je Paar</h3>
+					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">
+						Gewonnen vs. Verloren Anteil
+					</h3>
 					<div class="flex h-80 items-center justify-center">
 						<BarChart
-							data={data.chart?.avgPairs ?? []}
+							data={data.stats?.winLostShare ?? []}
+							x="player"
+							series={[
+								{ key: 'wonShare', label: 'Gewonnen', color: 'var(--color-emerald-300)' },
+								{ key: 'lostShare', label: 'Verloren', color: 'var(--color-rose-300)' }
+							]}
+							seriesLayout="group"
+							props={{
+								xAxis: { format: 'none' },
+								yAxis: { format: 'percentRound' },
+								tooltip: { header: { format: 'none' } },
+								bars: { motion: 'tween' }
+							}}
+							legend
+						/>
+					</div>
+				</Card>
+			</div>
+			<div class="w-full sm:w-80 md:w-90 lg:w-100">
+				<Card class="h-full p-4 shadow-lg">
+					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">Re vs. Kontra Anteil</h3>
+					<div class="flex h-80 items-center justify-center">
+						<BarChart
+							data={data.stats?.reKontraShare ?? []}
+							x="player"
+							series={[
+								{ key: 'reShare', label: 'Re', color: 'var(--color-amber-500)' },
+								{ key: 'kontraShare', label: 'Kontra', color: 'var(--color-purple-500)' }
+							]}
+							seriesLayout="group"
+							props={{
+								xAxis: { format: 'none' },
+								yAxis: { format: 'percentRound' },
+								tooltip: { header: { format: 'none' } },
+								bars: { motion: 'tween' }
+							}}
+							legend
+						/>
+					</div>
+				</Card>
+			</div>
+			<div class="w-full sm:w-80 md:w-90 lg:w-100">
+				<Card class="h-full p-4 shadow-lg">
+					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">
+						Re vs. Kontra Durchschnittspunkte
+					</h3>
+					<div class="flex h-80 items-center justify-center">
+						<BarChart
+							data={data.stats?.avgReKontra ?? []}
+							x="key"
+							series={[
+								{ key: 'reAvg', label: 'Re', color: 'var(--color-amber-500)' },
+								{ key: 'kontraAvg', label: 'Kontra', color: 'var(--color-purple-500)' }
+							]}
+							seriesLayout="group"
+							props={{ bars: { motion: 'tween' } }}
+							legend
+						/>
+					</div>
+				</Card>
+			</div>
+			<div class="w-full sm:w-80 md:w-90 lg:w-100">
+				<Card class="h-full p-4 shadow-lg">
+					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">
+						Durchschnittspunkte je Paar
+					</h3>
+					<div class="flex h-80 items-center justify-center">
+						<BarChart
+							data={data.stats?.avgPairs ?? []}
 							y="key"
 							x="value"
+							series={[{ key: 'value', label: 'Durchschnittspunkte', color: 'var(--color-teal-400)' }]}
 							orientation="horizontal"
 							padding={{ top: 10, right: 10, bottom: 10, left: 120 }}
 						/>
 					</div>
 				</Card>
 			</div>
-
-			<div class="w-full sm:w-80 md:w-90 lg:w-100">
-				<Card class="h-full p-4 shadow-lg">
-					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">Re-Anteil</h3>
-					<div class="flex h-50 items-center justify-center">
-						<PieChart
-							legend
-							data={data.chart?.pie ?? []}
-							key="key"
-							value="value"
-							c="color"
-							props={{ pie: { motion: 'tween', sort: (a, b) => a.key.localeCompare(b.key) } }}
-						/>
-					</div>
-				</Card>
-			</div>
-
-			<div class="w-full sm:w-80 md:w-90 lg:w-100">
-				<Card class="h-full p-4 shadow-lg">
-					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">Gewonnene Runden</h3>
-					<div class="flex h-50 items-center justify-center">
-						<PieChart
-							legend
-							data={data.chart?.winPie ?? []}
-							key="key"
-							value="value"
-							c="color"
-							props={{ pie: { motion: 'tween', sort: (a, b) => a.key.localeCompare(b.key) } }}
-						/>
-					</div>
-				</Card>
-			</div>
-
 			<div class="w-full sm:w-80 md:w-90 lg:w-100">
 				<Card class="h-full p-4 shadow-lg">
 					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">
-						Durschnitt je Sieg vs. Niederlage
+						Bonuspunkte Häufigkeit
 					</h3>
-					<!-- <BarChart data={data.chart?.avgWinLoss ?? []} x="player" y="winAvg" /> -->
 					<div class="flex h-80 items-center justify-center">
 						<BarChart
-							data={data.chart?.avgWinLoss ?? []}
-							x="key"
-							props={{ bars: { motion: 'tween' } }}
+							data={data.stats?.bonusGrouped ?? []}
+							x="player"
 							series={[
-								{ key: 'winAvg', label: 'Sieg', color: 'var(--color-primary)' },
-								{ key: 'loseAvg', label: 'Niederlage', color: 'var(--color-secondary)' }
+								{ key: 'doko', label: 'Doppelkopf', color: 'var(--color-lime-500)' },
+								{ key: 'fuchs', label: 'Fuchs', color: 'var(--color-red-500)' },
+								{ key: 'karlchen', label: 'Karlchen', color: 'var(--color-cyan-500)' }
 							]}
+							seriesLayout="group"
+							props={{ bars: { motion: 'tween' }, yAxis: { format: 'integer' }, }}
 							legend
 						/>
 					</div>

@@ -1,5 +1,5 @@
-import type { ServerLoad } from '@sveltejs/kit';
-import { Team } from '$lib/domain/enums';
+import { error, type ServerLoad } from '@sveltejs/kit';
+import { Team, BonusType } from '$lib/domain/enums';
 import { GameRepository } from '$lib/server/repositories/game';
 import { requireUserOrFail } from '$lib/server/auth/guard';
 
@@ -12,7 +12,7 @@ export const load: ServerLoad = async ({ locals, params }) => {
     const game = await gameRepo.getById(gameId, groupId);
 
     if (!game || !game.rounds) {
-        return { data: [] };
+        throw error(404, 'Spiel nicht gefunden');
     }
 
     // Build a map of cumulative points for each player across rounds
@@ -26,16 +26,8 @@ export const load: ServerLoad = async ({ locals, params }) => {
     });
 
     // Calculate cumulative points for each round
-    let roundNumber = 0;
-    const avgPerRound: { round: number; value: number }[] = [];
     for (const round of game.rounds) {
-        roundNumber = round.roundNumber;
         const roundPoints = round.calculatePoints();
-
-        // compute average points per player for this round
-        const avg =
-            roundPoints.reduce((sum, r) => sum + r.points, 0) / (roundPoints.length || 1);
-        avgPerRound.push({ round: round.roundNumber, value: avg });
 
         // Initialize round points for all players
         if (playerPointsMap.size === 0) {
@@ -89,18 +81,34 @@ export const load: ServerLoad = async ({ locals, params }) => {
     // Series config
     const series = playerList.map((pl) => ({ key: pl.name, label: pl.name, color: playerColorMap.get(pl.id) }));
 
-    // Compute how often each player was in the RE team
+    // Compute how often each player was in the RE or KONTRA team
     const reCounts = new Map<string, number>();
-    playerList.forEach((pl) => reCounts.set(pl.id, 0));
+    const kontraCounts = new Map<string, number>();
+    playerList.forEach((pl) => {
+        reCounts.set(pl.id, 0);
+        kontraCounts.set(pl.id, 0);
+    });
     for (const round of game.rounds) {
         for (const p of round.participants) {
             if (p.team === Team.RE) {
                 reCounts.set(p.playerId, (reCounts.get(p.playerId) || 0) + 1);
+            } else if (p.team === Team.KONTRA) {
+                kontraCounts.set(p.playerId, (kontraCounts.get(p.playerId) || 0) + 1);
             }
         }
     }
 
-    const pie = playerList.map((pl) => ({ key: pl.name, value: reCounts.get(pl.id) || 0, color: playerColorMap.get(pl.id) }));
+    const reKontraShare = playerList.map((pl) => {
+        const re = reCounts.get(pl.id) || 0;
+        const kontra = kontraCounts.get(pl.id) || 0;
+        const total = re + kontra;
+        return {
+            player: pl.name,
+            reShare: total ? re / total : 0,
+            kontraShare: total ? kontra / total : 0,
+            color: playerColorMap.get(pl.id)
+        };
+    });
 
     // Compute win counts per player
     const winRoundCounts = new Map<string, number>();
@@ -114,54 +122,70 @@ export const load: ServerLoad = async ({ locals, params }) => {
         }
     }
 
-    const winPie = playerList.map((pl) => ({ key: pl.name, value: winRoundCounts.get(pl.id) || 0, color: playerColorMap.get(pl.id) }));
 
-    // Compute average points per player across rounds
-    const totals = new Map<string, number>();
-    const counts = new Map<string, number>();
-    playerList.forEach((pl) => {
-        totals.set(pl.id, 0);
-        counts.set(pl.id, 0);
-    });
-
+    // Compute loss counts per player (points < 0)
+    const loseRoundCounts = new Map<string, number>();
+    playerList.forEach((pl) => loseRoundCounts.set(pl.id, 0));
     for (const round of game.rounds) {
         const roundPoints = round.calculatePoints();
         for (const rp of roundPoints) {
-            totals.set(rp.playerId, (totals.get(rp.playerId) || 0) + rp.points);
-            counts.set(rp.playerId, (counts.get(rp.playerId) || 0) + 1);
-        }
-    }
-
-    // Compute average points per player when their round was won vs lost
-    const winTotals = new Map<string, number>();
-    const winCounts = new Map<string, number>();
-    const loseTotals = new Map<string, number>();
-    const loseCounts = new Map<string, number>();
-
-    playerList.forEach((pl) => {
-        winTotals.set(pl.id, 0);
-        winCounts.set(pl.id, 0);
-        loseTotals.set(pl.id, 0);
-        loseCounts.set(pl.id, 0);
-    });
-
-    for (const round of game.rounds) {
-        const roundPoints = round.calculatePoints();
-        for (const rp of roundPoints) {
-            if (rp.points > 0) {
-                winTotals.set(rp.playerId, (winTotals.get(rp.playerId) || 0) + rp.points);
-                winCounts.set(rp.playerId, (winCounts.get(rp.playerId) || 0) + 1);
-            } else {
-                loseTotals.set(rp.playerId, (loseTotals.get(rp.playerId) || 0) + rp.points);
-                loseCounts.set(rp.playerId, (loseCounts.get(rp.playerId) || 0) + 1);
+            if (rp.points < 0) {
+                loseRoundCounts.set(rp.playerId, (loseRoundCounts.get(rp.playerId) || 0) + 1);
             }
         }
     }
 
-    const avgWinLoss = playerList.map((pl) => ({
+    // Grouped bar data: won vs lost per player (as shares)
+    const winLostShare = playerList.map((pl) => {
+        const won = winRoundCounts.get(pl.id) || 0;
+        const lost = loseRoundCounts.get(pl.id) || 0;
+        const total = won + lost;
+        return {
+            player: pl.name,
+            wonShare: total ? won / total : 0,
+            lostShare: total ? lost / total : 0,
+            color: playerColorMap.get(pl.id)
+        };
+    });
+
+    // (average-per-player totals removed — not used)
+
+    // Compute average points per player when they played as RE vs KONTRA
+    const reTotals = new Map<string, number>();
+    const reCountsMap = new Map<string, number>();
+    const kontraTotals = new Map<string, number>();
+    const kontraCountsMap = new Map<string, number>();
+
+    playerList.forEach((pl) => {
+        reTotals.set(pl.id, 0);
+        reCountsMap.set(pl.id, 0);
+        kontraTotals.set(pl.id, 0);
+        kontraCountsMap.set(pl.id, 0);
+    });
+
+    for (const round of game.rounds) {
+        const roundPoints = round.calculatePoints();
+        // map participant playerId -> team for this round
+        const teamMap = new Map<string, string>();
+        for (const p of round.participants) {
+            teamMap.set(p.playerId, p.team);
+        }
+        for (const rp of roundPoints) {
+            const team = teamMap.get(rp.playerId);
+            if (team === Team.RE) {
+                reTotals.set(rp.playerId, (reTotals.get(rp.playerId) || 0) + rp.points);
+                reCountsMap.set(rp.playerId, (reCountsMap.get(rp.playerId) || 0) + 1);
+            } else if (team === Team.KONTRA) {
+                kontraTotals.set(rp.playerId, (kontraTotals.get(rp.playerId) || 0) + rp.points);
+                kontraCountsMap.set(rp.playerId, (kontraCountsMap.get(rp.playerId) || 0) + 1);
+            }
+        }
+    }
+
+    const avgReKontra = playerList.map((pl) => ({
         key: pl.name,
-        winAvg: winCounts.get(pl.id) ? winTotals.get(pl.id)! / (winCounts.get(pl.id) || 1) : 0,
-        loseAvg: loseCounts.get(pl.id) ? loseTotals.get(pl.id)! / (loseCounts.get(pl.id) || 1) : 0,
+        reAvg: reCountsMap.get(pl.id) ? reTotals.get(pl.id)! / (reCountsMap.get(pl.id) || 1) : 0,
+        kontraAvg: kontraCountsMap.get(pl.id) ? kontraTotals.get(pl.id)! / (kontraCountsMap.get(pl.id) || 1) : 0,
         color: playerColorMap.get(pl.id)
     }));
 
@@ -205,5 +229,50 @@ export const load: ServerLoad = async ({ locals, params }) => {
         })()
     }));
 
-    return { chart: { rows, series, pie, winPie, avgPairs, avgWinLoss } };
+    // Compute bonus counts per player (Doko, Fuchs, Karlchen)
+    const dokoCounts = new Map<string, number>();
+    const fuchsCounts = new Map<string, number>();
+    const karlchenCounts = new Map<string, number>();
+
+    playerList.forEach((pl) => {
+        dokoCounts.set(pl.id, 0);
+        fuchsCounts.set(pl.id, 0);
+        karlchenCounts.set(pl.id, 0);
+    });
+
+    for (const round of game.rounds) {
+        for (const participant of round.participants) {
+            (participant.bonuses || []).forEach((b: any) => {
+                if (b.bonusType === BonusType.Doko) {
+                    dokoCounts.set(participant.playerId, (dokoCounts.get(participant.playerId) || 0) + (b.count || 0));
+                } else if (b.bonusType === BonusType.Fuchs) {
+                    fuchsCounts.set(participant.playerId, (fuchsCounts.get(participant.playerId) || 0) + (b.count || 0));
+                } else if (b.bonusType === BonusType.Karlchen) {
+                    karlchenCounts.set(participant.playerId, (karlchenCounts.get(participant.playerId) || 0) + (b.count || 0));
+                }
+            });
+        }
+    }
+
+    const bonusGrouped = playerList.map((pl) => ({
+        player: pl.name,
+        doko: dokoCounts.get(pl.id) || 0,
+        fuchs: fuchsCounts.get(pl.id) || 0,
+        karlchen: karlchenCounts.get(pl.id) || 0,
+        color: playerColorMap.get(pl.id)
+    }));
+
+    return {
+        stats: {
+            playerSeries: {
+                rows,
+                series
+            },
+            reKontraShare,
+            avgPairs,
+            bonusGrouped,
+            avgReKontra,
+            winLostShare
+        }
+    };
 };
