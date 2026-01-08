@@ -1,6 +1,6 @@
-<script lang="ts">
-</script>
-
-<div>
-	<h1 class="text-3xl">Key: Value</h1>
+<div class="p-4">
+	<p class="text-sm text-gray-500 dark:text-gray-400">
+		<b>Statistiken:</b>
+		Hier werden bald Statistiken angezeigt.
+	</p>
 </div>
