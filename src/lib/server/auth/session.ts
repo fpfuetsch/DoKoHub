@@ -4,12 +4,18 @@ import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
 import type { PlayerType } from '$lib/server/db/schema';
 import type { AuthProviderType } from '$lib/server/enums';
 
-const secret = new TextEncoder().encode(env.AUTH_JWT_SECRET ?? 'dev-secret-change-me');
+const DEFAULT_JWT_SECRET = 'dev-secret-change-me';
+const rawJwtSecret = env.AUTH_JWT_SECRET ?? DEFAULT_JWT_SECRET;
+if (rawJwtSecret === DEFAULT_JWT_SECRET) {
+	// eslint-disable-next-line no-console
+	console.warn('WARNING: Using default JWT secret. Set AUTH_JWT_SECRET in env for production.');
+}
+const jwtAuthSecret = new TextEncoder().encode(rawJwtSecret);
 const issuer = 'dokohub';
 const audience = 'dokohub:web';
 
-export const SESSION_COOKIE_NAME = 'doko_session';
-export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7; // 7 days
+export const SESSION_COOKIE_NAME = 'dokohub';
+export const SESSION_MAX_AGE_SECONDS = env.SESSION_MAX_AGE_SECONDS ? parseInt(env.SESSION_MAX_AGE_SECONDS) : 7 * 24 * 60 * 60; // default: 7 days
 
 export type SessionTokenPayload = {
 	sub: string;
@@ -30,12 +36,12 @@ export async function createSessionToken(user: PlayerType): Promise<string> {
 		.setAudience(audience)
 		.setIssuedAt()
 		.setExpirationTime(`${SESSION_MAX_AGE_SECONDS}s`)
-		.sign(secret);
+		.sign(jwtAuthSecret);
 }
 
 export async function verifySessionToken(token: string): Promise<SessionTokenPayload | null> {
 	try {
-		const result = await jwtVerify<JWTPayload>(token, secret, { issuer, audience });
+		const result = await jwtVerify<JWTPayload>(token, jwtAuthSecret, { issuer, audience });
 		if (!result.payload.sub) return null;
 		return {
 			sub: result.payload.sub as string,

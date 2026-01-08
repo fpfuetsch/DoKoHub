@@ -3,9 +3,10 @@ import { env } from '$env/dynamic/private';
 import { sessionCookieAttributes } from './session';
 import type { AuthProviderType } from '$lib/server/enums';
 
-const secret = new TextEncoder().encode(env.AUTH_JWT_SECRET ?? 'dev-secret-change-me');
-export const ONBOARDING_COOKIE = 'doko_onboarding';
-const MAX_AGE_SECONDS = 10 * 60; // 10 minutes
+const rawOnboardingSecret = env.AUTH_JWT_SECRET ?? 'dev-secret-change-me';
+const secret = new TextEncoder().encode(rawOnboardingSecret);
+export const ONBOARDING_COOKIE = 'dokohub_onboarding';
+export const ONBOARDING_MAX_AGE_SECONDS = env.ONBOARDING_MAX_AGE_SECONDS ? parseInt(env.ONBOARDING_MAX_AGE_SECONDS) : 15 * 60; // default: 15 minutes
 
 export type OnboardingPayload = {
 	provider: AuthProviderType;
@@ -19,7 +20,7 @@ export async function createOnboardingToken(payload: OnboardingPayload): Promise
 	return await new SignJWT(payload)
 		.setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
 		.setIssuedAt()
-		.setExpirationTime(`${MAX_AGE_SECONDS}s`)
+		.setExpirationTime(`${ONBOARDING_MAX_AGE_SECONDS}s`)
 		.sign(secret);
 }
 
@@ -40,5 +41,5 @@ export async function verifyOnboardingToken(token: string): Promise<OnboardingPa
 
 export const onboardingCookieAttributes = {
 	...sessionCookieAttributes,
-	maxAge: MAX_AGE_SECONDS
+	maxAge: ONBOARDING_MAX_AGE_SECONDS
 };

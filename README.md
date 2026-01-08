@@ -1,29 +1,36 @@
-# sv
+# DoKoHub
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+## Development Setup
 
-## Creating a project
+This project requires a few environment variables and a running Postgres database for local development. Below are the minimal steps to get a development environment running.
 
-If you're seeing this, you've probably already done this step. Congrats!
+1. Create a `.env` file in the repository root (see `.env.example`)
+2. Start the development Postgres (uses `dev.compose.yaml`):
 
-```sh
-# create a new project in the current directory
-npx sv create
-
-# create a new project in my-app
-npx sv create my-app
+```bash
+docker compose -f dev.compose.yaml up -d
 ```
 
-## Developing
+3. Install dependencies:
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+```bash
+npm install
+# or pnpm install
+```
 
-```sh
+4. Run database migrations (Drizzle):
+
+```bash
+npx drizzle-kit migrate
+```
+
+5. Start the dev server:
+
+```bash
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
+
+The app typically appears at `http://localhost:5173` — check the terminal output for the exact URL.
 
 ## Building
 
