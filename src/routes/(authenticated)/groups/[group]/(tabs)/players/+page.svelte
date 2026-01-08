@@ -5,7 +5,8 @@
 		InfoCircleSolid,
 		TrashBinOutline,
 		DotsVerticalOutline,
-		OpenDoorSolid
+		OpenDoorOutline
+
 	} from 'flowbite-svelte-icons';
 	import {
 		Button,
@@ -112,8 +113,7 @@
 					</div>
 				{:else if currentUserPlayer && player.id === currentUserPlayer.id}
 					<Button
-						color="red"
-						outline={true}
+						color="light"
 						pill={true}
 						size="sm"
 						class="flex h-10 w-10 items-center justify-center"
@@ -122,7 +122,7 @@
 							leaveConfirmText = '';
 						}}
 					>
-						<OpenDoorSolid class="h-6 w-6" />
+						<OpenDoorOutline class="h-6 w-6" />
 					</Button>
 				{/if}
 			</li>
@@ -368,13 +368,13 @@
 	<h3 class="text-xl font-medium text-gray-900 dark:text-white">Gruppe verlassen</h3>
 	<div class="space-y-4">
 		<Alert color="red">
-			{#snippet icon()}<OpenDoorSolid class="h-5 w-5" />{/snippet}
+			{#snippet icon()}<OpenDoorOutline class="h-5 w-5" />{/snippet}
 			{#if isLastNonLocalMember}
 				Du bist das letzte angemeldete Mitglied der Gruppe <strong>{data.group?.name}</strong>. Wenn
 				du die Gruppe verlässt, wird sie dauerhaft gelöscht und alle zugehörigen Spieldaten sowie
 				lokale Spieler gehen verloren.
 			{:else}
-				Möchtest du die Gruppe <strong>{data.group?.name}</strong> wirklich verlassen?
+				Wenn du die Gruppe <strong>{data.group?.name}</strong> verlässt, hast du danach keinen Zugriff mehr auf die zugehörigen Spieldaten.
 			{/if}
 		</Alert>
 		<form
@@ -408,7 +408,7 @@
 						}}>Abbrechen</Button
 					>
 					<Button color="red" type="submit" disabled={leaveConfirmText !== data.group?.name}>
-						Ja, verlassen
+						Gruppe verlassen
 					</Button>
 				</div>
 			</div>

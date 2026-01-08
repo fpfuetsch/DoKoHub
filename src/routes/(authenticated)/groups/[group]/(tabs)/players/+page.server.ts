@@ -77,7 +77,6 @@ export const actions: Actions = {
 		return { success: true };
 	},
 
-	// Delete a specific local player (called from UI when deleting a local player)
 	removeLocalPlayer: async ({ params, request, locals }) => {
 		const user = requireUserOrFail({ locals });
 		const formData = await request.formData();
@@ -90,6 +89,12 @@ export const actions: Actions = {
 		const groupId = params.group;
 		const groupRepo = new GroupRepository(user.id);
 		const playerRepo = new PlayerRepository(user.id);
+
+		// Verify current user is a member of the group
+		const group = await groupRepo.getById(groupId);
+		if (!group?.players.some((p) => p.id === user.id)) {
+			return fail(400, { error: 'Du bist nicht Mitglied dieser Gruppe.' });
+		}
 
 		// Get player info to check if local
 		const player = await playerRepo.getById(playerId);
@@ -106,15 +111,14 @@ export const actions: Actions = {
 		const hasParts = await playerRepo.hasParticipations(playerId);
 		if (hasParts) {
 			return fail(400, {
-				error: 'Lokaler Spieler war an Spielen/Runden beteiligt. Lösche entweder zuerst alle betreffenden Spiele oder übernimm den lokalen Spieler mit einem Account.'
+				error: 'Lokaler Spieler war an Spielen/Runden beteiligt. Lösche entweder zuerst alle betreffenden Spiele oder verknüpfe den lokalen Spieler mit einem Account.'
 			});
 		}
 
 		// Remove from group
 		const success_remove = await groupRepo.removeMember(groupId, playerId);
-		let success_delete = true;
 		// Delete local player completely (authorized because current user is in this group)
-		success_delete = await playerRepo.delete(playerId, groupId);
+		const success_delete = await playerRepo.delete(playerId, groupId);
 
 		return { success: success_remove && success_delete };
 	},

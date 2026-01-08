@@ -161,7 +161,7 @@
 		<div class="flex flex-col space-y-4">
 			<h3 class="text-xl font-medium text-gray-900 dark:text-white">Spiel vorzeitig beenden?</h3>
 
-			<Alert color="yellow">
+			<Alert color="orange">
 				{#snippet icon()}
 					<ExclamationCircleSolid class="h-5 w-5" />
 				{/snippet}

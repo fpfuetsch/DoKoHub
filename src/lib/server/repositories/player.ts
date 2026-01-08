@@ -55,7 +55,7 @@ export class PlayerRepository {
 							.where(and(eq(GameParticipantTable.gameId, gid), eq(GameParticipantTable.playerId, targetPlayerId)))
 							.limit(1);
 						if (rows.length > 0) {
-							throw new Error('Der Account hat bereits mit dem lokalen Spieler in einem Spiel teilgenommen. Übernahme nicht erlaubt.');
+							throw new Error('Der Account hat bereits mit dem lokalen Spieler in einem Spiel teilgenommen. Übernahme nicht möglich.');
 						}
 					}
 				}
@@ -70,7 +70,7 @@ export class PlayerRepository {
 							.where(and(eq(GameRoundParticipantTable.roundId, rid), eq(GameRoundParticipantTable.playerId, targetPlayerId)))
 							.limit(1);
 						if (rows.length > 0) {
-							throw new Error('Der Account hat bereits mit dem lokalen Spieler in einer Runde teilgenommen. Übernahme nicht erlaubt.');
+							throw new Error('Der Account hat bereits mit dem lokalen Spieler in einer Runde teilgenommen. Übernahme nicht möglich.');
 						}
 					}
 				}
