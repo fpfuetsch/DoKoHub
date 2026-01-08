@@ -6,14 +6,14 @@
 	const { data }: PageProps = $props();
 </script>
 
-<div class="p-4 sm:p-6">
-	<div class="mx-auto max-w-5xl">
+<div class="p-4">
+	<div class="mx-auto max-w-7xl">
 		<!-- Simple flex row with wrapping and centered items -->
-		<div class="mx-auto flex flex-wrap justify-center gap-2">
-			<div class="w-full sm:w-80 md:w-90 lg:w-100">
+			<div class="mx-auto flex flex-wrap justify-center gap-1">
+				<div class="w-full sm:w-1/2 md:w-1/2 lg:w-1/3 xl:w-1/4 2xl:w-1/4 p-2">
 				<Card class="h-full p-4 shadow-lg">
-					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">Punktentwicklung</h3>
-					<div class="flex h-60 items-center justify-center">
+					<h3 class="mb-2 text-md font-semibold text-gray-900 dark:text-white">Punktentwicklung</h3>
+					<div class="flex items-center justify-center w-full" style="aspect-ratio: 5 / 4;">
 						<LineChart
 							data={data.stats?.playerSeries?.rows ?? []}
 							x="round"
@@ -24,12 +24,12 @@
 					</div>
 				</Card>
 			</div>
-			<div class="w-full sm:w-80 md:w-90 lg:w-100">
-				<Card class="h-full p-4 shadow-lg">
-					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">
-						Gewonnen vs. Verloren Anteil
-					</h3>
-					<div class="flex h-60 items-center justify-center">
+					<div class="w-full sm:w-1/2 md:w-1/2 lg:w-1/3 xl:w-1/4 2xl:w-1/4 p-2">
+					<Card class="h-full p-4 shadow-lg">
+						<h3 class="mb-2 text-md font-semibold text-gray-900 dark:text-white">
+							Gewonnen / Verloren Anteil
+						</h3>
+					<div class="flex items-center justify-center w-full" style="aspect-ratio: 5 / 4;">
 						<BarChart
 							data={data.stats?.winLostShare ?? []}
 							x="player"
@@ -47,10 +47,10 @@
 					</div>
 				</Card>
 			</div>
-			<div class="w-full sm:w-80 md:w-90 lg:w-100">
-				<Card class="h-full p-4 shadow-lg">
-					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">Re vs. Kontra Anteil</h3>
-					<div class="flex h-60 items-center justify-center">
+				<div class="w-full sm:w-1/2 md:w-1/2 lg:w-1/3 xl:w-1/4 2xl:w-1/4 p-2">
+					<Card class="h-full p-4 shadow-lg">
+						<h3 class="mb-2 text-md font-semibold text-gray-900 dark:text-white">Re / Kontra Anteil</h3>
+					<div class="flex items-center justify-center w-full" style="aspect-ratio: 5 / 4;">
 						<BarChart
 							data={data.stats?.reKontraShare ?? []}
 							x="player"
@@ -68,12 +68,12 @@
 					</div>
 				</Card>
 			</div>
-			<div class="w-full sm:w-80 md:w-90 lg:w-100">
-				<Card class="h-full p-4 shadow-lg">
-					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">
-						Re vs. Kontra Durchschnittspunkte
-					</h3>
-					<div class="flex h-60 items-center justify-center">
+				<div class="w-full sm:w-1/2 md:w-1/2 lg:w-1/3 xl:w-1/4 2xl:w-1/4 p-2">
+					<Card class="h-full p-4 shadow-lg">
+						<h3 class="mb-2 text-md font-semibold text-gray-900 dark:text-white">
+							Re / Kontra Durchschnittspunkte
+						</h3>
+					<div class="flex items-center justify-center w-full" style="aspect-ratio: 5 / 4;">
 						<BarChart
 							data={data.stats?.avgReKontra ?? []}
 							x="key"
@@ -88,12 +88,12 @@
 					</div>
 				</Card>
 			</div>
-			<div class="w-full sm:w-80 md:w-90 lg:w-100">
-				<Card class="h-full p-4 shadow-lg">
-					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">
-						Durchschnittspunkte je Paar
-					</h3>
-					<div class="flex h-60 items-center justify-center">
+				<div class="w-full sm:w-1/2 md:w-1/2 lg:w-1/3 xl:w-1/4 2xl:w-1/4 p-2">
+					<Card class="h-full p-4 shadow-lg">
+						<h3 class="mb-2 text-md font-semibold text-gray-900 dark:text-white">
+							Durchschnittspunkte je Paar
+						</h3>
+					<div class="flex items-center justify-center w-full" style="aspect-ratio: 5 / 4;">
 						<BarChart
 							data={data.stats?.avgPairs ?? []}
 							y="key"
@@ -102,17 +102,17 @@
 								{ key: 'value', label: 'Durchschnittspunkte', color: 'var(--color-teal-400)' }
 							]}
 							orientation="horizontal"
-							padding={{ top: 10, right: 10, bottom: 10, left: 120 }}
+							padding={{ left: 120, bottom: 10 }}
 						/>
 					</div>
 				</Card>
 			</div>
-			<div class="w-full sm:w-80 md:w-90 lg:w-100">
-				<Card class="h-full p-4 shadow-lg">
-					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">
-						Durchschnittliche Augen im Team
-					</h3>
-					<div class="flex h-60 items-center justify-center">
+				<div class="w-full sm:w-1/2 md:w-1/2 lg:w-1/3 xl:w-1/4 2xl:w-1/4 p-2">
+					<Card class="h-full p-4 shadow-lg">
+						<h3 class="mb-2 text-md font-semibold text-gray-900 dark:text-white">
+							Durchschnittliche Augen im Team
+						</h3>
+					<div class="flex items-center justify-center w-full" style="aspect-ratio: 5 / 4;">
 						<BarChart
 							data={data.stats?.avgEyesGrouped ?? []}
 							x="player"
@@ -123,12 +123,12 @@
 					</div>
 				</Card>
 			</div>
-			<div class="w-full sm:w-80 md:w-90 lg:w-100">
-				<Card class="h-full p-4 shadow-lg">
-					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">
-						An-/Absagen Häufigkeit
-					</h3>
-					<div class="flex h-60 items-center justify-center">
+			<div class="w-full sm:w-1/2 md:w-1/2 lg:w-1/3 xl:w-1/4 2xl:w-1/4 p-2">
+					<Card class="h-full p-4 shadow-lg">
+						<h3 class="mb-2 text-md font-semibold text-gray-900 dark:text-white">
+							An-/Absagen Häufigkeit
+						</h3>
+					<div class="flex items-center justify-center w-full" style="aspect-ratio: 5 / 4;">
 						<BarChart
 							data={data.stats?.callGrouped ?? []}
 							x="player"
@@ -142,17 +142,17 @@
 							]}
 							seriesLayout="group"
 							props={{ bars: { motion: 'tween' }, yAxis: { format: 'integer' } }}
-							legend={{ classes: { item: 'text-sm', swatch: 'size-3' } }}
+							legend={{ classes: { items: 'gap-1', item: 'text-sm	', swatch: 'size-3' } }}
 						/>
 					</div>
 				</Card>
 			</div>
-			<div class="w-full sm:w-80 md:w-90 lg:w-100">
-				<Card class="h-full p-4 shadow-lg">
-					<h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">
-						Bonuspunkte Häufigkeit
-					</h3>
-					<div class="flex h-60 items-center justify-center">
+			<div class="w-full sm:w-1/2 md:w-1/2 lg:w-1/3 xl:w-1/4 2xl:w-1/4 p-2">
+					<Card class="h-full p-4 shadow-lg">
+						<h3 class="mb-2 text-md font-semibold text-gray-900 dark:text-white">
+							Bonuspunkte Häufigkeit
+						</h3>
+					<div class="flex items-center justify-center w-full" style="aspect-ratio: 5 / 4;">
 						<BarChart
 							data={data.stats?.bonusGrouped ?? []}
 							x="player"
