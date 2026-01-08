@@ -26,6 +26,11 @@
 	} from '$lib/domain/enums';
 
 	let { data, form }: PageProps = $props();
+	let actionForm = $state<typeof form | undefined>(undefined);
+
+	$effect(() => {
+		actionForm = form;
+	});
 	const game: Game = $derived(data.game);
 
 	type RoundWithPoints = { round: Round; points: ReturnType<Round['calculatePoints']> };
@@ -290,7 +295,7 @@
 				await invalidateAll();
 				roundModal = false;
 				// Reset form
-				form = undefined;
+				actionForm = undefined;
 				roundType = RoundTypeEnum.Normal;
 				soloType = null;
 				soloTypeSelection = null;
@@ -307,7 +312,7 @@
 	};
 
 	const startNewRound = () => {
-		form = undefined;
+		actionForm = undefined;
 		roundType = RoundTypeEnum.Normal;
 		soloType = null;
 		soloTypeSelection = null;
@@ -343,7 +348,7 @@
 	};
 
 	const loadRoundIntoForm = (entry: RoundWithPoints) => {
-		form = undefined;
+		actionForm = undefined;
 		const round = entry.round;
 		roundType = round.type;
 		soloType = round.soloType;
@@ -421,13 +426,11 @@
 					{#each roundsWithPoints as entry, idx (entry.round.id)}
 						<div
 							role={canEditRounds ? 'button' : undefined}
-							class={`grid w-full items-stretch gap-2 p-0 text-left transition ${canEditRounds ? 'cursor-pointer hover:bg-gray-100/60 dark:hover:bg-gray-800/60' : 'cursor-default'} focus:outline-none`}
+							class={`grid w-full cursor-pointer items-stretch gap-2 p-0 text-left transition hover:bg-gray-100/60 focus:outline-none dark:hover:bg-gray-800/60`}
 							style={`grid-template-columns: 70px repeat(${sortedParticipants.length}, minmax(0, 1fr));`}
-							onclick={canEditRounds ? () => loadRoundIntoForm(entry) : undefined}
-							onkeydown={canEditRounds
-								? (event) =>
-										(event.key === 'Enter' || event.key === ' ') && loadRoundIntoForm(entry)
-								: undefined}
+							onclick={() => loadRoundIntoForm(entry)}
+							onkeydown={(event) =>
+								(event.key === 'Enter' || event.key === ' ') && loadRoundIntoForm(entry)}
 						>
 							<div
 								class="flex flex-col justify-center gap-0.5 px-2 py-2 text-xs text-gray-900 dark:text-gray-100"
@@ -551,17 +554,13 @@
 						<div
 							role={canEditRounds && slot.entry ? 'button' : undefined}
 							aria-disabled={!slot.entry || !canEditRounds}
-							class={`grid w-full items-stretch gap-2 bg-transparent p-0 text-left ${canEditRounds && slot.entry ? 'cursor-pointer hover:bg-gray-100/60 dark:hover:bg-gray-800/60' : 'cursor-default'} ${slot.entry ? '' : 'pointer-events-none opacity-70'}`}
+							class={`grid w-full cursor-pointer items-stretch gap-2 bg-transparent p-0 text-left hover:bg-gray-100/60 dark:hover:bg-gray-800/60 ${slot.entry ? '' : 'pointer-events-none opacity-70'}`}
 							style={`grid-template-columns: 70px repeat(${sortedParticipants.length}, minmax(0, 1fr));`}
-							onclick={canEditRounds
-								? () => slot.entry && loadRoundIntoForm(slot.entry)
-								: undefined}
-							onkeydown={canEditRounds
-								? (event) =>
-										slot.entry &&
-										(event.key === 'Enter' || event.key === ' ') &&
-										loadRoundIntoForm(slot.entry)
-								: undefined}
+							onclick={() => slot.entry && loadRoundIntoForm(slot.entry)}
+							onkeydown={(event) =>
+								slot.entry &&
+								(event.key === 'Enter' || event.key === ' ') &&
+								loadRoundIntoForm(slot.entry)}
 						>
 							<div
 								class="flex flex-col justify-center gap-0.5 px-2 py-2 text-xs text-gray-900 dark:text-gray-100"
@@ -723,7 +722,8 @@
 							<Button
 								type="button"
 								color={roundType === RoundTypeEnum.Normal ? 'secondary' : 'light'}
-								class="flex-1 "
+								class={`flex-1 ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
+								disabled={!canEditRounds}
 								onclick={() => {
 									roundType = RoundTypeEnum.Normal;
 									soloType = null;
@@ -735,7 +735,8 @@
 							<Button
 								type="button"
 								color={roundType.startsWith('HOCHZEIT') ? 'secondary' : 'light'}
-								class="flex-1 "
+								class={`flex-1 ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
+								disabled={!canEditRounds}
 								onclick={() => {
 									roundType = RoundTypeEnum.HochzeitNormal;
 									soloType = null;
@@ -747,7 +748,8 @@
 							<Button
 								type="button"
 								color={roundType.startsWith('SOLO') ? 'secondary' : 'light'}
-								class="flex-1 "
+								class={`flex-1 ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
+								disabled={!canEditRounds}
 								onclick={() => {
 									roundType = RoundTypeEnum.SoloBuben;
 									soloType = game.withMandatorySolos
@@ -806,8 +808,8 @@
 										<Button
 											type="button"
 											color={soloType === SoloTypeEnum.Pflicht ? 'secondary' : 'light'}
-											disabled={remainingMandatorySoloPlayers.length === 0}
-											class="flex-1 "
+											disabled={remainingMandatorySoloPlayers.length === 0 || !canEditRounds}
+											class={`flex-1 ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
 											onclick={() => (soloType = SoloTypeEnum.Pflicht)}
 										>
 											Pflicht
@@ -815,8 +817,8 @@
 										<Button
 											type="button"
 											color={soloType === SoloTypeEnum.Lust ? 'secondary' : 'light'}
-											disabled={editingMandatorySolo}
-											class={`flex-1 ${editingMandatorySolo ? 'cursor-not-allowed opacity-60' : ''}`}
+											disabled={editingMandatorySolo || !canEditRounds}
+											class={`flex-1 ${editingMandatorySolo || !canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
 											onclick={() => {
 												if (!editingMandatorySolo) soloType = SoloTypeEnum.Lust;
 											}}
@@ -833,8 +835,9 @@
 									<Button
 										type="button"
 										color={soloTypeSelection === 'BUBEN' ? 'secondary' : 'light'}
-										class="flex-1  px-1 py-1 text-xs"
+										class={`flex-1  px-1 py-1 text-xs ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
 										size="sm"
+										disabled={!canEditRounds}
 										onclick={() => {
 											soloTypeSelection = 'BUBEN';
 											roundType = RoundTypeEnum.SoloBuben;
@@ -845,8 +848,9 @@
 									<Button
 										type="button"
 										color={soloTypeSelection === 'DAMEN' ? 'secondary' : 'light'}
-										class="flex-1  px-1 py-1 text-xs"
+										class={`flex-1  px-1 py-1 text-xs ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
 										size="sm"
+										disabled={!canEditRounds}
 										onclick={() => {
 											soloTypeSelection = 'DAMEN';
 											roundType = RoundTypeEnum.SoloDamen;
@@ -857,8 +861,9 @@
 									<Button
 										type="button"
 										color={soloTypeSelection === 'ASS' ? 'secondary' : 'light'}
-										class="flex-1  px-1 py-1 text-xs"
+										class={`flex-1  px-1 py-1 text-xs ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
 										size="sm"
+										disabled={!canEditRounds}
 										onclick={() => {
 											soloTypeSelection = 'ASS';
 											roundType = RoundTypeEnum.SoloAss;
@@ -869,8 +874,9 @@
 									<Button
 										type="button"
 										color={soloTypeSelection === 'KREUZ' ? 'secondary' : 'light'}
-										class="flex-1  px-1 py-1"
+										class={`flex-1  px-1 py-1 ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
 										size="sm"
+										disabled={!canEditRounds}
 										onclick={() => {
 											soloTypeSelection = 'KREUZ';
 											roundType = RoundTypeEnum.SoloKreuz;
@@ -944,7 +950,8 @@
 							<Button
 								type="button"
 								color={eyesTeam === TeamEnum.RE ? 'secondary' : 'light'}
-								class="flex-1 "
+								class={`flex-1 ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
+								disabled={!canEditRounds}
 								onclick={() => {
 									eyesReInput = 240 - eyesReInput;
 									eyesTeam = TeamEnum.RE;
@@ -955,7 +962,8 @@
 							<Button
 								type="button"
 								color={eyesTeam === TeamEnum.KONTRA ? 'secondary' : 'light'}
-								class="flex-1 "
+								class={`flex-1 ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
+								disabled={!canEditRounds}
 								onclick={() => {
 									eyesReInput = 240 - eyesReInput;
 									eyesTeam = TeamEnum.KONTRA;
@@ -987,6 +995,7 @@
 							min="0"
 							max="240"
 							value={eyesReInput}
+							disabled={!canEditRounds}
 							oninput={(e) => handleEyesInput(parseInt(e.currentTarget.value) || 0)}
 							class="w-full border px-3 py-2 {eyesError
 								? 'border-red-500'
@@ -1026,8 +1035,9 @@
 						>
 							<button
 								type="button"
+								disabled={!canEditRounds}
 								onclick={() => togglePlayerTeam(participant.playerId)}
-								class="flex flex-col items-center gap-2 transition hover:opacity-80"
+								class={`flex flex-col items-center gap-2 transition ${!canEditRounds ? 'cursor-not-allowed opacity-60' : 'hover:opacity-80'}`}
 							>
 								{#if team}
 									<input type="hidden" name="player_{participant.seatPosition}_team" value={team} />
@@ -1104,17 +1114,18 @@
 										<span class="text-xs font-medium text-gray-700 dark:text-gray-300"
 											>An/Absagen:</span
 										>
-										<Button
-											pill
-											size="xs"
-											color="secondary"
-											onclick={() => {
-												editingPlayerId = participant.playerId;
-												callsEditModal = true;
-											}}
-											class="p-2!"
-											title="Ansagen bearbeiten"
-										>
+											<Button
+												pill
+												size="xs"
+												color="secondary"
+												disabled={!canEditRounds}
+												onclick={() => {
+													editingPlayerId = participant.playerId;
+													callsEditModal = true;
+												}}
+												class={`p-2! ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
+												title="Ansagen bearbeiten"
+											>
 											<EditOutline class="h-4 w-4" />
 										</Button>
 									</div>
@@ -1137,11 +1148,12 @@
 												pill
 												size="xs"
 												color="secondary"
+												disabled={!canEditRounds}
 												onclick={() => {
 													editingPlayerId = participant.playerId;
 													bonusEditModal = true;
 												}}
-												class="p-2!"
+												class={`p-2! ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
 												title="Bonus bearbeiten"
 											>
 												<EditOutline class="h-4 w-4" />
@@ -1167,17 +1179,17 @@
 				</div>
 			</div>
 
-			{#if form?.error}
+			{#if actionForm?.error}
 				<Alert color="red" class="mt-2">
 					{#snippet icon()}<ExclamationCircleSolid class="h-5 w-5" />{/snippet}
 					<span class="font-medium">Validierungsfehler</span>
-					<div>{form.error}</div>
+					<div>{actionForm?.error}</div>
 				</Alert>
 			{/if}
 
 			<div class="mt-2 flex justify-end gap-3">
 				<Button type="button" color="light" onclick={() => (roundModal = false)}>Abbrechen</Button>
-				<Button type="submit">Speichern</Button>
+				<Button type="submit" disabled={!canEditRounds}>Speichern</Button>
 			</div>
 		</div>
 	</form>
