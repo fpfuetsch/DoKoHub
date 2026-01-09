@@ -170,20 +170,21 @@ export const actions: Actions = {
 		const user = requireUserOrFail({ locals });
 		const formData = await request.formData();
 		const localPlayerId = formData.get('localPlayerId') as string;
-		const username = (formData.get('username') as string)?.trim();
 
-		if (!localPlayerId || !username) {
+		if (!localPlayerId) {
 			return fail(400, { error: 'Daten fehlen.' });
+		}
+
+		// Determine the current user's non-local player (the account that will take over)
+		const playerRepoLookup = new PlayerRepository(user.id);
+		const targetPlayer = await playerRepoLookup.getById(user.id);
+		if (!targetPlayer || targetPlayer.authProvider === AuthProvider.Local) {
+			return fail(400, { error: 'Dein Account kann diesen Vorgang nicht durchführen.' });
 		}
 
 		const playerRepo = new PlayerRepository(user.id);
 		try {
-			const target = await playerRepo.getByName(username);
-			if (!target) {
-				return fail(404, { error: 'Account nicht gefunden.' });
-			}
-
-			await playerRepo.takeoverLocalPlayer(localPlayerId, target.id, params.group!);
+			await playerRepo.takeoverLocalPlayer(localPlayerId, targetPlayer.id, params.group!);
 			return { success: true };
 		} catch (e) {
 			if (e instanceof Error) return fail(400, { error: e.message });

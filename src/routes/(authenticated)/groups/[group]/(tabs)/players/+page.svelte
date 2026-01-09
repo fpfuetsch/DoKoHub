@@ -5,8 +5,8 @@
 		InfoCircleSolid,
 		TrashBinOutline,
 		DotsVerticalOutline,
-		OpenDoorOutline
-
+		OpenDoorOutline,
+		LinkOutline
 	} from 'flowbite-svelte-icons';
 	import {
 		Button,
@@ -44,9 +44,9 @@
 	let takeoverModal = $state(false);
 	let playerToDelete = $state<Player | null>(null);
 	let playerToTakeover = $state<Player | null>(null);
+	let takeoverConfirmText = $state('');
 	let deleteConfirmText = $state('');
 	let leaveConfirmText = $state('');
-	let takeoverUsername = $state('');
 	let takeoverError = $state('');
 	let deleteError = $state('');
 </script>
@@ -90,11 +90,12 @@
 								onclick={() => {
 									playerToTakeover = player;
 									takeoverModal = true;
+									takeoverConfirmText = '';
 									takeoverError = '';
 								}}
 							>
 								<div class="flex items-center gap-2">
-									<LinkBreakOutline class="h-6 w-6" />
+									<LinkOutline class="h-6 w-6" />
 									<span>Account verknüpfen</span>
 								</div>
 							</DropdownItem>
@@ -233,12 +234,13 @@
 			{#snippet icon()}<LinkBreakOutline class="h-5 w-5" />{/snippet}
 			<div>
 				<div>
-					Der lokale Spieler <strong>{playerToTakeover?.displayName}</strong> kann von einem bestehenden
-					Account übernommen werden.
+					Der lokale Spieler <strong>{playerToTakeover?.displayName}</strong> kann von deinem Account
+					übernommen werden.
 				</div>
+
 				<div class="pt-2">
 					Alle zugehörigen Daten des lokalen Spielers (Spiele, Runden, Ergebnisse, Boni usw.) werden
-					auf den Account übertragen.
+					dadurch auf dich übertragen.
 				</div>
 				<div class="pt-2">
 					<strong>Dieser Vorgang kann nicht rückgängig gemacht werden!</strong>
@@ -254,7 +256,7 @@
 					if (result.type === 'success') {
 						takeoverModal = false;
 						playerToTakeover = null;
-						takeoverUsername = '';
+						takeoverConfirmText = '';
 						takeoverError = '';
 					} else {
 						// If action returned an error, populate takeoverError from form
@@ -271,12 +273,19 @@
 				</Alert>
 			{/if}
 			<input type="hidden" name="localPlayerId" value={playerToTakeover?.id} />
-			<div>
-				<Label for="takeoverUsername">Benutzername des Accounts</Label>
-				<Input id="takeoverUsername" name="username" bind:value={takeoverUsername} required />
+			<div class="space-y-2">
+				<Label for="takeoverConfirm">Bestätigung</Label>
+				<Input
+					id="takeoverConfirm"
+					type="text"
+					bind:value={takeoverConfirmText}
+					autocomplete="off"
+					aria-label="Gib den Namen des lokalen Spielers ein, um zu übernehmen"
+					placeholder="Name des lokalen Spielers eingeben..."
+				/>
 				<Helper
-					>Gib den Benutzernamen des bestehenden Accounts ein, welcher den lokalen Spieler
-					übernehmen soll.</Helper
+					>Gib den Namen des lokalen Spielers <strong>{playerToTakeover?.displayName}</strong> ein, um
+					die Übernahme zu bestätigen.</Helper
 				>
 			</div>
 			<div class="mt-4 flex justify-end gap-4">
@@ -286,10 +295,12 @@
 					onclick={() => {
 						takeoverModal = false;
 						playerToTakeover = null;
-						takeoverUsername = '';
+						takeoverConfirmText = '';
 					}}>Abbrechen</Button
 				>
-				<Button type="submit">Übernehmen</Button>
+				<Button type="submit" disabled={takeoverConfirmText !== playerToTakeover?.displayName}
+					>Übernehmen</Button
+				>
 			</div>
 		</form>
 	</div>
@@ -315,7 +326,12 @@
 						deleteConfirmText = '';
 						deleteError = '';
 					} else {
-						deleteError = result.type === 'failure' && result.data?.error ? String(result.data.error) : (form?.error ? String(form.error) : 'Fehler beim Löschen.');
+						deleteError =
+							result.type === 'failure' && result.data?.error
+								? String(result.data.error)
+								: form?.error
+									? String(form.error)
+									: 'Fehler beim Löschen.';
 					}
 				};
 			}}
@@ -374,7 +390,8 @@
 				du die Gruppe verlässt, wird sie dauerhaft gelöscht und alle zugehörigen Spieldaten sowie
 				lokale Spieler gehen verloren.
 			{:else}
-				Wenn du die Gruppe <strong>{data.group?.name}</strong> verlässt, hast du danach keinen Zugriff mehr auf die zugehörigen Spieldaten.
+				Wenn du die Gruppe <strong>{data.group?.name}</strong> verlässt, hast du danach keinen Zugriff
+				mehr auf die zugehörigen Spieldaten.
 			{/if}
 		</Alert>
 		<form
@@ -397,7 +414,9 @@
 						autocomplete="off"
 						aria-label="Gib den Namen der Gruppe ein, um zu bestätigen"
 					/>
-					<Helper>Bestätige, indem du den Gruppennamen <strong>{data.group?.name}</strong> eingibst.</Helper>
+					<Helper
+						>Bestätige, indem du den Gruppennamen <strong>{data.group?.name}</strong> eingibst.</Helper
+					>
 				</div>
 				<div class="flex justify-end gap-4">
 					<Button
