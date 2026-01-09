@@ -7,47 +7,6 @@ import { signInvite } from '$lib/server/auth/invitation';
 import type { Actions } from './$types';
 
 export const actions: Actions = {
-	addExisting: async ({ params, request, locals }) => {
-		const user = requireUserOrFail({ locals });
-		const formData = await request.formData();
-		const username = (formData.get('username') as string)?.trim();
-
-		if (!username) {
-			return fail(400, { error: 'Bitte einen Benutzernamen eingeben.' });
-		}
-
-		const groupId = params.group;
-
-		// Look up player by username
-		const playerRepo = new PlayerRepository(user.id);
-		const player = await playerRepo.getByName(username);
-
-		if (!player) {
-			return fail(404, { error: 'Spieler mit diesem Benutzernamen nicht gefunden.' });
-		}
-
-		if (player.authProvider === AuthProvider.Local) {
-			return fail(400, {
-				error: 'Lokale Spieler können nicht auf diese Weise hinzugefügt werden.'
-			});
-		}
-
-		// Check if player is already in group
-		const groupRepo = new GroupRepository(user.id);
-		const group = await groupRepo.getById(groupId);
-		if (group?.players.some((p) => p.id === player.id)) {
-			return fail(400, { error: 'Spieler ist bereits in der Gruppe.' });
-		}
-
-		// Add player to group
-		const added = await groupRepo.addMember(groupId, player.id);
-		if (!added) {
-			return fail(403, { error: 'Nicht berechtigt, diesen Spieler hinzuzufügen.' });
-		}
-
-		return { success: true };
-	},
-
 	generateInvite: async ({ params, locals, url }) => {
 		const user = requireUserOrFail({ locals });
 
@@ -188,6 +147,7 @@ export const actions: Actions = {
 			return { success: true, leftGroup: true };
 		}
 	},
+
 	takeoverLocal: async ({ params, request, locals }) => {
 		const user = requireUserOrFail({ locals });
 		const formData = await request.formData();
