@@ -19,10 +19,10 @@ export async function load({ url, params, locals }) {
     // check if already member
     const groupRepo = new GroupRepository(user.id);
     const group = await groupRepo.getById(String(payload.groupId));
-    // if (group) {
-    //     // already member - redirect to group page
-    //     throw redirect(303, `/groups/${payload.groupId}`);
-    // }
+    if (group) {
+        // already member - redirect to group page
+        throw redirect(303, `/groups/${payload.groupId}`);
+    }
 
     return { valid: true, groupId: payload.groupId, groupName: payload.groupName, token };
 }
