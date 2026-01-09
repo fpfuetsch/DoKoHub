@@ -3,6 +3,7 @@ import { GroupRepository } from '$lib/server/repositories/group';
 import { fail } from '@sveltejs/kit';
 import { requireUserOrFail } from '$lib/server/auth/guard';
 import { AuthProvider } from '$lib/server/enums';
+import { signInvite } from '$lib/server/auth/invitation';
 import type { Actions } from './$types';
 
 export const actions: Actions = {
@@ -45,6 +46,27 @@ export const actions: Actions = {
 		}
 
 		return { success: true };
+	},
+
+	generateInvite: async ({ params, locals, url }) => {
+		const user = requireUserOrFail({ locals });
+
+		const groupId = params.group;
+
+ 		// verify user is a member of the group and authorized to invite
+ 		const groupRepo = new GroupRepository(user.id);
+ 		const group = await groupRepo.getById(groupId);
+ 		if (!group?.players.some((p) => p.id === user.id)) {
+ 			return fail(403, { error: 'Du bist nicht berechtigt, Einladungen zu erstellen.' });
+ 		}
+
+		const token = await signInvite({ groupId : groupId, groupName: group.name });
+
+		// Build invite URL pointing to /invite?t=TOKEN
+		const base = url?.origin ?? '';
+		const inviteUrl = `${base}/groups/${groupId}/join?t=${encodeURIComponent(token)}`;
+
+		return { success: true, inviteUrl };
 	},
 
 	createLocal: async ({ params, request, locals }) => {

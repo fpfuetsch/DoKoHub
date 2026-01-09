@@ -6,7 +6,10 @@
 		TrashBinOutline,
 		DotsVerticalOutline,
 		OpenDoorOutline,
-		LinkOutline
+		LinkOutline,
+		ClipboardOutline,
+		PaperPlaneOutline,
+		UserOutline
 	} from 'flowbite-svelte-icons';
 	import {
 		Button,
@@ -21,11 +24,14 @@
 		Dropdown,
 		DropdownItem
 	} from 'flowbite-svelte';
+	import { Toast } from 'flowbite-svelte';
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import type { PageProps } from './$types';
 	import type { Player } from '$lib/domain/player';
 	import { AuthProvider } from '$lib/domain/enums';
+	import { CheckCircleOutline } from 'flowbite-svelte-icons';
+	import { slide } from 'svelte/transition';
 
 	let { data, form }: PageProps = $props();
 
@@ -39,6 +45,7 @@
 	);
 
 	let formModal = $state(false);
+
 	let confirmDeleteModal = $state(false);
 	let confirmLeaveModal = $state(false);
 	let takeoverModal = $state(false);
@@ -49,6 +56,40 @@
 	let leaveConfirmText = $state('');
 	let takeoverError = $state('');
 	let deleteError = $state('');
+
+	let inviteUrl = $state<string | null>(null);
+
+	let inviteToast = $state(false);
+	let inviteToastCounter = $state(3);
+
+	function showInviteToast() {
+		inviteToast = true;
+		inviteToastCounter = 3;
+		inviteTimeout();
+	}
+
+	function inviteTimeout() {
+		if (--inviteToastCounter > 0) return setTimeout(inviteTimeout, 1000);
+		inviteToast = false;
+	}
+
+	$effect(() => {
+		if (!formModal) {
+			// close modal; clear inviteUrl
+			inviteUrl = null;
+		}
+	});
+
+	async function copyInvite() {
+		const u = inviteUrl;
+		if (!u) return;
+		try {
+			await navigator.clipboard.writeText(u);
+			showInviteToast();
+		} catch (e) {
+			console.error('Copy failed', e);
+		}
+	}
 </script>
 
 <div class="flex flex-col items-center gap-4">
@@ -140,55 +181,87 @@
 </Button>
 
 <Modal bind:open={formModal} size="md">
+	<Toast
+		transition={slide}
+		bind:toastStatus={inviteToast}
+		dismissable={false}
+		position="top-right"
+		color="green"
+	>
+		{#snippet icon()}
+			<CheckCircleOutline
+				class="h-6 w-6 bg-green-100 text-green-600 dark:bg-green-800 dark:text-green-200"
+			/>
+		{/snippet}
+		Einladungslink kopiert!
+	</Toast>
 	<div class="flex flex-col">
 		<h3 class="text-xl font-medium text-gray-900 dark:text-white">Spieler hinzufügen</h3>
 
 		<Tabs tabStyle="underline" divider={false}>
-			<TabItem open title="Angemeldeter Spieler">
-				<form
-					method="POST"
-					action="?/addExisting"
-					use:enhance={() => {
-						return async ({ result, update }) => {
-							await update();
-							if (result.type === 'success') {
-								formModal = false;
-							}
-						};
-					}}
-				>
-					<div class="flex flex-col space-y-2">
-						{#if form?.error}
-							<Alert color="red">
-								{#snippet icon()}<InfoCircleSolid class="h-5 w-5" />{/snippet}
-								{form.error}
-							</Alert>
-						{/if}
-
-						<Label for="username">Benutzername</Label>
-						<Input
-							id="username"
-							type="text"
-							name="username"
-							placeholder="Benutzername eingeben..."
-							required
-						/>
-						<Helper>
-							Gib den Benutzernamen des Spielers ein, um ihn hinzuzufügen. Den Benutzernamen findest
-							du auf der Profilseite des Spielers.
-						</Helper>
-
-						<div class="flex justify-end gap-3">
-							<Button type="button" color="alternative" onclick={() => (formModal = false)}>
-								Abbrechen
-							</Button>
-							<Button type="submit">Hinzufügen</Button>
-						</div>
+			<TabItem title="Spieler einladen">
+				{#snippet titleSlot()}
+					<div class="flex items-center gap-2">
+						<PaperPlaneOutline size="md" />
+						Spieler einladen
 					</div>
-				</form>
+				{/snippet}
+				<div class="flex flex-col space-y-3">
+					{#if inviteUrl}
+						<div class="flex items-center justify-end gap-2">
+							<div class="flex w-full flex-col gap-2">
+								<div class="flex items-center gap-2">
+									<Input
+										id="inviteLink"
+										value={inviteUrl ?? ''}
+										readonly
+										class="flex-1 bg-transparent"
+									/>
+									<Button
+										color="secondary"
+										size="sm"
+										aria-label="Kopieren"
+										onclick={copyInvite}
+										class="p-2"
+									>
+										<div class="flex items-center gap-2">
+											<ClipboardOutline class="h-4 w-4" />
+											<span>Kopieren</span>
+										</div>
+									</Button>
+								</div>
+								<Helper>Teile diesen Link mit den Spielern, die du einladen möchtest.</Helper>
+							</div>
+						</div>
+					{:else}
+						<div class="text-sm text-gray-600">Erzeuge einen Einladungslink für diese Gruppe.</div>
+					{/if}
+					<form
+						method="POST"
+						action="?/generateInvite"
+						use:enhance={() => {
+							return async ({ result, update }) => {
+								await update();
+								if (result.type === 'success') {
+									inviteUrl = result.data?.inviteUrl ? String(result.data.inviteUrl) : null;
+								}
+							};
+						}}
+					>
+						<div class="flex justify-end gap-3">
+							<Button type="submit" disabled={!!inviteUrl}>Einladungslink generieren</Button>
+						</div>
+					</form>
+				</div>
 			</TabItem>
 
 			<TabItem title="Lokaler Spieler">
+				{#snippet titleSlot()}
+					<div class="flex items-center gap-2">
+						<UserOutline size="md" />
+						Lokalen Spieler hinzufügen
+					</div>
+				{/snippet}
 				<form
 					method="POST"
 					action="?/createLocal"

@@ -68,9 +68,11 @@ export class GroupRepository {
 		return result.length > 0;
 	}
 
-	async addMember(groupId: string, playerId: string): Promise<boolean> {
+	async addMember(groupId: string, playerId: string, usingInvitation: boolean = false): Promise<boolean> {
 		const authorized = await this.isMember(groupId);
-		if (!authorized) return false;
+		if (!usingInvitation && !authorized) return false;
+		const isAlreadyMember = await this.isMember(groupId);
+		if (isAlreadyMember) return true;
 		await db.insert(GroupMemberTable).values({ groupId, playerId });
 		return true;
 	}

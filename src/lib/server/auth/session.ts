@@ -4,9 +4,9 @@ import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
 import type { PlayerType } from '$lib/server/db/schema';
 import type { AuthProviderType } from '$lib/server/enums';
 
-const DEFAULT_JWT_SECRET = 'dev-secret-change-me';
-const rawJwtSecret = env.AUTH_JWT_SECRET ?? DEFAULT_JWT_SECRET;
-if (rawJwtSecret === DEFAULT_JWT_SECRET) {
+export const DEFAULT_AUTH_JWT_SECRET = 'dev-secret-change-me';
+const rawJwtSecret = env.AUTH_JWT_SECRET ?? DEFAULT_AUTH_JWT_SECRET;
+if (rawJwtSecret === DEFAULT_AUTH_JWT_SECRET) {
 	// eslint-disable-next-line no-console
 	console.warn('WARNING: Using default JWT secret. Set AUTH_JWT_SECRET in env for production.');
 }
