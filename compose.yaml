@@ -43,8 +43,8 @@ services:
       ORIGIN: ${APP_ORIGIN}
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET}
       INVITATION_JWT_SECRET: ${INVITATION_JWT_SECRET}
-
     ports:
       - 127.0.0.1:5173:${APP_PORT}
+
 volumes:
   pgdata:
