@@ -1,6 +1,6 @@
 <script lang="ts">
 	import './layout.css';
-	import logo from '$lib/assets/dokohub_bg_white.png';
+	import logo from '$lib/assets/dokohub.png';
 
 	const { data, children } = $props();
 	const baseUrl = $derived(data.origin);
