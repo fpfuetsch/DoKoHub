@@ -8,9 +8,10 @@
 		OpenDoorOutline,
 		LinkOutline,
 		ClipboardOutline,
-		PaperPlaneOutline,
-		UserOutline
+		EnvelopeOutline,
+		UserAddOutline
 	} from 'flowbite-svelte-icons';
+	import { QrCodeOutline } from 'flowbite-svelte-icons';
 	import {
 		Button,
 		Modal,
@@ -22,8 +23,10 @@
 		Alert,
 		Helper,
 		Dropdown,
-		DropdownItem
+		DropdownItem,
+		ButtonGroup
 	} from 'flowbite-svelte';
+	import QRCode from '@castlenine/svelte-qrcode';
 	import { Toast } from 'flowbite-svelte';
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
@@ -32,7 +35,6 @@
 	import { AuthProvider } from '$lib/domain/enums';
 	import { CheckCircleOutline } from 'flowbite-svelte-icons';
 	import { slide } from 'svelte/transition';
-
 	let { data, form }: PageProps = $props();
 
 	let players = $derived(data.group?.players || []);
@@ -58,6 +60,24 @@
 	let deleteError = $state('');
 
 	let inviteUrl = $state<string | null>(null);
+	let showQr = $state(false);
+	let inviteFormat = $state<'link' | 'qr' | null>(null);
+
+	function handleLinkClick(e: Event) {
+		inviteFormat = 'link';
+		if (inviteUrl) {
+			e.preventDefault();
+			showQr = false;
+		}
+	}
+
+	function handleQrClick(e: Event) {
+		inviteFormat = 'qr';
+		if (inviteUrl) {
+			e.preventDefault();
+			showQr = true;
+		}
+	}
 
 	let inviteToast = $state(false);
 	let inviteToastCounter = $state(3);
@@ -77,6 +97,7 @@
 		if (!formModal) {
 			// close modal; clear inviteUrl
 			inviteUrl = null;
+			showQr = false;
 		}
 	});
 
@@ -202,39 +223,57 @@
 			<TabItem title="Spieler einladen">
 				{#snippet titleSlot()}
 					<div class="flex items-center gap-2">
-						<PaperPlaneOutline size="md" />
+						<EnvelopeOutline size="md" />
 						Spieler einladen
 					</div>
 				{/snippet}
 				<div class="flex flex-col space-y-3">
 					{#if inviteUrl}
-						<div class="flex items-center justify-end gap-2">
-							<div class="flex w-full flex-col gap-2">
-								<div class="flex items-center gap-2">
-									<Input
-										id="inviteLink"
-										value={inviteUrl ?? ''}
-										readonly
-										class="flex-1 bg-transparent"
-									/>
-									<Button
-										color="secondary"
-										size="sm"
-										aria-label="Kopieren"
-										onclick={copyInvite}
-										class="p-2"
-									>
-										<div class="flex items-center gap-2">
-											<ClipboardOutline class="h-4 w-4" />
-											<span>Kopieren</span>
-										</div>
-									</Button>
+						{#if showQr}
+							<div class="flex w-full flex-col items-center gap-4">
+								<div class="mt-2 flex items-center justify-center">
+									<QRCode data={inviteUrl} />
 								</div>
-								<Helper>Teile diesen Link mit den Spielern, die du einladen möchtest.</Helper>
+								<Helper class="w-full text-center"
+									>Lass andere Spieler den QR-Code scannen, um der Gruppe beizutreten.</Helper
+								>
 							</div>
-						</div>
+						{:else}
+							<div class="flex items-center justify-end gap-2">
+								<div class="flex w-full flex-col gap-2">
+									<div class="flex items-center gap-2">
+										<Input
+											id="inviteLink"
+											value={inviteUrl ?? ''}
+											readonly
+											class="flex-1 bg-transparent"
+										/>
+										<div class="flex items-center gap-2">
+											<Button
+												color="secondary"
+												size="sm"
+												aria-label="Kopieren"
+												onclick={copyInvite}
+												class="p-2"
+											>
+												<div class="flex items-center gap-2">
+													<ClipboardOutline class="h-4 w-4" />
+													<span>Kopieren</span>
+												</div>
+											</Button>
+										</div>
+									</div>
+									<Helper
+										>Teile diesen Link mit den anderen Spielern, damit sie der Gruppe beitreten
+										können.</Helper
+									>
+								</div>
+							</div>
+						{/if}
 					{:else}
-						<div class="text-sm text-gray-600">Erzeuge einen Einladungslink für diese Gruppe.</div>
+						<div class="text-sm text-gray-600">
+							Erzeuge einen Einladungslink oder QR Code, um andere Spieler einzuladen.
+						</div>
 					{/if}
 					<form
 						method="POST"
@@ -244,12 +283,32 @@
 								await update();
 								if (result.type === 'success') {
 									inviteUrl = result.data?.inviteUrl ? String(result.data.inviteUrl) : null;
+									showQr = inviteFormat === 'qr';
 								}
 							};
 						}}
 					>
 						<div class="flex justify-end gap-3">
-							<Button type="submit" disabled={!!inviteUrl}>Einladungslink generieren</Button>
+							<ButtonGroup>
+								<Button
+									type="submit"
+									color={inviteFormat === 'link' ? 'secondary' : 'light'}
+									aria-label="Generate link"
+									onclick={handleLinkClick}
+								>
+									<LinkOutline class="mr-2 h-4 w-4" />
+									Link
+								</Button>
+								<Button
+									type="submit"
+									color={inviteFormat === 'qr' ? 'secondary' : 'light'}
+									aria-label="Generate QR"
+									onclick={handleQrClick}
+								>
+									<QrCodeOutline class="mr-2 h-4 w-4" />
+									QR Code
+								</Button>
+							</ButtonGroup>
 						</div>
 					</form>
 				</div>
@@ -258,7 +317,7 @@
 			<TabItem title="Lokaler Spieler">
 				{#snippet titleSlot()}
 					<div class="flex items-center gap-2">
-						<UserOutline size="md" />
+						<UserAddOutline size="md" />
 						Lokalen Spieler hinzufügen
 					</div>
 				{/snippet}
