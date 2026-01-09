@@ -8,12 +8,12 @@ import { and, eq } from 'drizzle-orm';
 export class GroupRepository {
 	constructor(private readonly principalId: string) {}
 
-	async getById(groupId: string): Promise<Group | null> {
+	async getById(id: string): Promise<Group | null> {
 		const row = await db
 			.select({ group: GroupTable })
 			.from(GroupTable)
 			.innerJoin(GroupMemberTable, eq(GroupMemberTable.groupId, GroupTable.id))
-			.where(and(eq(GroupTable.id, groupId), eq(GroupMemberTable.playerId, this.principalId)))
+			.where(and(eq(GroupTable.id, id), eq(GroupMemberTable.playerId, this.principalId)))
 			.limit(1);
 		if (row.length === 0) return null;
 		const groupData = row[0].group as GroupType;
@@ -50,20 +50,20 @@ export class GroupRepository {
 		return groupInstance;
 	}
 
-	async delete(groupId: string): Promise<boolean> {
-		const authorized = await this.isMember(groupId, this.principalId);
+	async delete(id: string): Promise<boolean> {
+		const authorized = await this.isMember(id, this.principalId);
 		if (!authorized) return false;
 		const result = await db.delete(GroupTable).where(eq(GroupTable.id, id)).returning();
 		return result.length > 0;
 	}
 
-	async updateName(groupId: string, name: string): Promise<boolean> {
-		const authorized = await this.isMember(groupId, this.principalId);
+	async updateName(id: string, name: string): Promise<boolean> {
+		const authorized = await this.isMember(id, this.principalId);
 		if (!authorized) return false;
 		const result = await db
 			.update(GroupTable)
 			.set({ name })
-			.where(eq(GroupTable.id, groupId))
+			.where(eq(GroupTable.id, id))
 			.returning();
 		return result.length > 0;
 	}
