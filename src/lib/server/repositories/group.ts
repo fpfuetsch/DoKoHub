@@ -8,12 +8,12 @@ import { and, eq } from 'drizzle-orm';
 export class GroupRepository {
 	constructor(private readonly principalId: string) {}
 
-	async getById(id: string): Promise<Group | null> {
+	async getById(groupId: string): Promise<Group | null> {
 		const row = await db
 			.select({ group: GroupTable })
 			.from(GroupTable)
 			.innerJoin(GroupMemberTable, eq(GroupMemberTable.groupId, GroupTable.id))
-			.where(and(eq(GroupTable.id, id), eq(GroupMemberTable.playerId, this.principalId)))
+			.where(and(eq(GroupTable.id, groupId), eq(GroupMemberTable.playerId, this.principalId)))
 			.limit(1);
 		if (row.length === 0) return null;
 		const groupData = row[0].group as GroupType;
@@ -50,35 +50,37 @@ export class GroupRepository {
 		return groupInstance;
 	}
 
-	async delete(id: string): Promise<boolean> {
-		const authorized = await this.isMember(id);
+	async delete(groupId: string): Promise<boolean> {
+		const authorized = await this.isMember(groupId, this.principalId);
 		if (!authorized) return false;
 		const result = await db.delete(GroupTable).where(eq(GroupTable.id, id)).returning();
 		return result.length > 0;
 	}
 
-	async updateName(id: string, name: string): Promise<boolean> {
-		const authorized = await this.isMember(id);
+	async updateName(groupId: string, name: string): Promise<boolean> {
+		const authorized = await this.isMember(groupId, this.principalId);
 		if (!authorized) return false;
 		const result = await db
 			.update(GroupTable)
 			.set({ name })
-			.where(eq(GroupTable.id, id))
+			.where(eq(GroupTable.id, groupId))
 			.returning();
 		return result.length > 0;
 	}
 
 	async addMember(groupId: string, playerId: string, usingInvitation: boolean = false): Promise<boolean> {
-		const authorized = await this.isMember(groupId);
+		const authorized = await this.isMember(groupId, this.principalId);
 		if (!usingInvitation && !authorized) return false;
-		const isAlreadyMember = await this.isMember(groupId);
+
+		const isAlreadyMember = await this.isMember(groupId, playerId);
 		if (isAlreadyMember) return true;
+
 		await db.insert(GroupMemberTable).values({ groupId, playerId });
 		return true;
 	}
 
 	async removeMember(groupId: string, playerId: string): Promise<boolean> {
-		const authorized = await this.isMember(groupId);
+		const authorized = await this.isMember(groupId, this.principalId);
 		if (!authorized) return false;
 		const result = await db
 			.delete(GroupMemberTable)
@@ -87,12 +89,12 @@ export class GroupRepository {
 		return result.length > 0;
 	}
 
-	private async isMember(groupId: string): Promise<boolean> {
+	private async isMember(groupId: string, playerId: string): Promise<boolean> {
 		const result = await db
 			.select({})
 			.from(GroupMemberTable)
 			.where(
-				and(eq(GroupMemberTable.groupId, groupId), eq(GroupMemberTable.playerId, this.principalId))
+				and(eq(GroupMemberTable.groupId, groupId), eq(GroupMemberTable.playerId, playerId))
 			)
 			.limit(1);
 		return result.length > 0;

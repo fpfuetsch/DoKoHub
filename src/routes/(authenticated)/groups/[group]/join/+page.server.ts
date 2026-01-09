@@ -21,7 +21,7 @@ export async function load({ url, params, locals }) {
     const group = await groupRepo.getById(String(payload.groupId));
     if (group) {
         // already member - redirect to group page
-        throw redirect(303, `/groups/${payload.groupId}`);
+        throw redirect(303, `/groups/${payload.groupId}/`);
     }
 
     return { valid: true, groupId: payload.groupId, groupName: payload.groupName, token };
@@ -42,8 +42,8 @@ export const actions: Actions = {
         if (groupId !== event.params.group) return fail(400, { error: 'Invite gehört zu einer anderen Gruppe.' });
 
         const groupRepo = new GroupRepository(user.id);
-        const added = await groupRepo.addMember(groupId, user.id, true);
-        if (!added) return fail(400, { error: 'Fehler beim Beitreten der Gruppe,' });
+        const success = await groupRepo.addMember(groupId, user.id, true);
+        if (!success) return fail(400, { error: 'Fehler beim Beitreten der Gruppe,' });
 
         // Redirect to group page
         throw redirect(303, `/groups/${groupId}`);
