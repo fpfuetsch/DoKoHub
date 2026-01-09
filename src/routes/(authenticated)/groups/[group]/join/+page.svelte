@@ -8,8 +8,8 @@
 	const invalid = $derived(!data?.valid);
 </script>
 
-<div class="flex min-h-screen items-center justify-center bg-white px-4 py-8">
-	<Card class="max-w-md rounded-lg border border-primary bg-white p-4 shadow-lg">
+<div class="flex min-h-screen items-center justify-center bg-white">
+	<Card class="m-4 w-full max-w-md rounded-lg border border-primary bg-white p-8 shadow-lg">
 		{#if invalid}
 			<div class="space-y-4">
 				<h2 class="text-center text-2xl font-semibold text-primary">Ungültiger Einladungslink</h2>

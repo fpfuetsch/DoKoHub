@@ -35,6 +35,8 @@
 	import { AuthProvider } from '$lib/domain/enums';
 	import { CheckCircleOutline } from 'flowbite-svelte-icons';
 	import { slide } from 'svelte/transition';
+	import logo from '$lib/assets/dokohub.png';
+
 	let { data, form }: PageProps = $props();
 
 	let players = $derived(data.group?.players || []);
@@ -201,7 +203,7 @@
 	<PlusOutline class="h-10 w-10" />
 </Button>
 
-<Modal bind:open={formModal} size="md">
+<Modal bind:open={formModal} size="sm">
 	<Toast
 		transition={slide}
 		bind:toastStatus={inviteToast}
@@ -232,7 +234,7 @@
 						{#if showQr}
 							<div class="flex w-full flex-col items-center gap-4">
 								<div class="mt-2 flex items-center justify-center">
-									<QRCode data={inviteUrl} />
+									<QRCode data={inviteUrl} logoPath={logo} logoSize={24} haveGappedModules={true}/>
 								</div>
 								<Helper class="w-full text-center"
 									>Lass andere Spieler den QR-Code scannen, um der Gruppe beizutreten.</Helper
@@ -256,10 +258,8 @@
 												onclick={copyInvite}
 												class="p-2"
 											>
-												<div class="flex items-center gap-2">
-													<ClipboardOutline class="h-4 w-4" />
-													<span>Kopieren</span>
-												</div>
+												<ClipboardOutline class="mr-1 h-4 w-4" />
+												Kopieren
 											</Button>
 										</div>
 									</div>
@@ -292,20 +292,20 @@
 							<ButtonGroup>
 								<Button
 									type="submit"
-									color={inviteFormat === 'link' ? 'secondary' : 'light'}
+									color={inviteFormat === 'link' ? 'primary' : 'light'}
 									aria-label="Generate link"
 									onclick={handleLinkClick}
 								>
-									<LinkOutline class="mr-2 h-4 w-4" />
+									<LinkOutline class="mr-1 h-4 w-4" />
 									Link
 								</Button>
 								<Button
 									type="submit"
-									color={inviteFormat === 'qr' ? 'secondary' : 'light'}
+									color={inviteFormat === 'qr' ? 'primary' : 'light'}
 									aria-label="Generate QR"
 									onclick={handleQrClick}
 								>
-									<QrCodeOutline class="mr-2 h-4 w-4" />
+									<QrCodeOutline class="mr-1 h-4 w-4" />
 									QR Code
 								</Button>
 							</ButtonGroup>

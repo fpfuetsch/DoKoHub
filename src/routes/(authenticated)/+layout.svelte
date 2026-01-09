@@ -2,7 +2,7 @@
 	import { BottomNav, BottomNavItem } from 'flowbite-svelte';
 	import { UsersGroupSolid, ChartOutline, UserCircleSolid } from 'flowbite-svelte-icons';
 	import { page } from '$app/state';
-
+	import logo from '$lib/assets/dokohub.png';
 	let activeUrl = $derived(page.url.pathname);
 	let { children } = $props();
 </script>
@@ -10,8 +10,11 @@
 <div class="flex min-h-screen flex-col">
 	<div class="flex flex-1 flex-col">
 		<header class="bg-white shadow-sm">
-			<div class="top-0 z-30 flex h-16 items-center px-2 text-primary">
-				<h1 class="flex-1 truncate text-center text-3xl font-semibold">DoKoHub</h1>
+			<div class="top-0 z-30 flex h-16 items-center justify-center px-4">
+				<div class="flex items-center gap-2">
+					<img src={logo} alt="DoKoHub Logo" class="h-16 w-16" />
+					<h1 class="text-2xl sm:text-3xl font-semibold"><span class="text-primary">DoKo</span><span class="text-secondary">Hub</span></h1>
+				</div>
 			</div>
 		</header>
 		<div class="flex-1 overflow-auto p-4 pb-24">

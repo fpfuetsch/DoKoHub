@@ -1,4 +1,6 @@
 <script lang="ts">
+	import logo from '$lib/assets/dokohub.png';
+	import { Button, Card } from 'flowbite-svelte';
 	const { data } = $props();
 
 	const redirectQuery = $derived(
@@ -7,19 +9,24 @@
 </script>
 
 <div class="flex min-h-screen items-center justify-center bg-white">
-	<div class="w-full max-w-md rounded-lg border border-primary bg-white p-8 shadow-lg">
-		<h1 class="mb-2 text-3xl font-semibold text-primary">DoKoHub</h1>
-		<p class="mb-6 text-gray-600">
-			Ist eine Anwendung zum Tracken von Doppelkopf-Spielen. Melde dich an, um Spielgruppen und
-			Spiele zu verwalten sowie Statistiken einzusehen.
+	<Card class="m-4 w-full max-w-md rounded-lg border border-primary bg-white p-8 shadow-lg">
+		<div class="mb-4 flex items-center justify-center gap-3">
+			<img src={logo} alt="DoKoHub Logo" class="h-20 w-20" />
+			<h1 class="text-5xl font-semibold">
+				<span class="text-primary">DoKo</span><span class="text-secondary">Hub</span>
+			</h1>
+		</div>
+		<p class="mb-6 text-center text-gray-600">
+			Eine Anwendung zum Tracken von Doppelkopf-Spielen. Melde dich an, um Spielgruppen und Spiele
+			zu verwalten sowie Statistiken einzusehen.
 		</p>
 
 		<div class="space-y-3">
-			<a
+			<Button
 				href={`/login/google${redirectQuery}`}
-				class="flex items-center justify-center gap-3 rounded-md border border-gray-200 bg-white px-4 py-3 text-gray-800 shadow-sm transition hover:border-primary hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+				class="flex w-full items-center justify-center gap-3 border border-gray-300 bg-white px-4 py-3 text-gray-700 shadow-md hover:bg-gray-100"
 			>
-				<svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+				<svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
 					<path
 						d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
 						fill="#4285F4"
@@ -38,7 +45,7 @@
 					/>
 				</svg>
 				<span class="text-lg">Mit Google anmelden</span>
-			</a>
+			</Button>
 		</div>
-	</div>
+	</Card>
 </div>
