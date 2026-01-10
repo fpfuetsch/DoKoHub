@@ -136,7 +136,8 @@ export const actions = {
 				const willBeMandatory = parsed.data.soloType === SoloType.Pflicht;
 				if (wasMandatory !== willBeMandatory) {
 					return fail(400, {
-						error: 'Für eine bestehende Runde kann nicht geändert werden, ob sie eine Pflicht- oder Lust-Solo-Runde ist.'
+						error:
+							'Für eine bestehende Runde kann nicht geändert werden, ob sie eine Pflicht- oder Lust-Solo-Runde ist.'
 					});
 				}
 			}

@@ -15,15 +15,18 @@ import type { PlayerType } from '$lib/server/db/schema';
 import { AuthProvider } from '$lib/server/enums';
 
 export class PlayerRepository {
-	constructor(private readonly principalId?: string) { }
-
+	constructor(private readonly principalId?: string) {}
 
 	/**
 	 * Transfer all references from a local player to an existing non-local player and delete the local player.
 	 * Only allowed when caller is authorized for the given group (member of the group).
 	 * This operation runs inside a single transaction.
 	 */
-	async takeoverLocalPlayer(localPlayerId: string, targetPlayerId: string, groupId: string): Promise<boolean> {
+	async takeoverLocalPlayer(
+		localPlayerId: string,
+		targetPlayerId: string,
+		groupId: string
+	): Promise<boolean> {
 		if (!this.principalId) throw new Error('Nicht autorisiert.');
 
 		// Authorization: caller must be member of the group
@@ -39,38 +42,62 @@ export class PlayerRepository {
 		const local = await this.getById(localPlayerId);
 		const target = await this.getById(targetPlayerId);
 		if (!local || !target) throw new Error('Spieler nicht gefunden.');
-		if (local.authProvider !== AuthProvider.Local) throw new Error('Quellspieler ist kein lokaler Spieler.');
-		if (target.authProvider === AuthProvider.Local) throw new Error('Zielspieler darf kein lokaler Spieler sein.');
+		if (local.authProvider !== AuthProvider.Local)
+			throw new Error('Quellspieler ist kein lokaler Spieler.');
+		if (target.authProvider === AuthProvider.Local)
+			throw new Error('Zielspieler darf kein lokaler Spieler sein.');
 
 		try {
 			await db.transaction(async (tx) => {
 				// First validation: target must not have participated in any of the same games as the local player
-				const localGameRows = await tx.select().from(GameParticipantTable).where(eq(GameParticipantTable.playerId, localPlayerId));
+				const localGameRows = await tx
+					.select()
+					.from(GameParticipantTable)
+					.where(eq(GameParticipantTable.playerId, localPlayerId));
 				const localGameIds = Array.from(new Set(localGameRows.map((r: any) => r.gameId as string)));
 				if (localGameIds.length > 0) {
 					for (const gid of localGameIds) {
 						const rows = await tx
 							.select()
 							.from(GameParticipantTable)
-							.where(and(eq(GameParticipantTable.gameId, gid), eq(GameParticipantTable.playerId, targetPlayerId)))
+							.where(
+								and(
+									eq(GameParticipantTable.gameId, gid),
+									eq(GameParticipantTable.playerId, targetPlayerId)
+								)
+							)
 							.limit(1);
 						if (rows.length > 0) {
-							throw new Error('Du hast bereits mit dem lokalen Spieler in einem Spiel teilgenommen. Übernahme nicht möglich.');
+							throw new Error(
+								'Du hast bereits mit dem lokalen Spieler in einem Spiel teilgenommen. Übernahme nicht möglich.'
+							);
 						}
 					}
 				}
 				// Second validation: target must not have participated in any of the same rounds as the local player
-				const localRoundRows = await tx.select().from(GameRoundParticipantTable).where(eq(GameRoundParticipantTable.playerId, localPlayerId));
-				const localRoundIds = Array.from(new Set(localRoundRows.map((r: any) => r.roundId as string)));
+				const localRoundRows = await tx
+					.select()
+					.from(GameRoundParticipantTable)
+					.where(eq(GameRoundParticipantTable.playerId, localPlayerId));
+				const localRoundIds = Array.from(
+					new Set(localRoundRows.map((r: any) => r.roundId as string))
+				);
 				if (localRoundIds.length > 0) {
 					for (const rid of localRoundIds) {
 						const rows = await tx
 							.select()
 							.from(GameRoundParticipantTable)
-							.where(and(eq(GameRoundParticipantTable.roundId, rid), eq(GameRoundParticipantTable.playerId, targetPlayerId)))
+							.where(
+								and(
+									eq(GameRoundParticipantTable.roundId, rid),
+									eq(GameRoundParticipantTable.playerId, targetPlayerId)
+								)
+							)
 							.limit(1);
 						if (rows.length > 0) {
-							throw new Error('Du hast bereits mit dem lokalen Spieler in einer Runde teilgenommen. Übernahme nicht möglich.');
+							throw new Error(
+								'Du hast bereits mit dem lokalen Spieler in einer Runde teilgenommen. Übernahme nicht möglich.'
+							);
 						}
 					}
 				}
@@ -87,18 +114,33 @@ export class PlayerRepository {
 					const targetExists = await tx
 						.select()
 						.from(GroupMemberTable)
-						.where(and(eq(GroupMemberTable.groupId, groupIdRow), eq(GroupMemberTable.playerId, targetPlayerId)))
+						.where(
+							and(
+								eq(GroupMemberTable.groupId, groupIdRow),
+								eq(GroupMemberTable.playerId, targetPlayerId)
+							)
+						)
 						.limit(1);
 
 					if (targetExists.length > 0) {
 						await tx
 							.delete(GroupMemberTable)
-							.where(and(eq(GroupMemberTable.groupId, groupIdRow), eq(GroupMemberTable.playerId, localPlayerId)));
+							.where(
+								and(
+									eq(GroupMemberTable.groupId, groupIdRow),
+									eq(GroupMemberTable.playerId, localPlayerId)
+								)
+							);
 					} else {
 						await tx
 							.update(GroupMemberTable)
 							.set({ playerId: targetPlayerId })
-							.where(and(eq(GroupMemberTable.groupId, groupIdRow), eq(GroupMemberTable.playerId, localPlayerId)));
+							.where(
+								and(
+									eq(GroupMemberTable.groupId, groupIdRow),
+									eq(GroupMemberTable.playerId, localPlayerId)
+								)
+							);
 					}
 				}
 
@@ -223,9 +265,17 @@ export class PlayerRepository {
 	 * Returns true when the player has any game or round participations.
 	 */
 	async hasParticipations(id: string): Promise<boolean> {
-		const gp = await db.select().from(GameParticipantTable).where(eq(GameParticipantTable.playerId, id)).limit(1);
+		const gp = await db
+			.select()
+			.from(GameParticipantTable)
+			.where(eq(GameParticipantTable.playerId, id))
+			.limit(1);
 		if (gp.length > 0) return true;
-		const gr = await db.select().from(GameRoundParticipantTable).where(eq(GameRoundParticipantTable.playerId, id)).limit(1);
+		const gr = await db
+			.select()
+			.from(GameRoundParticipantTable)
+			.where(eq(GameRoundParticipantTable.playerId, id))
+			.limit(1);
 		return gr.length > 0;
 	}
 

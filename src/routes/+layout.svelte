@@ -5,7 +5,8 @@
 	const { data, children } = $props();
 	const baseUrl = $derived(data.origin);
 	const siteTitle = 'DoKoHub';
-	const siteDescription = 'DoKoHub — Dokumentiere Doppelkopf-Spiele, verwalte Gruppen und sieh Statistiken ein.';
+	const siteDescription =
+		'DoKoHub — Dokumentiere Doppelkopf-Spiele, verwalte Gruppen und sieh Statistiken ein.';
 </script>
 
 <svelte:head>

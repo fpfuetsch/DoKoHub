@@ -68,7 +68,11 @@ export class GroupRepository {
 		return result.length > 0;
 	}
 
-	async addMember(groupId: string, playerId: string, usingInvitation: boolean = false): Promise<boolean> {
+	async addMember(
+		groupId: string,
+		playerId: string,
+		usingInvitation: boolean = false
+	): Promise<boolean> {
 		const authorized = await this.isMember(groupId, this.principalId);
 		if (!usingInvitation && !authorized) return false;
 
@@ -93,9 +97,7 @@ export class GroupRepository {
 		const result = await db
 			.select({})
 			.from(GroupMemberTable)
-			.where(
-				and(eq(GroupMemberTable.groupId, groupId), eq(GroupMemberTable.playerId, playerId))
-			)
+			.where(and(eq(GroupMemberTable.groupId, groupId), eq(GroupMemberTable.playerId, playerId)))
 			.limit(1);
 		return result.length > 0;
 	}

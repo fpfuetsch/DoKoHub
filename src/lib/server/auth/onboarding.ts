@@ -6,7 +6,9 @@ import type { AuthProviderType } from '$lib/server/enums';
 const rawOnboardingSecret = env.AUTH_JWT_SECRET ?? DEFAULT_AUTH_JWT_SECRET;
 const secret = new TextEncoder().encode(rawOnboardingSecret);
 export const ONBOARDING_COOKIE = 'dokohub_onboarding';
-export const ONBOARDING_MAX_AGE_SECONDS = env.ONBOARDING_MAX_AGE_SECONDS ? parseInt(env.ONBOARDING_MAX_AGE_SECONDS) : 15 * 60; // default: 15 minutes
+export const ONBOARDING_MAX_AGE_SECONDS = env.ONBOARDING_MAX_AGE_SECONDS
+	? parseInt(env.ONBOARDING_MAX_AGE_SECONDS)
+	: 15 * 60; // default: 15 minutes
 
 export type OnboardingPayload = {
 	provider: AuthProviderType;

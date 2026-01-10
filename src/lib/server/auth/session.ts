@@ -15,7 +15,9 @@ const issuer = 'dokohub';
 const audience = 'dokohub:web';
 
 export const SESSION_COOKIE_NAME = 'dokohub';
-export const SESSION_MAX_AGE_SECONDS = env.SESSION_MAX_AGE_SECONDS ? parseInt(env.SESSION_MAX_AGE_SECONDS) : 7 * 24 * 60 * 60; // default: 7 days
+export const SESSION_MAX_AGE_SECONDS = env.SESSION_MAX_AGE_SECONDS
+	? parseInt(env.SESSION_MAX_AGE_SECONDS)
+	: 7 * 24 * 60 * 60; // default: 7 days
 
 export type SessionTokenPayload = {
 	sub: string;

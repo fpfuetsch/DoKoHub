@@ -199,7 +199,9 @@
 						autocomplete="off"
 						aria-label="Gib den Namen der Gruppe ein, um zu bestätigen"
 					/>
-					<Helper>Bestätige, indem du den Gruppenname <strong>{group?.name}</strong> eingibst.</Helper>
+					<Helper
+						>Bestätige, indem du den Gruppenname <strong>{group?.name}</strong> eingibst.</Helper
+					>
 				</div>
 
 				<div class="flex justify-end gap-3">

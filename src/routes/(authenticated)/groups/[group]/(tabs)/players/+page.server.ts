@@ -13,14 +13,14 @@ export const actions: Actions = {
 
 		const groupId = params.group;
 
- 		// verify user is a member of the group and authorized to invite
- 		const groupRepo = new GroupRepository(user.id);
- 		const group = await groupRepo.getById(groupId);
- 		if (!group?.players.some((p) => p.id === user.id)) {
- 			return fail(403, { error: 'Du bist nicht berechtigt, Einladungen zu erstellen.' });
- 		}
+		// verify user is a member of the group and authorized to invite
+		const groupRepo = new GroupRepository(user.id);
+		const group = await groupRepo.getById(groupId);
+		if (!group?.players.some((p) => p.id === user.id)) {
+			return fail(403, { error: 'Du bist nicht berechtigt, Einladungen zu erstellen.' });
+		}
 
-		const token = await signInvite({ groupId : groupId, groupName: group.name });
+		const token = await signInvite({ groupId: groupId, groupName: group.name });
 
 		// Build invite URL pointing to /invite?t=TOKEN
 		const base = url?.origin ?? '';
@@ -137,7 +137,8 @@ export const actions: Actions = {
 		const hasParts = await playerRepo.hasParticipations(playerId);
 		if (hasParts) {
 			return fail(400, {
-				error: 'Lokaler Spieler war an Spielen/Runden beteiligt. Lösche entweder zuerst alle betreffenden Spiele oder übernehme den lokalen Spieler mit einem angemeldeten Account.'
+				error:
+					'Lokaler Spieler war an Spielen/Runden beteiligt. Lösche entweder zuerst alle betreffenden Spiele oder übernehme den lokalen Spieler mit einem angemeldeten Account.'
 			});
 		}
 
@@ -174,7 +175,8 @@ export const actions: Actions = {
 		// Fetch player and ensure it's local (authorization for membership is enforced inside the repository)
 		const player = await playerRepo.getById(playerId);
 		if (!player) return fail(404, { error: 'Spieler nicht gefunden.' });
-		if (player.authProvider !== AuthProvider.Local) return fail(400, { error: 'Nur lokale Spieler können umbenannt werden.' });
+		if (player.authProvider !== AuthProvider.Local)
+			return fail(400, { error: 'Nur lokale Spieler können umbenannt werden.' });
 
 		// Perform update (PlayerRepository.updateLocalDisplayName enforces group membership)
 		const success = await playerRepo.updateLocalDisplayName(playerId, groupId, newDisplayName);
@@ -182,7 +184,6 @@ export const actions: Actions = {
 
 		return { success: true };
 	},
-
 
 	takeoverLocal: async ({ params, request, locals }) => {
 		const user = requireUserOrFail({ locals });
@@ -208,5 +209,5 @@ export const actions: Actions = {
 			if (e instanceof Error) return fail(400, { error: e.message });
 			return fail(400, { error: 'Übernahme fehlgeschlagen.' });
 		}
-	},
+	}
 };

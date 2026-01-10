@@ -19,7 +19,7 @@ export class Player implements PlayerType {
 	}
 
 	getTruncatedDisplayName(maxLength: number = 8): string {
-		if (this.displayName.length <= (maxLength + 3)) {
+		if (this.displayName.length <= maxLength + 3) {
 			return this.displayName;
 		}
 		return this.displayName.slice(0, maxLength) + '...';

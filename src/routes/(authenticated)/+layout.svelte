@@ -13,7 +13,9 @@
 			<div class="top-0 z-30 flex h-16 items-center justify-center px-4">
 				<div class="flex items-center gap-2">
 					<img src={logo} alt="DoKoHub Logo" class="h-16 w-16" />
-					<h1 class="text-2xl sm:text-3xl font-semibold"><span class="text-primary">DoKo</span><span class="text-secondary">Hub</span></h1>
+					<h1 class="text-2xl font-semibold sm:text-3xl">
+						<span class="text-primary">DoKo</span><span class="text-secondary">Hub</span>
+					</h1>
 				</div>
 			</div>
 		</header>
