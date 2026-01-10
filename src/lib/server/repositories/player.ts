@@ -15,7 +15,7 @@ import type { PlayerType } from '$lib/server/db/schema';
 import { AuthProvider } from '$lib/server/enums';
 
 export class PlayerRepository {
-	constructor(private readonly principalId?: string) {}
+	constructor(private readonly principalId?: string) { }
 
 
 	/**
@@ -55,7 +55,7 @@ export class PlayerRepository {
 							.where(and(eq(GameParticipantTable.gameId, gid), eq(GameParticipantTable.playerId, targetPlayerId)))
 							.limit(1);
 						if (rows.length > 0) {
-							throw new Error('Der Account hat bereits mit dem lokalen Spieler in einem Spiel teilgenommen. Übernahme nicht möglich.');
+							throw new Error('Du hast bereits mit dem lokalen Spieler in einem Spiel teilgenommen. Übernahme nicht möglich.');
 						}
 					}
 				}
@@ -70,7 +70,7 @@ export class PlayerRepository {
 							.where(and(eq(GameRoundParticipantTable.roundId, rid), eq(GameRoundParticipantTable.playerId, targetPlayerId)))
 							.limit(1);
 						if (rows.length > 0) {
-							throw new Error('Der Account hat bereits mit dem lokalen Spieler in einer Runde teilgenommen. Übernahme nicht möglich.');
+							throw new Error('Du hast bereits mit dem lokalen Spieler in einer Runde teilgenommen. Übernahme nicht möglich.');
 						}
 					}
 				}
@@ -199,6 +199,23 @@ export class PlayerRepository {
 		}
 
 		const result = await db.delete(PlayerTable).where(eq(PlayerTable.id, id)).returning();
+		return result.length > 0;
+	}
+
+	async updateLocalDisplayName(id: string, groupId: string, displayName: string): Promise<boolean> {
+		if (!this.principalId) return false;
+		const authorized = await this.isMemberOfGroup(groupId);
+		if (!authorized) return false;
+
+		const player = await this.getById(id);
+		if (!player) return false;
+		if (player.authProvider !== AuthProvider.Local) return false;
+
+		const result = await db
+			.update(PlayerTable)
+			.set({ displayName })
+			.where(eq(PlayerTable.id, id))
+			.returning();
 		return result.length > 0;
 	}
 

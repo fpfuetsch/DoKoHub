@@ -3,6 +3,7 @@ import { GroupRepository } from '$lib/server/repositories/group';
 import { fail } from '@sveltejs/kit';
 import { requireUserOrFail } from '$lib/server/auth/guard';
 import { AuthProvider } from '$lib/server/enums';
+import { PlayerDisplayNameSchema } from '$lib/server/db/schema';
 import { signInvite } from '$lib/server/auth/invitation';
 import type { Actions } from './$types';
 
@@ -26,6 +27,50 @@ export const actions: Actions = {
 		const inviteUrl = `${base}/groups/${groupId}/join?t=${encodeURIComponent(token)}`;
 
 		return { success: true, inviteUrl };
+	},
+
+	// Current user leaves the group
+	leaveGroup: async ({ params, locals }) => {
+		const user = requireUserOrFail({ locals });
+		const groupId = params.group;
+
+		const groupRepo = new GroupRepository(user.id);
+
+		// Verify player is in the group
+		const group = await groupRepo.getById(groupId);
+		if (!group?.players.some((p) => p.id === user.id)) {
+			return fail(400, { error: 'Du bist nicht Mitglied dieser Gruppe.' });
+		}
+
+		// Check if this is the last non-local player
+		const nonLocalPlayers = group.players.filter((p) => p.authProvider !== AuthProvider.Local);
+		const isLastNonLocalPlayer = nonLocalPlayers.length === 1;
+
+		if (isLastNonLocalPlayer) {
+			// Delete all local players first
+			const localPlayers = group.players.filter((p) => p.authProvider === AuthProvider.Local);
+			const playerRepo = new PlayerRepository(user.id);
+			for (const localPlayer of localPlayers) {
+				const success = await playerRepo.delete(localPlayer.id, groupId);
+				if (!success) {
+					return fail(400, { error: 'Fehler beim Löschen lokaler Spieler.' });
+				}
+			}
+
+			// Delete the entire group
+			const success = await groupRepo.delete(groupId);
+			if (!success) {
+				return fail(400, { error: 'Fehler beim Löschen der Gruppe.' });
+			}
+			return { success: true, leftGroup: true, deletedGroup: true };
+		} else {
+			// Remove from group
+			const success = await groupRepo.removeMember(groupId, user.id);
+			if (!success) {
+				return fail(400, { error: 'Fehler beim Verlassen der Gruppe.' });
+			}
+			return { success: true, leftGroup: true };
+		}
 	},
 
 	createLocal: async ({ params, request, locals }) => {
@@ -92,7 +137,7 @@ export const actions: Actions = {
 		const hasParts = await playerRepo.hasParticipations(playerId);
 		if (hasParts) {
 			return fail(400, {
-				error: 'Lokaler Spieler war an Spielen/Runden beteiligt. Lösche entweder zuerst alle betreffenden Spiele oder verknüpfe den lokalen Spieler mit einem Account.'
+				error: 'Lokaler Spieler war an Spielen/Runden beteiligt. Lösche entweder zuerst alle betreffenden Spiele oder übernehme den lokalen Spieler mit einem angemeldeten Account.'
 			});
 		}
 
@@ -104,49 +149,40 @@ export const actions: Actions = {
 		return { success: success_remove && success_delete };
 	},
 
-	// Current user leaves the group
-	leaveGroup: async ({ params, locals }) => {
+	renameLocal: async ({ params, request, locals }) => {
 		const user = requireUserOrFail({ locals });
+		const formData = await request.formData();
+		const playerId = formData.get('playerId') as string;
+		const newDisplayName = (formData.get('displayName') as string)?.trim();
+
+		if (!playerId || !newDisplayName) {
+			return fail(400, { error: 'Daten fehlen.' });
+		}
+
+		// Validate using the existing schema and return a single error message on failure (consistent with group creation)
+		const parsed = PlayerDisplayNameSchema.safeParse(newDisplayName);
+		if (!parsed.success) {
+			return fail(400, {
+				error: parsed.error.issues[0]?.message || 'Bitte einen gültigen Anzeigenamen eingeben.',
+				values: { displayName: newDisplayName }
+			});
+		}
+
 		const groupId = params.group;
+		const playerRepo = new PlayerRepository(user.id);
 
-		const groupRepo = new GroupRepository(user.id);
+		// Fetch player and ensure it's local (authorization for membership is enforced inside the repository)
+		const player = await playerRepo.getById(playerId);
+		if (!player) return fail(404, { error: 'Spieler nicht gefunden.' });
+		if (player.authProvider !== AuthProvider.Local) return fail(400, { error: 'Nur lokale Spieler können umbenannt werden.' });
 
-		// Verify player is in the group
-		const group = await groupRepo.getById(groupId);
-		if (!group?.players.some((p) => p.id === user.id)) {
-			return fail(400, { error: 'Du bist nicht Mitglied dieser Gruppe.' });
-		}
+		// Perform update (PlayerRepository.updateLocalDisplayName enforces group membership)
+		const success = await playerRepo.updateLocalDisplayName(playerId, groupId, newDisplayName);
+		if (!success) return fail(400, { error: 'Fehler beim Aktualisieren des Namens.' });
 
-		// Check if this is the last non-local player
-		const nonLocalPlayers = group.players.filter((p) => p.authProvider !== AuthProvider.Local);
-		const isLastNonLocalPlayer = nonLocalPlayers.length === 1;
-
-		if (isLastNonLocalPlayer) {
-			// Delete all local players first
-			const localPlayers = group.players.filter((p) => p.authProvider === AuthProvider.Local);
-			const playerRepo = new PlayerRepository(user.id);
-			for (const localPlayer of localPlayers) {
-				const success = await playerRepo.delete(localPlayer.id, groupId);
-				if (!success) {
-					return fail(400, { error: 'Fehler beim Löschen lokaler Spieler.' });
-				}
-			}
-
-			// Delete the entire group
-			const success = await groupRepo.delete(groupId);
-			if (!success) {
-				return fail(400, { error: 'Fehler beim Löschen der Gruppe.' });
-			}
-			return { success: true, leftGroup: true, deletedGroup: true };
-		} else {
-			// Remove from group
-			const success = await groupRepo.removeMember(groupId, user.id);
-			if (!success) {
-				return fail(400, { error: 'Fehler beim Verlassen der Gruppe.' });
-			}
-			return { success: true, leftGroup: true };
-		}
+		return { success: true };
 	},
+
 
 	takeoverLocal: async ({ params, request, locals }) => {
 		const user = requireUserOrFail({ locals });

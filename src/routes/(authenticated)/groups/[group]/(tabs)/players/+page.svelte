@@ -17,15 +17,17 @@
 		Modal,
 		Label,
 		Input,
+		Helper,
 		Tabs,
 		TabItem,
 		Avatar,
 		Alert,
-		Helper,
 		Dropdown,
 		DropdownItem,
 		ButtonGroup
 	} from 'flowbite-svelte';
+
+	import { EditOutline } from 'flowbite-svelte-icons';
 	import QRCode from '@castlenine/svelte-qrcode';
 	import { Toast } from 'flowbite-svelte';
 	import { enhance } from '$app/forms';
@@ -53,6 +55,10 @@
 	let confirmDeleteModal = $state(false);
 	let confirmLeaveModal = $state(false);
 	let takeoverModal = $state(false);
+	let renamerModal = $state(false);
+	let playerToRename = $state<Player | null>(null);
+	let renameInput = $state('');
+	let renameError = $state('');
 	let playerToDelete = $state<Player | null>(null);
 	let playerToTakeover = $state<Player | null>(null);
 	let takeoverConfirmText = $state('');
@@ -165,6 +171,19 @@
 							</DropdownItem>
 							<DropdownItem
 								onclick={() => {
+									// Open rename modal
+									playerToRename = player;
+									renamerModal = true;
+									renameInput = player.displayName;
+								}}
+							>
+								<div class="flex items-center gap-2">
+									<EditOutline class="h-6 w-6" />
+									<span>Umbenennen</span>
+								</div>
+							</DropdownItem>
+							<DropdownItem
+								onclick={() => {
 									playerToDelete = player;
 									confirmDeleteModal = true;
 								}}
@@ -234,7 +253,7 @@
 						{#if showQr}
 							<div class="flex w-full flex-col items-center gap-4">
 								<div class="mt-2 flex items-center justify-center">
-									<QRCode data={inviteUrl} logoPath={logo} logoSize={24} haveGappedModules={true}/>
+									<QRCode data={inviteUrl} logoPath={logo} logoSize={24} haveGappedModules={true} />
 								</div>
 								<Helper class="w-full text-center"
 									>Lass andere Spieler den QR-Code scannen, um der Gruppe beizutreten.</Helper
@@ -433,6 +452,68 @@
 				<Button type="submit" disabled={takeoverConfirmText !== playerToTakeover?.displayName}
 					>Übernehmen</Button
 				>
+			</div>
+		</form>
+	</div>
+</Modal>
+
+<Modal bind:open={renamerModal} size="sm" autoclose={false}>
+	<h3 class="text-xl font-medium text-gray-900 dark:text-white">Spieler umbenennen</h3>
+	<div class="space-y-4">
+		<form
+			method="POST"
+			action="?/renameLocal"
+			use:enhance={() => {
+				return async ({ result, update }) => {
+					await update();
+					if (result.type === 'success') {
+						renamerModal = false;
+						playerToRename = null;
+						renameInput = '';
+						renameError = '';
+					} else {
+						if (result.type === 'failure') {
+							// Prefer structured field errors
+							const errs: any = result.data?.errors;
+							if (errs && errs.displayName && errs.displayName.length > 0) {
+								renameError = String(errs.displayName[0]);
+							} else if (result.data?.error) {
+								renameError = String(result.data.error);
+							} else if (form?.error) {
+								renameError = String(form.error);
+							} else {
+								renameError = 'Fehler beim Umbenennen.';
+							}
+						} else {
+							renameError = form?.error ? String(form.error) : 'Fehler beim Umbenennen.';
+						}
+					}
+				};
+			}}
+		>
+			{#if renameError}
+				<Alert color="red" class="mb-4">
+					{#snippet icon()}<InfoCircleSolid class="h-5 w-5" />{/snippet}
+					{renameError}
+				</Alert>
+			{/if}
+			<input type="hidden" name="playerId" value={playerToRename?.id} />
+			<div>
+				<Label for="renameInput">Neuer Anzeigename</Label>
+				<Input id="renameInput" name="displayName" bind:value={renameInput} required />
+				<Helper>Gib einen neuen Anzeigenamen für den lokalen Spieler ein.</Helper>
+			</div>
+			<div class="mt-4 flex justify-end gap-4">
+				<Button
+					type="button"
+					color="alternative"
+					onclick={() => {
+						renamerModal = false;
+						playerToRename = null;
+						renameInput = '';
+					}}>Abbrechen</Button
+				>
+				<Button type="submit" disabled={renameInput.trim() === ''}>Umbenennen</Button>
 			</div>
 		</form>
 	</div>
