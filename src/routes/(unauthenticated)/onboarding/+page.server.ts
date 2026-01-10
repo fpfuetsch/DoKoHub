@@ -1,11 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { PlayerRepository } from '$lib/server/repositories/player';
-import {
-	PlayerProfileSchema,
-	PlayerNameSchema,
-	PlayerDisplayNameSchema
-} from '$lib/server/db/schema';
+import { PlayerProfileSchema, PlayerDisplayNameSchema } from '$lib/server/db/schema';
 import {
 	ONBOARDING_COOKIE,
 	onboardingCookieAttributes,
@@ -34,16 +30,9 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 			: ''
 		: '';
 
-	const suggestedName = payload.suggestedName
-		? PlayerNameSchema.safeParse(payload.suggestedName).success
-			? payload.suggestedName
-			: ''
-		: '';
-
 	return {
 		defaults: {
-			displayName: suggestedDisplayName,
-			name: suggestedName
+			displayName: suggestedDisplayName
 		}
 	};
 };
@@ -66,27 +55,17 @@ export const actions: Actions = {
 			});
 		}
 
-		const { name, displayName } = parsed.data;
-		const playerRepository = new PlayerRepository();
+			const { displayName } = parsed.data;
+			const playerRepository = new PlayerRepository();
 
-		const nameOwner = await playerRepository.getByName(name);
-		if (nameOwner) {
-			return fail(409, {
-				message: 'Dieser Benutzername ist bereits vergeben.',
-				values: parsed.data
+			const player = await playerRepository.create({
+				displayName,
+				authProvider: payload.provider as AuthProvider,
+				authProviderId: payload.providerId
 			});
-		}
-
-		const player = await playerRepository.create({
-			name,
-			displayName,
-			authProvider: payload.provider as AuthProvider,
-			authProviderId: payload.providerId
-		});
 
 		const token = await createSessionToken({
 			id: player.id,
-			name: player.name,
 			displayName: player.displayName,
 			authProvider: player.authProvider,
 			authProviderId: player.authProviderId,

@@ -42,7 +42,6 @@ export const RoundResultDbEnum = pgEnum(
 
 export const PlayerTable = pgTable('players', {
 	id: uuid('id').primaryKey().defaultRandom(),
-	name: text('name').notNull().unique(),
 	displayName: text('display_name').notNull(),
 	authProvider: AuthProviderDbEnum('auth_provider').notNull().default(AuthProvider.Local),
 	authProviderId: text('auth_provider_id'),
@@ -51,13 +50,6 @@ export const PlayerTable = pgTable('players', {
 export type PlayerType = InferSelectModel<typeof PlayerTable>;
 export type PlayerInsertType = InferInsertModel<typeof PlayerTable>;
 
-export const PlayerNameSchema = z
-	.string()
-	.trim()
-	.regex(/^[a-z0-9_-]+$/, 'Nur Kleinbuchstaben, Zahlen, - und _ sind erlaubt')
-	.min(3, 'Mindestens 3 Zeichen notwendig')
-	.max(40, 'Maximal 30 Zeichen erlaubt');
-
 export const PlayerDisplayNameSchema = z
 	.string()
 	.trim()
@@ -65,8 +57,7 @@ export const PlayerDisplayNameSchema = z
 	.max(50, 'Maximal 50 Zeichen erlaubt');
 
 export const PlayerProfileSchema = z.object({
-	displayName: PlayerDisplayNameSchema,
-	name: PlayerNameSchema
+	displayName: PlayerDisplayNameSchema
 });
 
 export type PlayerProfile = z.infer<typeof PlayerProfileSchema>;

@@ -84,14 +84,9 @@ export const actions: Actions = {
 
 		const groupId = params.group;
 
-		// Create new local player
-		// Use UUID as name for local players (internal identifier)
-		const username = crypto.randomUUID();
-
 		const playerRepo = new PlayerRepository(user.id);
 		const groupRepo = new GroupRepository(user.id);
 		const newPlayer = await playerRepo.create({
-			name: username,
 			displayName: playerName.trim(),
 			authProvider: AuthProvider.Local,
 			authProviderId: null

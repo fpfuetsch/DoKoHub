@@ -5,13 +5,11 @@
 	let { data, form } = $props();
 
 	const values = $derived({
-		displayName: form?.values?.displayName ?? data.defaults?.displayName ?? '',
-		name: form?.values?.name ?? data.defaults?.name ?? ''
+		displayName: String(form?.values?.displayName ?? data.defaults?.displayName ?? '')
 	});
 
 	const errors = $derived({
 		displayName: form?.errors?.displayName?.[0],
-		name: form?.errors?.name?.[0],
 		message: form?.message as string | undefined
 	});
 </script>
@@ -19,11 +17,10 @@
 <div class="flex min-h-screen items-center justify-center bg-white">
 	<Card class="m-4 w-full max-w-md rounded-lg border border-primary bg-white p-8 shadow-lg">
 		<div class="space-y-4">
-			<h1 class="text-center text-3xl font-semibold text-primary">Willkommen bei DoKoHub</h1>
-			<p class="text-center text-gray-600">
-				Wähle deinen Anzeigenamen und Benutzernamen.<br />
-				Du kannst diese später in deinem Profil ändern.
-			</p>
+			<h1 class="text-3xl text-center font-semibold">
+				Willkommen bei <span class="text-primary">DoKo</span><span class="text-secondary">Hub</span>
+			</h1>
+			<p class="text-center text-gray-600">Wähle deinen Anzeigename.</p>
 
 			{#if errors.message}
 				<Alert color="red">{errors.message}</Alert>
@@ -31,25 +28,6 @@
 
 			<form method="POST" use:enhance action="?/save" class="space-y-4">
 				<div class="space-y-4">
-					<div class="space-y-2">
-						<Label for="name">Benutzername</Label>
-						<Input
-							id="name"
-							name="name"
-							required
-							value={values.name}
-							color={errors.name ? 'red' : undefined}
-						/>
-						{#if errors.name}
-							<Helper color="red">{errors.name}</Helper>
-						{:else}
-							<Helper
-								>Über deinen Benutzernamen können dich andere Spieler finden. (Erlaubt Zeichen sind
-								Kleinbuchstaben, Zahlen, - und _)
-							</Helper>
-						{/if}
-					</div>
-
 					<div class="space-y-2">
 						<Label for="displayName">Anzeigename</Label>
 						<Input
@@ -62,7 +40,7 @@
 						{#if errors.displayName}
 							<Helper color="red">{errors.displayName}</Helper>
 						{/if}
-						<Helper>Dein Anzeigename wird in Gruppen und Statistiken verwendet.</Helper>
+						<Helper>Dein Anzeigename wird in Gruppen und Statistiken verwendet. Du kannst ihn jederzeit in deinem Profil ändern.</Helper>
 					</div>
 
 					<div class="flex justify-end">

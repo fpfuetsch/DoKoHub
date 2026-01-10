@@ -17,18 +17,10 @@ export const actions: Actions = {
 			});
 		}
 
-		const { name, displayName } = parsed.data;
+		const { displayName } = parsed.data;
 
 		const repo = new PlayerRepository(user.id);
-		const nameOwner = await repo.getByName(name);
-		if (nameOwner && nameOwner.id !== user.id) {
-			return fail(409, {
-				message: 'Dieser Benutzername ist bereits vergeben.',
-				values: parsed.data
-			});
-		}
-
-		await repo.update(user.id, { name, displayName });
+		await repo.update(user.id, { displayName });
 
 		return { success: true };
 	}

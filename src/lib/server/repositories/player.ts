@@ -186,11 +186,6 @@ export class PlayerRepository {
 		return new Player(result[0] as PlayerType);
 	}
 
-	async getByName(name: string): Promise<Player | null> {
-		const result = await db.select().from(PlayerTable).where(eq(PlayerTable.name, name)).limit(1);
-		if (result.length === 0) return null;
-		return new Player(result[0] as PlayerType);
-	}
 
 	async getByProvider(provider: AuthProviderType, providerId: string): Promise<Player | null> {
 		const result = await db

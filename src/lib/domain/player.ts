@@ -3,7 +3,6 @@ import type { AuthProviderType } from '$lib/domain/enums';
 
 export class Player implements PlayerType {
 	id: string;
-	name: string;
 	displayName: string;
 	authProvider: AuthProviderType;
 	authProviderId: string | null;
@@ -11,7 +10,6 @@ export class Player implements PlayerType {
 
 	constructor(data: PlayerType) {
 		this.id = data.id;
-		this.name = data.name;
 		this.displayName = data.displayName;
 		this.authProvider = data.authProvider;
 		this.authProviderId = data.authProviderId;
@@ -32,7 +30,6 @@ export class Player implements PlayerType {
 	static fromJSON(json: any): Player {
 		return new Player({
 			id: json.id,
-			name: json.name,
 			displayName: json.displayName,
 			authProvider: json.authProvider,
 			authProviderId: json.authProviderId,

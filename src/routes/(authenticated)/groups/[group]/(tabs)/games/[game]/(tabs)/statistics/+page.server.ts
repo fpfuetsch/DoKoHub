@@ -22,7 +22,7 @@ export const load: ServerLoad = async ({ locals, params }) => {
 		.filter((p) => p.player)
 		.map((p) => ({
 			id: p.player!.id,
-			name: p.player!.getTruncatedDisplayName() || p.player!.name || 'Unknown'
+			name: p.player!.getTruncatedDisplayName() || 'Unknown'
 		}));
 
 	const palette = ['#ef562f', '#0284c7', '#16a34a', '#eab308'];

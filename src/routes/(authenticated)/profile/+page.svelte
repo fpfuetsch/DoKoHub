@@ -15,7 +15,6 @@
 	);
 	let toastStatus = $state(false);
 	let counter = $state(5);
-	let nameInput = $derived(user?.name || '');
 	let displayNameInput = $derived(user?.displayName || '');
 
 	function showSuccessToast() {
@@ -33,14 +32,14 @@
 <div class="flex justify-center px-4">
 	<div class="w-full max-w-md space-y-2">
 		<div class="flex items-center justify-between">
-			<h1 class="text-xl">Angemeldet via <span class="font-bold">{authProviderDisplay}</span></h1>
+			<h1 class="text-xl">Angemeldet über: <span class="font-bold">{authProviderDisplay}</span></h1>
 			<form method="POST" action="/logout">
 				<Button type="submit" size="sm" color="secondary">Abmelden</Button>
 			</form>
 		</div>
 		<div class="my-4 h-px bg-gray-200 dark:bg-gray-700"></div>
 
-		<h1 class="text-lg font-semibold">Namen bearbeiten</h1>
+		<h1 class="text-lg font-semibold">Profil bearbeiten</h1>
 		<form
 			method="POST"
 			action="?/save"
@@ -55,9 +54,9 @@
 			class="space-y-6"
 		>
 			<div class="space-y-4 bg-white">
-				{#if form?.message}
+				{#if form?.errors?.displayName || (form as any)?.message}
 					<Alert color="red">
-						{form.message}
+						{form?.errors?.displayName?.[0] ?? (form as any).message}
 					</Alert>
 				{/if}
 				<Toast transition={slide} bind:toastStatus position="top-right" color="green">
@@ -69,14 +68,6 @@
 					Erfolgreich gespeichert!
 				</Toast>
 
-				<div>
-					<Label for="name">Benutzername</Label>
-					<Input id="name" type="text" name="name" bind:value={nameInput} required />
-					<Helper>Eindeutiger Benutzername für Verknüpfungen und Spielgruppen.</Helper>
-					{#if form?.errors?.name}
-						<Helper color="red">{form.errors.name[0]}</Helper>
-					{/if}
-				</div>
 				<div>
 					<Label for="displayName">Anzeigename</Label>
 					<Input

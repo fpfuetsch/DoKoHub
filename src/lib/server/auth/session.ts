@@ -22,14 +22,12 @@ export const SESSION_MAX_AGE_SECONDS = env.SESSION_MAX_AGE_SECONDS
 export type SessionTokenPayload = {
 	sub: string;
 	displayName: string;
-	name: string;
 	provider: AuthProviderType;
 };
 
 export async function createSessionToken(user: PlayerType): Promise<string> {
 	return await new SignJWT({
 		displayName: user.displayName,
-		name: user.name,
 		provider: user.authProvider
 	})
 		.setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
@@ -48,7 +46,6 @@ export async function verifySessionToken(token: string): Promise<SessionTokenPay
 		return {
 			sub: result.payload.sub as string,
 			displayName: (result.payload.displayName as string) ?? '',
-			name: (result.payload.name as string) ?? '',
 			provider: result.payload.provider as AuthProviderType
 		};
 	} catch (error) {
