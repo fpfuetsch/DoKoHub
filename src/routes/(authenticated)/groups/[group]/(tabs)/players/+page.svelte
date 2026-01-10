@@ -253,7 +253,7 @@
 						{#if showQr}
 							<div class="flex w-full flex-col items-center gap-4">
 								<div class="mt-2 flex items-center justify-center">
-									<QRCode data={inviteUrl} logoPath={logo} logoSize={24} haveGappedModules={true} />
+									<QRCode data={inviteUrl} logoPath={logo} waitForLogo logoSize={24} haveGappedModules={true} />
 								</div>
 								<Helper class="w-full text-center"
 									>Lass andere Spieler den QR-Code scannen, um der Gruppe beizutreten.</Helper
