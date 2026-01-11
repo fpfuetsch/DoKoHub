@@ -4,7 +4,7 @@ import { CallType } from '$lib/domain/enums';
 import { GameRepository } from '$lib/server/repositories/game';
 import { requireUserOrRedirectToLogin } from '$lib/server/auth/guard';
 
-export const load: ServerLoad = async ({ params, locals, url  }) => {
+export const load: ServerLoad = async ({ params, locals, url }) => {
 	const user = requireUserOrRedirectToLogin({ locals, url });
 	const gameId = params.game!;
 	const groupId = params.group!;

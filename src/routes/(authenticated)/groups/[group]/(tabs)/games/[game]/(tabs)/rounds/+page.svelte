@@ -713,7 +713,11 @@
 	<form method="POST" action="?/saveRound" use:enhance={handleRoundSubmit}>
 		<div class="flex flex-col space-y-2">
 			<h3 class="mb-6 text-xl font-medium text-gray-900 dark:text-white">
-				{editingRoundId ? (isFinished ? 'Runde ansehen' : 'Runde bearbeiten') : 'Füge eine neue Runde hinzu'}
+				{editingRoundId
+					? isFinished
+						? 'Runde ansehen'
+						: 'Runde bearbeiten'
+					: 'Runde hinzufügen'}
 			</h3>
 
 			<!-- Section 1: Game Type Selection -->
@@ -999,9 +1003,12 @@
 							required
 							oninput={(e) => {
 								e.currentTarget.setCustomValidity('');
-								handleEyesInput(e.currentTarget.value === '' ? null : parseInt(e.currentTarget.value));
+								handleEyesInput(
+									e.currentTarget.value === '' ? null : parseInt(e.currentTarget.value)
+								);
 							}}
-							oninvalid={(e) => e.currentTarget.setCustomValidity('Augensumme ist leer oder ungültig.')}
+							oninvalid={(e) =>
+								e.currentTarget.setCustomValidity('Augensumme ist leer oder ungültig.')}
 							class="w-full border px-3 py-2 {eyesError
 								? 'border-red-500'
 								: 'border-gray-300 dark:border-gray-600'} rounded-lg bg-white text-lg font-semibold text-gray-900 focus:ring-2 focus:outline-none dark:bg-gray-700 dark:text-white {eyesError
@@ -1011,7 +1018,11 @@
 						<input
 							type="hidden"
 							name="eyesRe"
-							value={eyesInput !== null ? (eyesTeam === TeamEnum.RE ? eyesInput : 240 - eyesInput) : ''}
+							value={eyesInput !== null
+								? eyesTeam === TeamEnum.RE
+									? eyesInput
+									: 240 - eyesInput
+								: ''}
 						/>
 						{#if eyesError}
 							<div class="mt-1 text-xs text-red-600 dark:text-red-400">{eyesError}</div>

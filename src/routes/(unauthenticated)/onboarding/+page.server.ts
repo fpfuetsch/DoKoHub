@@ -55,14 +55,14 @@ export const actions: Actions = {
 			});
 		}
 
-			const { displayName } = parsed.data;
-			const playerRepository = new PlayerRepository();
+		const { displayName } = parsed.data;
+		const playerRepository = new PlayerRepository();
 
-			const player = await playerRepository.create({
-				displayName,
-				authProvider: payload.provider as AuthProvider,
-				authProviderId: payload.providerId
-			});
+		const player = await playerRepository.create({
+			displayName,
+			authProvider: payload.provider as AuthProvider,
+			authProviderId: payload.providerId
+		});
 
 		const token = await createSessionToken({
 			id: player.id,

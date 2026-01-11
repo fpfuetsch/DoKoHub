@@ -17,7 +17,7 @@
 <div class="flex min-h-screen items-center justify-center bg-white">
 	<Card class="m-4 w-full max-w-md rounded-lg border border-primary bg-white p-8 shadow-lg">
 		<div class="space-y-4">
-			<h1 class="text-3xl text-center font-semibold">
+			<h1 class="text-center text-3xl font-semibold">
 				Willkommen bei <span class="text-primary">DoKo</span><span class="text-secondary">Hub</span>
 			</h1>
 			<p class="text-center text-gray-600">Wähle deinen Anzeigename.</p>
@@ -40,7 +40,10 @@
 						{#if errors.displayName}
 							<Helper color="red">{errors.displayName}</Helper>
 						{/if}
-						<Helper>Dein Anzeigename wird in Gruppen und Statistiken verwendet. Du kannst ihn jederzeit in deinem Profil ändern.</Helper>
+						<Helper
+							>Dein Anzeigename wird in Gruppen und Statistiken verwendet. Du kannst ihn jederzeit
+							in deinem Profil ändern.</Helper
+						>
 					</div>
 
 					<div class="flex justify-end">

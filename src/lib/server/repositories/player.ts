@@ -186,7 +186,6 @@ export class PlayerRepository {
 		return new Player(result[0] as PlayerType);
 	}
 
-
 	async getByProvider(provider: AuthProviderType, providerId: string): Promise<Player | null> {
 		const result = await db
 			.select()
