@@ -1,12 +1,13 @@
 <script lang="ts">
-	import { Button, Modal, Label, Alert, Select, Toggle, ButtonGroup } from 'flowbite-svelte';
+	import { Button, Modal, Label, Alert, Toggle, ButtonGroup, Avatar } from 'flowbite-svelte';
 	import {
 		PlusOutline,
 		ExclamationCircleSolid,
 		CheckCircleSolid,
 		InfoCircleSolid,
 		ShuffleOutline,
-		RefreshOutline
+		RefreshOutline,
+		BarsOutline
 	} from 'flowbite-svelte-icons';
 	import { Game } from '$lib/domain/game';
 	import { formatDateTime } from '$lib/utils/format';
@@ -14,6 +15,7 @@
 	import { enhance, applyAction } from '$app/forms';
 	import { invalidateAll, goto } from '$app/navigation';
 	import type { SubmitFunction } from '@sveltejs/kit';
+	import type { Player } from '$lib/domain/player';
 
 	let { data, form }: PageProps = $props();
 	const games: Game[] = $derived(data.games ?? []);
@@ -22,8 +24,12 @@
 	const canCreateGame = $derived(groupPlayers.length >= 4);
 	let gameModal = $state(false);
 	let withMandatorySolos = $state(false);
-	let selectedPlayers = $state<(string | null)[]>([null, null, null, null]);
+	let sortedPlayers = $state<Player[]>([]);
 	let maxRoundCount = $state<8 | 12 | 16 | 20 | 24>(16);
+
+	// Drag and drop state
+	let draggedIndex = $state<number | null>(null);
+	let dragOverIndex = $state<number | null>(null);
 
 	const roundOptions: Array<{ value: 8 | 12 | 16 | 20 | 24; label: number }> = [
 		{ value: 8, label: 8 },
@@ -32,6 +38,12 @@
 		{ value: 20, label: 20 },
 		{ value: 24, label: 24 }
 	];
+
+	$effect(() => {
+		if (gameModal && sortedPlayers.length === 0) {
+			sortedPlayers = [...groupPlayers];
+		}
+	});
 
 	const handleGameSubmit: SubmitFunction = () => {
 		return async ({ result }) => {
@@ -45,7 +57,7 @@
 				await invalidateAll();
 				gameModal = false;
 				withMandatorySolos = false;
-				selectedPlayers = [null, null, null, null];
+				sortedPlayers = [];
 				maxRoundCount = 16;
 			}
 			await applyAction(result);
@@ -54,7 +66,78 @@
 
 	const randomizeSeats = () => {
 		const shuffled = [...groupPlayers].sort(() => Math.random() - 0.5);
-		selectedPlayers = shuffled.slice(0, 4).map((p) => p.id);
+		sortedPlayers = shuffled;
+	};
+
+	const reorderPlayers = (fromIndex: number, toIndex: number) => {
+		if (fromIndex === toIndex) return;
+		const newList = [...sortedPlayers];
+		const [movedPlayer] = newList.splice(fromIndex, 1);
+		newList.splice(toIndex, 0, movedPlayer);
+		sortedPlayers = newList;
+	};
+
+	const resetDragState = () => {
+		draggedIndex = null;
+		dragOverIndex = null;
+	};
+
+	// Desktop drag and drop handlers
+	const handleDragStart = (e: DragEvent, index: number) => {
+		draggedIndex = index;
+		dragOverIndex = index;
+		if (e.dataTransfer) {
+			e.dataTransfer.effectAllowed = 'move';
+		}
+	};
+
+	const handleDragOver = (e: DragEvent, index: number) => {
+		e.preventDefault();
+		dragOverIndex = index;
+		if (e.dataTransfer) {
+			e.dataTransfer.dropEffect = 'move';
+		}
+	};
+
+	const handleDrop = (e: DragEvent, targetIndex: number) => {
+		e.preventDefault();
+		if (draggedIndex !== null) {
+			reorderPlayers(draggedIndex, targetIndex);
+		}
+		resetDragState();
+	};
+
+	const handleDragEnd = () => {
+		resetDragState();
+	};
+
+	// Mobile touch handlers
+	const handleTouchStart = (e: TouchEvent, index: number) => {
+		e.preventDefault();
+		draggedIndex = index;
+		dragOverIndex = index;
+	};
+
+	const handleTouchMove = (e: TouchEvent) => {
+		if (draggedIndex === null) return;
+		e.preventDefault();
+		e.stopPropagation();
+
+		const touch = e.touches[0];
+		const element = document.elementFromPoint(touch.clientX, touch.clientY) as HTMLElement;
+		const playerItem = element?.closest('[data-player-index]');
+
+		if (playerItem) {
+			const targetIndex = parseInt(playerItem.getAttribute('data-player-index') || '0', 10);
+			dragOverIndex = targetIndex;
+		}
+	};
+
+	const handleTouchEnd = () => {
+		if (draggedIndex !== null && dragOverIndex !== null) {
+			reorderPlayers(draggedIndex, dragOverIndex);
+		}
+		resetDragState();
 	};
 </script>
 
@@ -164,7 +247,12 @@
 
 			<div class="flex items-center justify-between">
 				<Label for="pflichtsoli" class="font-medium">Mit Pflichtsoli</Label>
-				<Toggle id="pflichtsoli" bind:checked={withMandatorySolos} class="cursor-pointer" />
+				<Toggle
+					id="pflichtsoli"
+					bind:checked={withMandatorySolos}
+					class="cursor-pointer"
+					color="secondary"
+				/>
 				<input type="hidden" name="withMandatorySolos" value={withMandatorySolos} />
 			</div>
 
@@ -176,7 +264,7 @@
 				<ButtonGroup class="w-full">
 					{#each roundOptions as option}
 						<Button
-							color={maxRoundCount === option.value ? 'primary' : 'alternative'}
+							color={maxRoundCount === option.value ? 'secondary' : 'alternative'}
 							class="flex-1 "
 							onclick={() => (maxRoundCount = option.value)}
 						>
@@ -188,34 +276,82 @@
 
 			<div class="space-y-3">
 				<div class="flex items-center justify-between">
-					<div class="text-sm font-medium text-gray-900">Spieler uns Sitzposition auswählen</div>
+					<div class="text-sm font-medium text-gray-900 dark:text-white">
+						Spieler und Sitzposition auswählen
+					</div>
 					<Button
 						pill={true}
-						color="primary"
+						color="secondary"
 						onclick={randomizeSeats}
 						title="Spieler zufällig zuweisen"
 					>
 						<ShuffleOutline class="h-4 w-4" />
 					</Button>
 				</div>
-				<p class="text-xs text-gray-500">Gib die Sitzposition im Uhrzeigersinn an.</p>
+				<p class="text-xs text-gray-500 dark:text-gray-400">
+					Verschiebe Spieler, um deren Sitzposition (im Uhrzeigersinn) zu wählen.
+					{#if sortedPlayers.length > 4}
+					Die ersten 4 Spieler werden ausgewählt.
+					{/if}
+				</p>
+
 				{#each [0, 1, 2, 3] as position}
-					<Label class="space-y-2">
-						<span>Sitzposition {position + 1}</span>
-						<Select bind:value={selectedPlayers[position]} name="player_{position}" required>
-							<option value={null}>Wähle einen Spieler</option>
-							{#each groupPlayers as player}
-								<option
-									value={player.id}
-									disabled={selectedPlayers.includes(player.id) &&
-										selectedPlayers[position] !== player.id}
-								>
-									{player.displayName}
-								</option>
-							{/each}
-						</Select>
-					</Label>
+					<input type="hidden" name="player_{position}" value={sortedPlayers[position]?.id ?? ''} />
 				{/each}
+
+				<div class="space-y-2">
+					{#each sortedPlayers as player, index (player.id)}
+						{#if index === 4}
+							<div class="relative my-2">
+								<div class="absolute inset-0 flex items-center">
+									<div class="w-full border-t border-gray-300 dark:border-gray-600"></div>
+								</div>
+								<div class="relative flex justify-center text-xs">
+									<span class="bg-white px-2 text-gray-500 dark:bg-gray-900 dark:text-gray-400"
+										>Nicht ausgewählt</span
+									>
+								</div>
+							</div>
+						{/if}
+						<div
+							data-player-index={index}
+							class="flex cursor-move items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 select-none dark:border-gray-700 dark:bg-gray-800 {draggedIndex ===
+							index
+								? 'opacity-50 ring-2 ring-secondary'
+								: dragOverIndex === index && draggedIndex !== null
+									? 'bg-secondary/10 ring-2 ring-secondary'
+									: ''}"
+							style="transition: opacity 0.15s ease, box-shadow 0.15s ease; touch-action: none;"
+							draggable="true"
+							ondragstart={(e) => handleDragStart(e, index)}
+							ondragover={(e) => handleDragOver(e, index)}
+							ondrop={(e) => handleDrop(e, index)}
+							ondragend={handleDragEnd}
+							ontouchstart={(e) => handleTouchStart(e, index)}
+							ontouchmove={handleTouchMove}
+							ontouchend={handleTouchEnd}
+							role="button"
+							tabindex="0"
+						>
+							<Avatar class="shrink-0 bg-secondary text-white">
+								{player.displayName.charAt(0).toUpperCase()}
+							</Avatar>
+							<div class="min-w-0 flex-1">
+								<div class="truncate font-medium text-gray-900 dark:text-white">
+									{player.displayName}
+								</div>
+								{#if index < 4}
+									<div class="text-xs text-gray-500 dark:text-gray-400">
+										Sitzposition {index + 1}
+									</div>
+								{/if}
+							</div>
+							<div class="shrink-0 text-gray-400 dark:text-gray-500">
+								<BarsOutline class="h-6 w-6" />
+							</div>
+						</div>
+					{/each}
+				</div>
 			</div>
 			<div class="flex justify-end gap-3">
 				<Button type="submit" value="create">Erstellen</Button>
