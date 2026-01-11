@@ -94,6 +94,16 @@
 		dragOverIndex = index;
 		if (e.dataTransfer) {
 			e.dataTransfer.effectAllowed = 'move';
+			// Use the entire row as the drag image and align it to the
+			// exact mouse position within the row so it doesn't trail
+			const target = e.target as HTMLElement | null;
+			const row = target?.closest('[data-player-index]') as HTMLElement | null;
+			if (row) {
+				const rect = row.getBoundingClientRect();
+				const offsetX = e.clientX - rect.left;
+				const offsetY = e.clientY - rect.top;
+				e.dataTransfer.setDragImage(row, offsetX, offsetY);
+			}
 		}
 	};
 
@@ -321,23 +331,16 @@
 						{/if}
 						<div
 							data-player-index={index}
-							class="flex cursor-move items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 select-none dark:border-gray-700 dark:bg-gray-800 {draggedIndex ===
+							class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 select-none dark:border-gray-700 dark:bg-gray-800 {draggedIndex ===
 							index
 								? 'opacity-50 ring-2 ring-secondary'
 								: dragOverIndex === index && draggedIndex !== null
 									? 'bg-secondary/10 ring-2 ring-secondary'
 									: ''}"
-							style="transition: opacity 0.15s ease, box-shadow 0.15s ease; touch-action: none;"
-							draggable="true"
-							ondragstart={(e) => handleDragStart(e, index)}
+							style="transition: opacity 0.15s ease, box-shadow 0.15s ease;"
+							role="listitem"
 							ondragover={(e) => handleDragOver(e, index)}
 							ondrop={(e) => handleDrop(e, index)}
-							ondragend={handleDragEnd}
-							ontouchstart={(e) => handleTouchStart(e, index)}
-							ontouchmove={handleTouchMove}
-							ontouchend={handleTouchEnd}
-							role="button"
-							tabindex="0"
 						>
 							<Avatar class="shrink-0 bg-secondary text-white">
 								{player.displayName.charAt(0).toUpperCase()}
@@ -352,7 +355,19 @@
 									</div>
 								{/if}
 							</div>
-							<div class="shrink-0 text-gray-400 dark:text-gray-500">
+							<div
+								class="shrink-0 cursor-grab touch-none text-gray-400 active:cursor-grabbing dark:text-gray-500"
+								aria-label="Sitzposition verschieben"
+								title="Zum Verschieben ziehen"
+								role="button"
+								tabindex="0"
+								draggable="true"
+								ondragstart={(e) => handleDragStart(e, index)}
+								ondragend={handleDragEnd}
+								ontouchstart={(e) => handleTouchStart(e, index)}
+								ontouchmove={handleTouchMove}
+								ontouchend={handleTouchEnd}
+							>
 								<BarsOutline class="h-6 w-6" />
 							</div>
 						</div>
