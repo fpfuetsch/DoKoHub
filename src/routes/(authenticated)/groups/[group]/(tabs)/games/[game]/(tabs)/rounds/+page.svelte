@@ -188,7 +188,7 @@
 	let roundType = $state<string>(RoundTypeEnum.Normal);
 	let soloType = $state<SoloTypeEnum | null>(null);
 	let soloTypeSelection = $state<string | null>(null);
-	let eyesReInput = $state(120);
+	let eyesInput = $state(120);
 	let eyesTeam = $state<TeamEnum>(TeamEnum.RE);
 	let eyesError = $state<string | null>(null);
 	let playerTeams = $state<Record<string, TeamEnum | undefined>>({});
@@ -282,10 +282,10 @@
 	const handleEyesInput = (input: number) => {
 		if (input < 0 || input > 240) {
 			eyesError = 'Augensumme muss zwischen 0 und 240 liegen';
-			eyesReInput = Math.max(0, Math.min(240, input));
+			eyesInput = Math.max(0, Math.min(240, input));
 		} else {
 			eyesError = null;
-			eyesReInput = input;
+			eyesInput = input;
 		}
 	};
 
@@ -299,7 +299,7 @@
 				roundType = RoundTypeEnum.Normal;
 				soloType = null;
 				soloTypeSelection = null;
-				eyesReInput = 120;
+				eyesInput = 120;
 				eyesTeam = TeamEnum.RE;
 				eyesError = null;
 				playerTeams = {};
@@ -316,7 +316,7 @@
 		roundType = RoundTypeEnum.Normal;
 		soloType = null;
 		soloTypeSelection = null;
-		eyesReInput = 120;
+		eyesInput = 120;
 		eyesTeam = TeamEnum.RE;
 		eyesError = null;
 		playerTeams = {};
@@ -358,7 +358,7 @@
 			soloType = SoloTypeEnum.Lust;
 		}
 		soloTypeSelection = round.type.startsWith('SOLO') ? round.type.replace('SOLO_', '') : null;
-		eyesReInput = round.eyesRe;
+		eyesInput = round.eyesRe;
 		eyesTeam = TeamEnum.RE;
 		eyesError = null;
 
@@ -772,7 +772,7 @@
 					{#if roundType.startsWith('HOCHZEIT')}
 						<div>
 							<Label class="mb-2 block text-xs text-gray-600 dark:text-gray-400"
-								>Hochzeitvariante</Label
+								>Hochzeitsvariante</Label
 							>
 							<ButtonGroup class="w-full">
 								<Button
@@ -962,7 +962,7 @@
 								class={`flex-1 ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
 								disabled={!canEditRounds}
 								onclick={() => {
-									eyesReInput = 240 - eyesReInput;
+									eyesInput = 240 - eyesInput;
 									eyesTeam = TeamEnum.RE;
 								}}
 							>
@@ -974,24 +974,13 @@
 								class={`flex-1 ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
 								disabled={!canEditRounds}
 								onclick={() => {
-									eyesReInput = 240 - eyesReInput;
+									eyesInput = 240 - eyesInput;
 									eyesTeam = TeamEnum.KONTRA;
 								}}
 							>
 								Kontra
 							</Button>
 						</ButtonGroup>
-						{#if game.withMandatorySolos}
-							<p class="mt-1 text-[11px] text-gray-600 dark:text-gray-400">
-								{#if remainingMandatorySoloPlayers.length === 0}
-									Alle Pflichtsoli wurden gespielt.
-								{:else}
-									Offene Pflichtsoli: {remainingMandatorySoloPlayers
-										.map((p) => p.player?.displayName ?? 'Spieler')
-										.join(', ')}
-								{/if}
-							</p>
-						{/if}
 					</div>
 
 					<div>
@@ -1000,10 +989,9 @@
 						>
 						<input
 							type="number"
-							name="eyesRe"
 							min="0"
 							max="240"
-							value={eyesReInput}
+							value={eyesInput}
 							disabled={!canEditRounds}
 							oninput={(e) => handleEyesInput(parseInt(e.currentTarget.value) || 0)}
 							class="w-full border px-3 py-2 {eyesError
@@ -1012,11 +1000,16 @@
 								? 'focus:ring-red-500'
 								: 'focus:ring-blue-500'} focus:border-transparent"
 						/>
+						<input
+							type="hidden"
+							name="eyesRe"
+							value={eyesTeam === TeamEnum.RE ? eyesInput : 240 - eyesInput}
+						/>
 						{#if eyesError}
 							<div class="mt-1 text-xs text-red-600 dark:text-red-400">{eyesError}</div>
 						{:else}
 							<div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-								{eyesTeam === TeamEnum.RE ? 'Kontra' : 'Re'} Augen: {240 - eyesReInput}
+								{eyesTeam === TeamEnum.RE ? 'Kontra' : 'Re'} Augen: {240 - eyesInput}
 							</div>
 						{/if}
 					</div>

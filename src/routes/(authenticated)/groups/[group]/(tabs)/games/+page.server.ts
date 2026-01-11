@@ -27,7 +27,7 @@ export const actions: Actions = {
 
 		const parsed = CreateGameSchema.safeParse({
 			maxRoundCount: formData.get('maxRoundCount'),
-			withMandatorySolos: formData.get('withMandatorySolos'),
+			withMandatorySolos: formData.get('withMandatorySolos') === 'true',
 			player_0: formData.get('player_0'),
 			player_1: formData.get('player_1'),
 			player_2: formData.get('player_2'),
