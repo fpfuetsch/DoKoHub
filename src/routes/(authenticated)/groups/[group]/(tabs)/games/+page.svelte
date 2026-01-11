@@ -305,10 +305,7 @@
 					</Button>
 				</div>
 				<p class="text-xs text-gray-500 dark:text-gray-400">
-					Verschiebe Spieler, um deren Sitzposition (im Uhrzeigersinn) zu wählen.
-					{#if sortedPlayers.length > 4}
-						Die ersten 4 Spieler werden ausgewählt.
-					{/if}
+					Verschiebe die Spieler, um deren Sitzposition <strong>im Uhrzeigersinn</strong> auszuwählen.
 				</p>
 
 				{#each [0, 1, 2, 3] as position}
