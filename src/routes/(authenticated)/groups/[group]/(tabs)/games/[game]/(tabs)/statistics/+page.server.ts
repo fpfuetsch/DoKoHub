@@ -2,10 +2,10 @@ import { error, type ServerLoad } from '@sveltejs/kit';
 import { Team, BonusType } from '$lib/domain/enums';
 import { CallType } from '$lib/domain/enums';
 import { GameRepository } from '$lib/server/repositories/game';
-import { requireUserOrFail } from '$lib/server/auth/guard';
+import { requireUserOrRedirectToLogin } from '$lib/server/auth/guard';
 
-export const load: ServerLoad = async ({ locals, params }) => {
-	const user = requireUserOrFail({ locals });
+export const load: ServerLoad = async ({ params, locals, url  }) => {
+	const user = requireUserOrRedirectToLogin({ locals, url });
 	const gameId = params.game!;
 	const groupId = params.group!;
 

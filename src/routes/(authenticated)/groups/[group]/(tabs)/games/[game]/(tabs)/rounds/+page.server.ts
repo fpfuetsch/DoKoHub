@@ -88,9 +88,9 @@ function buildTeamAssignments(teams: Record<string, string>, game: any): Map<str
 
 export const actions = {
 	saveRound: async ({ request, locals, params }: RequestEvent) => {
+		const user = requireUserOrFail({ locals });
 		const gameId = params.game!;
 		const groupId = params.group!;
-		const user = requireUserOrFail({ locals });
 		const formData = await request.formData();
 		const roundId = formData.get('roundId')?.toString() || null;
 
@@ -214,9 +214,9 @@ export const actions = {
 		}
 	},
 	finishGame: async ({ locals, params }: RequestEvent) => {
+		const user = requireUserOrFail({ locals });
 		const gameId = params.game!;
 		const groupId = params.group!;
-		const user = requireUserOrFail({ locals });
 
 		try {
 			const gameRepo = new GameRepository(user.id);

@@ -15,7 +15,7 @@ export function requireUserOrRedirectToLogin(event: {
 
 export function requireUserOrFail(event: { locals: App.Locals }): AuthenticatedUser {
 	if (!event.locals.user) {
-		throw fail(401, { error: 'Nicht angemeldet.' });
+		throw fail(401, { error: 'Unauthorized' });
 	}
 	return event.locals.user;
 }

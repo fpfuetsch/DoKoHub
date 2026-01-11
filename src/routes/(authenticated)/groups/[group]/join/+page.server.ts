@@ -1,7 +1,7 @@
 import type { Actions } from './$types';
 import { verifyInvite } from '$lib/server/auth/invitation';
 import { GroupRepository } from '$lib/server/repositories/group';
-import { requireUserOrRedirectToLogin } from '$lib/server/auth/guard';
+import { requireUserOrFail, requireUserOrRedirectToLogin } from '$lib/server/auth/guard';
 import { redirect, fail } from '@sveltejs/kit';
 
 export async function load({ url, params, locals }) {
@@ -29,7 +29,7 @@ export async function load({ url, params, locals }) {
 
 export const actions: Actions = {
 	accept: async (event) => {
-		const user = requireUserOrRedirectToLogin({ locals: event.locals, url: event.url });
+		const user = requireUserOrFail({ locals: event.locals });
 
 		const form = await event.request.formData();
 		const token = form.get('token') as string;
