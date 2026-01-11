@@ -27,6 +27,12 @@
 	let sortedPlayers = $state<Player[]>([]);
 	let maxRoundCount = $state<8 | 12 | 16 | 20 | 24>(16);
 
+	const triggerHaptic = () => {
+		if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+			navigator.vibrate?.(20);
+		}
+	};
+
 	// Drag and drop state
 	let draggedIndex = $state<number | null>(null);
 	let dragOverIndex = $state<number | null>(null);
@@ -113,14 +119,13 @@
 
 	// Mobile touch handlers
 	const handleTouchStart = (e: TouchEvent, index: number) => {
-		e.preventDefault();
 		draggedIndex = index;
 		dragOverIndex = index;
+		triggerHaptic();
 	};
 
 	const handleTouchMove = (e: TouchEvent) => {
 		if (draggedIndex === null) return;
-		e.preventDefault();
 		e.stopPropagation();
 
 		const touch = e.touches[0];
@@ -137,6 +142,7 @@
 		if (draggedIndex !== null && dragOverIndex !== null) {
 			reorderPlayers(draggedIndex, dragOverIndex);
 		}
+		triggerHaptic();
 		resetDragState();
 	};
 </script>
@@ -291,7 +297,7 @@
 				<p class="text-xs text-gray-500 dark:text-gray-400">
 					Verschiebe Spieler, um deren Sitzposition (im Uhrzeigersinn) zu wählen.
 					{#if sortedPlayers.length > 4}
-					Die ersten 4 Spieler werden ausgewählt.
+						Die ersten 4 Spieler werden ausgewählt.
 					{/if}
 				</p>
 
