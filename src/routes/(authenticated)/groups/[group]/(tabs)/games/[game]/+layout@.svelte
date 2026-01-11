@@ -19,7 +19,8 @@
 		DotsVerticalOutline,
 		ExclamationCircleSolid,
 		StopSolid,
-		TrashBinSolid
+		TrashBinSolid,
+		BookOutline
 	} from 'flowbite-svelte-icons';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -103,6 +104,17 @@
 			<DotsVerticalOutline class="h-6 w-6" />
 		</Button>
 		<Dropdown simple triggeredBy="#game-menu">
+			<DropdownItem
+				href="https://doko-verband.de/wp-content/uploads/2024/09/Turnierspielregeln-Stand-2024-02-24.pdf"
+				target="_blank"
+				rel="noopener noreferrer"
+				class="list-none"
+			>
+				<div class="flex items-center gap-2">
+					<BookOutline class="h-4 w-4" />
+					<span>Offizielles Regelwerk</span>
+				</div>
+			</DropdownItem>
 			{#if !game?.isFinished()}
 				<DropdownItem onclick={() => (finishModal = true)} class="list-none">
 					<div class="flex items-center gap-2">
