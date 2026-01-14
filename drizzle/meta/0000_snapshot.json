@@ -1,5 +1,5 @@
 {
-  "id": "2b7ed2fd-028b-44e6-891d-70cbe8aa437a",
+  "id": "e8e9551a-6217-473d-99bd-5a3ad6da6f26",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -49,10 +49,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "game_participant_player_id_players_id_fk": {
-          "name": "game_participant_player_id_players_id_fk",
+        "game_participant_player_id_player_id_fk": {
+          "name": "game_participant_player_id_player_id_fk",
           "tableFrom": "game_participant",
-          "tableTo": "players",
+          "tableTo": "player",
           "columnsFrom": [
             "player_id"
           ],
@@ -122,10 +122,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "game_round_bonus_player_id_players_id_fk": {
-          "name": "game_round_bonus_player_id_players_id_fk",
+        "game_round_bonus_player_id_player_id_fk": {
+          "name": "game_round_bonus_player_id_player_id_fk",
           "tableFrom": "game_round_bonus",
-          "tableTo": "players",
+          "tableTo": "player",
           "columnsFrom": [
             "player_id"
           ],
@@ -188,10 +188,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "game_round_call_player_id_players_id_fk": {
-          "name": "game_round_call_player_id_players_id_fk",
+        "game_round_call_player_id_player_id_fk": {
+          "name": "game_round_call_player_id_player_id_fk",
           "tableFrom": "game_round_call",
-          "tableTo": "players",
+          "tableTo": "player",
           "columnsFrom": [
             "player_id"
           ],
@@ -254,10 +254,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "game_round_participant_player_id_players_id_fk": {
-          "name": "game_round_participant_player_id_players_id_fk",
+        "game_round_participant_player_id_player_id_fk": {
+          "name": "game_round_participant_player_id_player_id_fk",
           "tableFrom": "game_round_participant",
-          "tableTo": "players",
+          "tableTo": "player",
           "columnsFrom": [
             "player_id"
           ],
@@ -326,10 +326,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "game_round_result_player_id_players_id_fk": {
-          "name": "game_round_result_player_id_players_id_fk",
+        "game_round_result_player_id_player_id_fk": {
+          "name": "game_round_result_player_id_player_id_fk",
           "tableFrom": "game_round_result",
-          "tableTo": "players",
+          "tableTo": "player",
           "columnsFrom": [
             "player_id"
           ],
@@ -509,10 +509,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "group_member_player_id_players_id_fk": {
-          "name": "group_member_player_id_players_id_fk",
+        "group_member_player_id_player_id_fk": {
+          "name": "group_member_player_id_player_id_fk",
           "tableFrom": "group_member",
-          "tableTo": "players",
+          "tableTo": "player",
           "columnsFrom": [
             "player_id"
           ],
@@ -562,8 +562,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.players": {
-      "name": "players",
+    "public.player": {
+      "name": "player",
       "schema": "",
       "columns": {
         "id": {
@@ -572,12 +572,6 @@
           "primaryKey": true,
           "notNull": true,
           "default": "gen_random_uuid()"
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
         },
         "display_name": {
           "name": "display_name",
@@ -610,15 +604,7 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "players_name_unique": {
-          "name": "players_name_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

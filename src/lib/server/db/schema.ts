@@ -40,7 +40,7 @@ export const RoundResultDbEnum = pgEnum(
 	Object.values(RoundResult) as [RoundResult, ...RoundResult[]]
 );
 
-export const PlayerTable = pgTable('players', {
+export const PlayerTable = pgTable('player', {
 	id: uuid('id').primaryKey().defaultRandom(),
 	displayName: text('display_name').notNull(),
 	authProvider: AuthProviderDbEnum('auth_provider').notNull().default(AuthProvider.Local),
