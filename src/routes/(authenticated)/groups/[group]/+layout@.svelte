@@ -140,7 +140,7 @@
 	{@render children()}
 </div>
 <Modal bind:open={renameModal} size="xs" autoclose={false}>
-	<form method="POST" action="/groups/{groupId}/games?/rename" use:enhance={handleRenameSubmit}>
+	<form method="POST" action="/groups/{groupId}?/rename" use:enhance={handleRenameSubmit}>
 		<div class="flex flex-col space-y-4">
 			<h3 class="text-xl font-medium text-gray-900 dark:text-white">Gruppe umbenennen</h3>
 
@@ -176,7 +176,7 @@
 </Modal>
 
 <Modal bind:open={deleteModal} size="xs" autoclose={false}>
-	<form method="POST" action="/groups/{groupId}/games?/deleteGroup" use:enhance={handleDeleteGroup}>
+	<form method="POST" action="/groups/{groupId}?/delete" use:enhance={handleDeleteGroup}>
 		<div class="flex flex-col space-y-4">
 			<h3 class="text-xl font-medium text-gray-900 dark:text-white">Gruppe löschen</h3>
 

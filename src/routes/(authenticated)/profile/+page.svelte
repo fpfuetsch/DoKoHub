@@ -54,11 +54,12 @@
 			class="space-y-6"
 		>
 			<div class="space-y-4 bg-white">
-				{#if form?.errors?.displayName || (form as any)?.message}
+				{#if form?.errors?.[0]}
 					<Alert color="red">
-						{form?.errors?.displayName?.[0] ?? (form as any).message}
+						{form.errors[0]}
 					</Alert>
 				{/if}
+
 				<Toast transition={slide} bind:toastStatus position="top-right" color="green">
 					{#snippet icon()}
 						<CheckCircleOutline
@@ -78,9 +79,6 @@
 						required
 					/>
 					<Helper>Der Name, unter dem du anderen Spielern angezeigt wirst.</Helper>
-					{#if form?.errors?.displayName}
-						<Helper color="red">{form.errors.displayName[0]}</Helper>
-					{/if}
 				</div>
 			</div>
 

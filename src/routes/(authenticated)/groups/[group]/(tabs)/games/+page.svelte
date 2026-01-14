@@ -280,7 +280,7 @@
 				<ButtonGroup class="w-full">
 					{#each roundOptions as option}
 						<Button
-							color={maxRoundCount === option.value ? 'secondary' : 'alternative'}
+							color={maxRoundCount === option.value ? 'secondary' : 'light'}
 							class="flex-1 "
 							onclick={() => (maxRoundCount = option.value)}
 						>

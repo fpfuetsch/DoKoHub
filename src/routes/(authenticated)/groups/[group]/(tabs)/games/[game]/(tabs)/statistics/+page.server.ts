@@ -10,10 +10,15 @@ export const load: ServerLoad = async ({ params, locals, url }) => {
 	const groupId = params.group!;
 
 	const gameRepo = new GameRepository(user.id);
-	const game = await gameRepo.getById(gameId, groupId);
+	const gameResult = await gameRepo.getById(gameId, groupId);
 
-	if (!game || !game.rounds) {
-		throw error(404, 'Spiel nicht gefunden');
+	if (!gameResult.ok) {
+		throw error(gameResult.status, gameResult.error);
+	}
+
+	const game = gameResult.value;
+	if (!game.rounds) {
+		throw error(404, 'Spiel nicht gefunden.');
 	}
 
 	// Prepare player list and color map

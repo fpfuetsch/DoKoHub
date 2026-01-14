@@ -66,6 +66,8 @@
 	let leaveConfirmText = $state('');
 	let takeoverError = $state('');
 	let deleteError = $state('');
+	let createLocalError = $state('');
+	let playerNameInput = $state('');
 
 	let inviteUrl = $state<string | null>(null);
 	let showQr = $state(false);
@@ -217,7 +219,11 @@
 <Button
 	pill={false}
 	class="fixed right-6 bottom-6 z-50 rounded-2xl p-2 shadow-lg"
-	onclick={() => (formModal = true)}
+	onclick={() => {
+		formModal = true;
+		createLocalError = '';
+		playerNameInput = '';
+	}}
 >
 	<PlusOutline class="h-10 w-10" />
 </Button>
@@ -354,16 +360,30 @@
 							if (result.type === 'success') {
 								await update();
 								formModal = false;
+								playerNameInput = '';
+								createLocalError = '';
+							} else {
+								createLocalError =
+									result.type === 'failure' && result.data?.error
+										? String(result.data.error)
+										: 'Fehler beim Hinzufügen.';
 							}
 						};
 					}}
 				>
 					<div class="flex flex-col space-y-2">
+						{#if createLocalError}
+							<Alert color="red" class="mb-2">
+								{#snippet icon()}<InfoCircleSolid class="h-5 w-5" />{/snippet}
+								{createLocalError}
+							</Alert>
+						{/if}
 						<Label for="playerName">Spielername</Label>
 						<Input
 							id="playerName"
 							type="text"
 							name="playerName"
+							bind:value={playerNameInput}
 							placeholder="Name eingeben..."
 							required
 						/>
@@ -372,7 +392,15 @@
 							hinzugefügt werden.
 						</Helper>
 						<div class="flex justify-end gap-3">
-							<Button type="button" color="alternative" onclick={() => (formModal = false)}>
+							<Button
+								type="button"
+								color="alternative"
+								onclick={() => {
+									formModal = false;
+									playerNameInput = '';
+									createLocalError = '';
+								}}
+							>
 								Abbrechen
 							</Button>
 							<Button type="submit">Hinzufügen</Button>
@@ -535,7 +563,7 @@
 		</Alert>
 		<form
 			method="POST"
-			action="?/removeLocalPlayer"
+			action="?/removeLocal"
 			use:enhance={() => {
 				return async ({ result, update }) => {
 					await update();
@@ -615,7 +643,7 @@
 		</Alert>
 		<form
 			method="POST"
-			action="?/leaveGroup"
+			action="?/leave"
 			use:enhance={() => {
 				return async ({ result }) => {
 					if (result.type === 'success') {

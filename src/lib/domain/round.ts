@@ -98,12 +98,12 @@ export class Round implements RoundData {
 		// Validate solo type is only LUST or PFLICHT when game has mandatory solos
 		if (round.soloType && !withMandatorySolos) {
 			if (round.soloType === SoloType.Lust || round.soloType === SoloType.Pflicht) {
-				return 'Solotyp (Lust- oder Pflichtsolo) ist nur bei Spielen mit Pflichtsolo erlaubt';
+				return 'Solotyp (Lust- oder Pflichtsolo) ist nur bei Spielen mit Pflichtsolo erlaubt.';
 			}
 		}
 
 		if (round.participants.some((p) => !p.team)) {
-			return 'Alle Spieler müssen einem Team zugeordnet werden';
+			return 'Alle Spieler müssen einem Team zugeordnet werden.';
 		}
 
 		const reCount = round.participants.filter((p) => p.team === Team.RE).length;
@@ -113,11 +113,11 @@ export class Round implements RoundData {
 			round.type === RoundType.HochzeitStill || round.type === RoundType.HochzeitUngeklaert;
 
 		if (round.eyesRe < 0 || round.eyesRe > 240) {
-			return 'Augensumme muss zwischen 0 und 240 liegen';
+			return 'Augensumme muss >= 0 und <= 240 sein.';
 		}
 
 		if (round.participants.length !== 4) {
-			return 'Es müssen genau 4 Teilnehmer gesetzt sein';
+			return 'Es müssen genau 4 Teilnehmer gesetzt sein.';
 		}
 
 		// Validate aggregate bonuses across all players
@@ -137,28 +137,28 @@ export class Round implements RoundData {
 		const bonusesAllowed =
 			round.type === RoundType.Normal || round.type === RoundType.HochzeitNormal;
 		if (!bonusesAllowed && (totalFuchs > 0 || totalKarlchen > 0 || totalDoko > 0)) {
-			return 'Bonuspunkte werden nur in Normalspielen oder normaler Hochzeit gewertet';
+			return 'Bonuspunkte werden nur in Normalspielen oder normaler Hochzeit gewertet.';
 		}
 
-		if (totalFuchs < 0 || totalFuchs > 2) return 'Es können max 2 Füchse vergeben werden';
-		if (totalKarlchen < 0 || totalKarlchen > 1) return 'Es kann max 1 Karlchen geben';
-		if (totalDoko < 0 || totalDoko > 5) return 'Es können max 5 Doppelköpfe vergeben werden';
+		if (totalFuchs < 0 || totalFuchs > 2) return 'Es können max. 2 Füchse gefangen werden.';
+		if (totalKarlchen < 0 || totalKarlchen > 1) return 'Es kann max. 1 Karlchen geben.';
+		if (totalDoko < 0 || totalDoko > 5) return 'Es können max. 5 Doppelköpfe vergeben werden.';
 
 		if (isSolo || isStilleOrUngeklarteHochzeit) {
-			if (reCount !== 1) return 'Es muss genau 1 Spieler im Re-Team sein';
-			if (kontraCount !== 3) return 'Es müssen genau 3 Spieler im Kontra-Team sein';
+			if (reCount !== 1) return 'Es muss genau 1 Spieler im Re-Team sein.';
+			if (kontraCount !== 3) return 'Es müssen genau 3 Spieler im Kontra-Team sein.';
 		} else {
-			if (reCount !== 2) return 'Es müssen genau 2 Spieler im Re-Team sein';
-			if (kontraCount !== 2) return 'Es müssen genau 2 Spieler im Kontra-Team sein';
+			if (reCount !== 2) return 'Es müssen genau 2 Spieler im Re-Team sein.';
+			if (kontraCount !== 2) return 'Es müssen genau 2 Spieler im Kontra-Team sein.';
 		}
 
 		for (const participant of round.participants) {
 			for (const call of participant.calls) {
 				if (call.callType === CallType.RE && participant.team !== Team.RE) {
-					return 'Re-Ansage muss vom Re-Team kommen';
+					return 'Re-Ansage muss vom Re-Team kommen.';
 				}
 				if (call.callType === CallType.KONTRA && participant.team !== Team.KONTRA) {
-					return 'Kontra-Ansage muss vom Kontra-Team kommen';
+					return 'Kontra-Ansage muss vom Kontra-Team kommen.';
 				}
 			}
 		}

@@ -18,8 +18,8 @@ export async function load({ url, params, locals }) {
 
 	// check if already member
 	const groupRepo = new GroupRepository(user.id);
-	const group = await groupRepo.getById(String(payload.groupId));
-	if (group) {
+	const groupResult = await groupRepo.getById(String(payload.groupId));
+	if (groupResult.ok) {
 		// already member - redirect to group page
 		throw redirect(303, `/groups/${payload.groupId}/`);
 	}
@@ -33,7 +33,7 @@ export const actions: Actions = {
 
 		const form = await event.request.formData();
 		const token = form.get('token') as string;
-		if (!token) return fail(400, { error: 'Kein Token' });
+		if (!token) return fail(400, { error: 'Kein Token.' });
 
 		const payload = await verifyInvite(token);
 		if (!payload || !payload.groupId)
@@ -44,8 +44,8 @@ export const actions: Actions = {
 			return fail(400, { error: 'Invite gehört zu einer anderen Gruppe.' });
 
 		const groupRepo = new GroupRepository(user.id);
-		const success = await groupRepo.addMember(groupId, user.id, true);
-		if (!success) return fail(400, { error: 'Fehler beim Beitreten der Gruppe,' });
+		const addResult = await groupRepo.addMember(groupId, user.id, true);
+		if (!addResult.ok) return fail(addResult.status, { error: addResult.error });
 
 		// Redirect to group page
 		throw redirect(303, `/groups/${groupId}`);

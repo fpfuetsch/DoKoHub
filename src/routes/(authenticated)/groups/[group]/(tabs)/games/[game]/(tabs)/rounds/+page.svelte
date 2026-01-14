@@ -678,7 +678,7 @@
 						Alle Runden sind gespielt. Wenn du das Spiel abschließt können Runden nicht mehr
 						bearbeitet werden.
 					</p>
-					<form method="POST" action="?/finishGame" class="mt-3 flex justify-end">
+					<form method="POST" action="/groups/{game.groupId}/games/{game.id}?/finish" class="mt-3 flex justify-end">
 						<Button type="submit" color="primary" class="px-4 py-2">Spiel abschließen</Button>
 					</form>
 				</div>
@@ -710,14 +710,10 @@
 {/if}
 
 <Modal bind:open={roundModal} size="sm" autoclose={false} class="p-2 *:border-0!">
-	<form method="POST" action="?/saveRound" use:enhance={handleRoundSubmit}>
+	<form method="POST" action="?/save" use:enhance={handleRoundSubmit}>
 		<div class="flex flex-col space-y-2">
 			<h3 class="mb-6 text-xl font-medium text-gray-900 dark:text-white">
-				{editingRoundId
-					? isFinished
-						? 'Runde ansehen'
-						: 'Runde bearbeiten'
-					: 'Runde hinzufügen'}
+				{editingRoundId ? (isFinished ? 'Runde ansehen' : 'Runde bearbeiten') : 'Runde hinzufügen'}
 			</h3>
 
 			<!-- Section 1: Game Type Selection -->

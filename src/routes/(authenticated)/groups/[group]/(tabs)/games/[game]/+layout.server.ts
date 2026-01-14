@@ -6,11 +6,11 @@ import type { LayoutServerLoad } from './$types';
 export const load: LayoutServerLoad = async ({ params, locals, url }) => {
 	const user = requireUserOrRedirectToLogin({ locals, url });
 	const gameRepo = new GameRepository(user.id);
-	const game = await gameRepo.getById(params.game, params.group);
+	const gameResult = await gameRepo.getById(params.game, params.group);
 
-	if (!game) {
-		throw error(404, 'Spiel nicht gefunden');
+	if (!gameResult.ok) {
+		throw error(gameResult.status, gameResult.error);
 	}
 
-	return { game };
+	return { game: gameResult.value };
 };

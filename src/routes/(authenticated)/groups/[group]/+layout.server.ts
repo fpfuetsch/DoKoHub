@@ -7,9 +7,9 @@ export const load: LayoutServerLoad = async ({ params, locals, url }) => {
 	const user = requireUserOrRedirectToLogin({ locals, url });
 
 	const repo = new GroupRepository(user.id);
-	const group = await repo.getById(params.group);
-	if (!group) {
-		throw error(404, 'Gruppe nicht gefunden');
+	const groupResult = await repo.getById(params.group);
+	if (!groupResult.ok) {
+		throw error(groupResult.status, groupResult.error);
 	}
-	return { group, user };
+	return { group: groupResult.value, user };
 };

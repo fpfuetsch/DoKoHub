@@ -7,10 +7,10 @@ import {
 	GameRoundResultTable,
 	GameTable,
 	GameParticipantTable,
-	GroupMemberTable,
 	PlayerTable
 } from '$lib/server/db/schema';
 import { RoundType, Team, CallType, BonusType, SoloType, RoundResult } from '$lib/server/enums';
+import { BaseRepository } from '$lib/server/repositories/base';
 import type { GameRoundType, PlayerType } from '$lib/server/db/schema';
 import type {
 	RoundData,
@@ -20,18 +20,33 @@ import type {
 } from '$lib/domain/round';
 import { Round } from '$lib/domain/round';
 import { Player } from '$lib/domain/player';
+import { Game } from '$lib/domain/game';
 import { and, eq } from 'drizzle-orm';
+import { err, ok, type RepoResult, type RepoVoidResult } from './result';
 
-export class RoundRepository {
-	constructor(private readonly principalId: string) {}
+export class RoundRepository extends BaseRepository {
+	private readonly principalId: string;
 
-	async getById(roundId: string, gameId: string, groupId: string): Promise<RoundData | null> {
-		if (!(await this.roundBelongsToUserGroup(roundId, gameId, groupId))) return null;
-		return this.getRoundById(roundId);
+	constructor(principalId: string) {
+		super();
+		this.principalId = principalId;
 	}
 
-	async getRoundsForGame(gameId: string, groupId: string): Promise<Round[]> {
-		if (!(await this.isGroupMember(groupId))) return [];
+	protected getPrincipalId(): string | undefined {
+		return this.principalId;
+	}
+
+	async getById(roundId: string, gameId: string, groupId: string): Promise<RepoResult<RoundData>> {
+		if (!(await this.roundBelongsToUserGroup(roundId, gameId, groupId))) {
+			return err('Runde nicht gefunden oder keine Berechtigung.', 404);
+		}
+		const roundData = await this.getRoundById(roundId);
+		if (!roundData) return err('Runde nicht gefunden.', 404);
+		return ok(roundData);
+	}
+
+	async getRoundsForGame(gameId: string, groupId: string): Promise<RepoResult<Round[]>> {
+		if (!(await this.isGroupMember(groupId, this.principalId))) return err('Forbidden.', 403);
 
 		const gameRow = await db
 			.select()
@@ -39,7 +54,7 @@ export class RoundRepository {
 			.where(and(eq(GameTable.id, gameId), eq(GameTable.groupId, groupId)))
 			.limit(1);
 
-		if (gameRow.length === 0) return [];
+		if (gameRow.length === 0) return err('Spiel nicht gefunden.', 404);
 
 		const roundRows = await db
 			.select()
@@ -49,7 +64,7 @@ export class RoundRepository {
 		const rounds: Round[] = [];
 		for (const roundRow of roundRows) {
 			const roundData = roundRow as GameRoundType;
-			const participants = await this.getParticipantsForRound(roundData.id);
+			const participants = await this.getRoundParticipantsWithDetails(roundData.id);
 
 			rounds.push(
 				new Round({
@@ -63,7 +78,7 @@ export class RoundRepository {
 			);
 		}
 
-		return rounds.sort((a, b) => a.roundNumber - b.roundNumber);
+		return ok(rounds.sort((a, b) => a.roundNumber - b.roundNumber));
 	}
 
 	async updateRound(
@@ -71,20 +86,25 @@ export class RoundRepository {
 		gameId: string,
 		groupId: string,
 		round: RoundData
-	): Promise<Round | null> {
-		if (!(await this.roundBelongsToUserGroup(roundId, gameId, groupId))) return null;
+	): Promise<RepoResult<Round>> {
+		if (!(await this.roundBelongsToUserGroup(roundId, gameId, groupId))) {
+			return err('Runde nicht gefunden oder keine Berechtigung.', 404);
+		}
 
 		const existing = await this.getRoundById(roundId);
-		if (!existing) return null;
+		if (!existing) return err('Runde nicht gefunden.', 404);
 
-		const gameParticipantIds = await this.getGameParticipantIds(gameId);
-		const roundParticipantIds = new Set(round.participants.map((p) => p.playerId));
-		if (
-			gameParticipantIds.size !== roundParticipantIds.size ||
-			![...roundParticipantIds].every((id) => gameParticipantIds.has(id))
-		) {
-			throw new Error('Teilnehmer stimmen nicht mit dem Spiel überein');
+		// Prevent switching between Pflicht/Lust for existing rounds
+		const wasMandatory = existing.soloType === SoloType.Pflicht;
+		const willBeMandatory = round.soloType === SoloType.Pflicht;
+		if (wasMandatory !== willBeMandatory) {
+			return err(
+				'Für eine bestehende Runde kann nicht geändert werden, ob sie eine Pflicht- oder Lust-Solo-Runde ist.'
+			);
 		}
+
+		const participantError = await this.validateParticipants(gameId, round);
+		if (participantError) return err(participantError);
 
 		const draft: RoundData = {
 			...round,
@@ -92,15 +112,23 @@ export class RoundRepository {
 			roundNumber: existing.roundNumber
 		};
 
-		// Get game's mandatory solos setting for validation
 		const [game] = await db
 			.select({ withMandatorySolos: GameTable.withMandatorySolos })
 			.from(GameTable)
 			.where(eq(GameTable.id, gameId));
-		if (!game) throw new Error('Spiel nicht gefunden');
+		if (!game) return err('Spiel nicht gefunden.', 404);
 
-		const validationError = Round.validate(draft, game.withMandatorySolos);
-		if (validationError) throw new Error(validationError);
+		const roundValidationError = Round.validate(draft, game.withMandatorySolos);
+		if (roundValidationError) return err(roundValidationError);
+
+		const gameValidationError = await this.validateGameWithRound(
+			gameId,
+			groupId,
+			game,
+			draft,
+			roundId
+		);
+		if (gameValidationError) return err(gameValidationError);
 
 		await db
 			.update(GameRoundTable)
@@ -117,24 +145,7 @@ export class RoundRepository {
 			.delete(GameRoundParticipantTable)
 			.where(eq(GameRoundParticipantTable.roundId, roundId));
 
-		for (const participant of draft.participants) {
-			await db
-				.insert(GameRoundParticipantTable)
-				.values({ roundId, playerId: participant.playerId, team: participant.team as Team });
-			for (const call of participant.calls) {
-				await db
-					.insert(GameRoundCallTable)
-					.values({ roundId, playerId: participant.playerId, callType: call.callType as CallType });
-			}
-			for (const bonus of participant.bonuses) {
-				await db.insert(GameRoundBonusTable).values({
-					roundId,
-					playerId: participant.playerId,
-					bonusType: bonus.bonusType as BonusType,
-					count: bonus.count
-				});
-			}
-		}
+		await this.persistRoundData(roundId, draft);
 
 		// Calculate and persist round results
 		const updatedRound = await this.getRoundById(roundId);
@@ -142,11 +153,14 @@ export class RoundRepository {
 			await this.persistRoundResults(roundId, updatedRound);
 		}
 
-		return updatedRound ? new Round(updatedRound as RoundData) : null;
+		if (!updatedRound) return err('Runde konnte nicht aktualisiert werden.');
+		return ok(new Round(updatedRound as RoundData));
 	}
 
-	async deleteRound(roundId: string, gameId: string, groupId: string): Promise<boolean> {
-		if (!(await this.roundBelongsToUserGroup(roundId, gameId, groupId))) return false;
+	async deleteRound(roundId: string, gameId: string, groupId: string): Promise<RepoVoidResult> {
+		if (!(await this.roundBelongsToUserGroup(roundId, gameId, groupId))) {
+			return err('Runde nicht gefunden oder keine Berechtigung.', 404);
+		}
 
 		// Cleanup round results first
 		await db.delete(GameRoundResultTable).where(eq(GameRoundResultTable.roundId, roundId));
@@ -161,11 +175,12 @@ export class RoundRepository {
 			.delete(GameRoundTable)
 			.where(eq(GameRoundTable.id, roundId))
 			.returning();
-		return result.length > 0;
+		if (result.length === 0) return err('Runde konnte nicht gelöscht werden.');
+		return ok();
 	}
 
-	async addRound(gameId: string, groupId: string, round: RoundData): Promise<Round | null> {
-		if (!(await this.isGroupMember(groupId))) return null;
+	async addRound(gameId: string, groupId: string, round: RoundData): Promise<RepoResult<Round>> {
+		if (!(await this.isGroupMember(groupId, this.principalId))) return err('Forbidden.', 403);
 
 		const gameRow = await db
 			.select()
@@ -173,22 +188,21 @@ export class RoundRepository {
 			.where(and(eq(GameTable.id, gameId), eq(GameTable.groupId, groupId)))
 			.limit(1);
 
-		if (gameRow.length === 0) return null;
+		if (gameRow.length === 0) return err('Spiel nicht gefunden.', 404);
 
-		const gameParticipantIds = await this.getGameParticipantIds(gameId);
-		const roundParticipantIds = new Set(round.participants.map((p) => p.playerId));
-		if (
-			gameParticipantIds.size !== roundParticipantIds.size ||
-			![...roundParticipantIds].every((id) => gameParticipantIds.has(id))
-		) {
-			throw new Error('Teilnehmer stimmen nicht mit dem Spiel überein');
-		}
+		const gameData = gameRow[0] as any;
+
+		const participantError = await this.validateParticipants(gameId, round);
+		if (participantError) return err(participantError);
 
 		const roundCount = await db
 			.select()
 			.from(GameRoundTable)
 			.where(eq(GameRoundTable.gameId, gameId));
 		const nextRoundNumber = roundCount.length + 1;
+		if (nextRoundNumber > gameData.maxRoundCount) {
+			return err('Maximale Rundenzahl erreicht.');
+		}
 
 		const draft: RoundData = {
 			...round,
@@ -196,15 +210,16 @@ export class RoundRepository {
 			roundNumber: nextRoundNumber
 		};
 
-		// Get game's mandatory solos setting for validation
-		const [game] = await db
-			.select({ withMandatorySolos: GameTable.withMandatorySolos })
-			.from(GameTable)
-			.where(eq(GameTable.id, gameId));
-		if (!game) throw new Error('Spiel nicht gefunden');
+		const roundValidationError = Round.validate(draft, gameData.withMandatorySolos);
+		if (roundValidationError) return err(roundValidationError);
 
-		const validationError = Round.validate(draft, game.withMandatorySolos);
-		if (validationError) throw new Error(validationError);
+		const gameValidationError = await this.validateGameWithRound(
+			gameId,
+			groupId,
+			gameData,
+			draft
+		);
+		if (gameValidationError) return err(gameValidationError);
 
 		const [insertedRound] = await db
 			.insert(GameRoundTable)
@@ -218,7 +233,19 @@ export class RoundRepository {
 			.returning();
 
 		const roundId = insertedRound.id;
+		await this.persistRoundData(roundId, draft);
 
+		// Calculate and persist round results
+		const newRound = await this.getRoundById(roundId);
+		if (newRound) {
+			await this.persistRoundResults(roundId, newRound);
+		}
+
+		if (!newRound) return err('Runde konnte nicht erstellt werden.');
+		return ok(new Round(newRound as RoundData));
+	}
+
+	private async persistRoundData(roundId: string, draft: RoundData): Promise<void> {
 		for (const participant of draft.participants) {
 			await db
 				.insert(GameRoundParticipantTable)
@@ -237,14 +264,6 @@ export class RoundRepository {
 				});
 			}
 		}
-
-		// Calculate and persist round results
-		const newRound = await this.getRoundById(roundId);
-		if (newRound) {
-			await this.persistRoundResults(roundId, newRound);
-		}
-
-		return newRound ? new Round(newRound as RoundData) : null;
 	}
 
 	private async persistRoundResults(roundId: string, round: RoundData): Promise<void> {
@@ -281,7 +300,7 @@ export class RoundRepository {
 		if (roundRow.length === 0) return null;
 
 		const roundData = roundRow[0] as GameRoundType;
-		const participants = await this.getParticipantsForRound(roundId);
+		const participants = await this.getRoundParticipantsWithDetails(roundId);
 
 		return {
 			id: roundData.id,
@@ -293,6 +312,18 @@ export class RoundRepository {
 		};
 	}
 
+	private async validateParticipants(gameId: string, round: RoundData): Promise<string | null> {
+		const gameParticipantIds = await this.getGameParticipantIds(gameId);
+		const roundParticipantIds = new Set(round.participants.map((p) => p.playerId));
+		if (
+			gameParticipantIds.size !== roundParticipantIds.size ||
+			![...roundParticipantIds].every((id) => gameParticipantIds.has(id))
+		) {
+			return 'Teilnehmer stimmen nicht mit dem Spiel überein.';
+		}
+		return null;
+	}
+
 	private async getGameParticipantIds(gameId: string): Promise<Set<string>> {
 		const rows = await db
 			.select()
@@ -301,7 +332,40 @@ export class RoundRepository {
 		return new Set(rows.map((row) => row.playerId));
 	}
 
-	private async getParticipantsForRound(roundId: string): Promise<GameRoundParticipant[]> {
+	private async validateGameWithRound(
+		gameId: string,
+		groupId: string,
+		gameData: any,
+		draftRound: RoundData,
+		roundIdToReplace?: string
+	): Promise<string | null> {
+		const allRounds = await this.getRoundsForGame(gameId, groupId);
+		if (!allRounds.ok) return allRounds.error;
+
+		const draftRounds = roundIdToReplace
+			? allRounds.value.map((r) => (r.id === roundIdToReplace ? new Round(draftRound) : r))
+			: [...allRounds.value, new Round(draftRound)];
+
+		const participants = await this.getGameParticipants(gameId);
+		const draftGame = new Game(gameData, participants, draftRounds);
+		return Game.validate(draftGame);
+	}
+
+	private async getGameParticipants(gameId: string): Promise<any[]> {
+		const rows = await db
+			.select({ participant: GameParticipantTable, player: PlayerTable })
+			.from(GameParticipantTable)
+			.innerJoin(PlayerTable, eq(GameParticipantTable.playerId, PlayerTable.id))
+			.where(eq(GameParticipantTable.gameId, gameId));
+
+		return rows.map((row) => ({
+			playerId: row.participant.playerId,
+			player: new Player(row.player as PlayerType),
+			seatPosition: row.participant.seatPosition
+		}));
+	}
+
+	private async getRoundParticipantsWithDetails(roundId: string): Promise<GameRoundParticipant[]> {
 		const rows = await db
 			.select({ participant: GameRoundParticipantTable, player: PlayerTable })
 			.from(GameRoundParticipantTable)
@@ -362,7 +426,7 @@ export class RoundRepository {
 		gameId: string,
 		groupId: string
 	): Promise<boolean> {
-		if (!(await this.isGroupMember(groupId))) return false;
+		if (!(await this.isGroupMember(groupId, this.principalId))) return false;
 
 		const roundRow = await db
 			.select()
@@ -378,16 +442,5 @@ export class RoundRepository {
 			.limit(1);
 
 		return roundRow.length > 0;
-	}
-
-	private async isGroupMember(groupId: string): Promise<boolean> {
-		const result = await db
-			.select({})
-			.from(GroupMemberTable)
-			.where(
-				and(eq(GroupMemberTable.groupId, groupId), eq(GroupMemberTable.playerId, this.principalId))
-			)
-			.limit(1);
-		return result.length > 0;
 	}
 }

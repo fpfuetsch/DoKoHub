@@ -53,8 +53,8 @@ export type PlayerInsertType = InferInsertModel<typeof PlayerTable>;
 export const PlayerDisplayNameSchema = z
 	.string()
 	.trim()
-	.min(3, 'Mindestens 3 Zeichen notwendig')
-	.max(50, 'Maximal 50 Zeichen erlaubt');
+	.min(3, 'Mindestens 3 Zeichen notwendig.')
+	.max(50, 'Maximal 50 Zeichen erlaubt.');
 
 export const PlayerProfileSchema = z.object({
 	displayName: PlayerDisplayNameSchema
@@ -65,37 +65,21 @@ export type PlayerProfile = z.infer<typeof PlayerProfileSchema>;
 export const GroupNameSchema = z
 	.string()
 	.trim()
-	.regex(
-		/^[A-Za-zÄÖÜäöüß0-9_\- ]+$/,
-		'Buchstaben (inkl. Umlaute), Zahlen, -, _ und Leerzeichen sind erlaubt'
-	)
-	.min(3, 'Mindestens 3 Zeichen notwendig')
-	.max(50, 'Maximal 50 Zeichen erlaubt');
+	.min(3, 'Mindestens 3 Zeichen notwendig.')
+	.max(50, 'Maximal 50 Zeichen erlaubt.');
 
 export const CreateGameSchema = z.object({
 	maxRoundCount: z.coerce
 		.number()
 		.int()
 		.refine((val) => [8, 12, 16, 20, 24].includes(val), {
-			message: 'Bitte wähle eine gültige Rundenanzahl (8, 12, 16, 20 oder 24)'
+			message: 'Bitte wähle eine gültige Rundenanzahl (8, 12, 16, 20 oder 24).'
 		}),
 	withMandatorySolos: z.coerce.boolean(),
-	player_0: z
-		.string()
-		.min(1, 'Bitte wähle einen Spieler für Sitzposition 1')
-		.uuid('Ungültige Spieler-ID für Sitzposition 1'),
-	player_1: z
-		.string()
-		.min(1, 'Bitte wähle einen Spieler für Sitzposition 2')
-		.uuid('Ungültige Spieler-ID für Sitzposition 2'),
-	player_2: z
-		.string()
-		.min(1, 'Bitte wähle einen Spieler für Sitzposition 3')
-		.uuid('Ungültige Spieler-ID für Sitzposition 3'),
-	player_3: z
-		.string()
-		.min(1, 'Bitte wähle einen Spieler für Sitzposition 4')
-		.uuid('Ungültige Spieler-ID für Sitzposition 4')
+	player_0: z.string().min(1, 'Bitte wähle einen Spieler für Sitzposition 1.'),
+	player_1: z.string().min(1, 'Bitte wähle einen Spieler für Sitzposition 2.'),
+	player_2: z.string().min(1, 'Bitte wähle einen Spieler für Sitzposition 3.'),
+	player_3: z.string().min(1, 'Bitte wähle einen Spieler für Sitzposition 4.')
 });
 
 const roundTypeValues = RoundTypeDbEnum.enumValues;

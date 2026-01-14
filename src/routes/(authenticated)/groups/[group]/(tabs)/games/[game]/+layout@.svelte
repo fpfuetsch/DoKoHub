@@ -167,7 +167,7 @@
 <Modal bind:open={finishModal} size="xs" autoclose={false}>
 	<form
 		method="POST"
-		action="/groups/{groupId}/games/{gameId}?/finishEarly"
+		action="/groups/{groupId}/games/{gameId}?/finish"
 		use:enhance={handleFinishGame}
 	>
 		<div class="flex flex-col space-y-4">

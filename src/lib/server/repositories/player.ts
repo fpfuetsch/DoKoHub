@@ -6,50 +6,48 @@ import {
 	GameRoundParticipantTable,
 	GameRoundCallTable,
 	GameRoundBonusTable,
-	GameRoundResultTable
+	GameRoundResultTable,
+	PlayerDisplayNameSchema
 } from '$lib/server/db/schema';
 import type { AuthProviderType } from '$lib/server/enums';
 import { and, eq } from 'drizzle-orm';
 import { Player } from '$lib/domain/player';
+import { BaseRepository } from '$lib/server/repositories/base';
 import type { PlayerType } from '$lib/server/db/schema';
 import { AuthProvider } from '$lib/server/enums';
+import { err, ok, type RepoResult, type RepoVoidResult } from '$lib/server/repositories/result';
 
-export class PlayerRepository {
-	constructor(private readonly principalId?: string) {}
+export class PlayerRepository extends BaseRepository {
+	private readonly principalId?: string;
+
+	constructor(principalId?: string) {
+		super();
+		this.principalId = principalId;
+	}
+
+	protected getPrincipalId(): string | undefined {
+		return this.principalId;
+	}
 
 	/**
-	 * Transfer all references from a local player to an existing non-local player and delete the local player.
+	 * Transfer all references from a local player to the current principal and delete the local player.
 	 * Only allowed when caller is authorized for the given group (member of the group).
 	 * This operation runs inside a single transaction.
 	 */
-	async takeoverLocalPlayer(
-		localPlayerId: string,
-		targetPlayerId: string,
-		groupId: string
-	): Promise<boolean> {
-		if (!this.principalId) throw new Error('Nicht autorisiert.');
-
-		// Authorization: caller must be member of the group
-		const authRow = await db
-			.select({})
-			.from(GroupMemberTable)
-			.where(
-				and(eq(GroupMemberTable.groupId, groupId), eq(GroupMemberTable.playerId, this.principalId))
-			)
-			.limit(1);
-		if (authRow.length === 0) throw new Error('Nicht berechtigt, in dieser Gruppe zu handeln.');
+	async takeoverLocalPlayer(localPlayerId: string, groupId: string): Promise<RepoVoidResult> {
+		const membership = await this.ensureGroupMembership(groupId);
+		if (!membership.ok) return membership;
 
 		const local = await this.getById(localPlayerId);
-		const target = await this.getById(targetPlayerId);
-		if (!local || !target) throw new Error('Spieler nicht gefunden.');
+		const target = await this.getById(this.principalId!);
+		if (!local || !target) return err('Spieler nicht gefunden.');
 		if (local.authProvider !== AuthProvider.Local)
-			throw new Error('Quellspieler ist kein lokaler Spieler.');
+			return err('Quellspieler ist kein lokaler Spieler.');
 		if (target.authProvider === AuthProvider.Local)
-			throw new Error('Zielspieler darf kein lokaler Spieler sein.');
+			return err('Zielspieler darf kein lokaler Spieler sein.');
 
 		try {
 			await db.transaction(async (tx) => {
-				// First validation: target must not have participated in any of the same games as the local player
 				const localGameRows = await tx
 					.select()
 					.from(GameParticipantTable)
@@ -63,18 +61,17 @@ export class PlayerRepository {
 							.where(
 								and(
 									eq(GameParticipantTable.gameId, gid),
-									eq(GameParticipantTable.playerId, targetPlayerId)
+									eq(GameParticipantTable.playerId, this.principalId!)
 								)
 							)
 							.limit(1);
 						if (rows.length > 0) {
 							throw new Error(
-								'Du hast bereits mit dem lokalen Spieler in einem Spiel teilgenommen. Übernahme nicht möglich.'
+								'Du hast bereits mit dem lokalen Spieler an einem Spiel teilgenommen. Übernahme nicht möglich.'
 							);
 						}
 					}
 				}
-				// Second validation: target must not have participated in any of the same rounds as the local player
 				const localRoundRows = await tx
 					.select()
 					.from(GameRoundParticipantTable)
@@ -90,7 +87,7 @@ export class PlayerRepository {
 							.where(
 								and(
 									eq(GameRoundParticipantTable.roundId, rid),
-									eq(GameRoundParticipantTable.playerId, targetPlayerId)
+									eq(GameRoundParticipantTable.playerId, this.principalId!)
 								)
 							)
 							.limit(1);
@@ -102,8 +99,6 @@ export class PlayerRepository {
 					}
 				}
 
-				// Transfer group memberships: for each group where local is member,
-				// if target already member, remove local entry, otherwise update to target.
 				const localGroups = await tx
 					.select()
 					.from(GroupMemberTable)
@@ -117,7 +112,7 @@ export class PlayerRepository {
 						.where(
 							and(
 								eq(GroupMemberTable.groupId, groupIdRow),
-								eq(GroupMemberTable.playerId, targetPlayerId)
+								eq(GroupMemberTable.playerId, this.principalId!)
 							)
 						)
 						.limit(1);
@@ -134,7 +129,7 @@ export class PlayerRepository {
 					} else {
 						await tx
 							.update(GroupMemberTable)
-							.set({ playerId: targetPlayerId })
+							.set({ playerId: this.principalId! })
 							.where(
 								and(
 									eq(GroupMemberTable.groupId, groupIdRow),
@@ -144,39 +139,37 @@ export class PlayerRepository {
 					}
 				}
 
-				// Update all game related tables that reference playerId
 				await tx
 					.update(GameParticipantTable)
-					.set({ playerId: targetPlayerId })
+					.set({ playerId: this.principalId! })
 					.where(eq(GameParticipantTable.playerId, localPlayerId));
 
 				await tx
 					.update(GameRoundParticipantTable)
-					.set({ playerId: targetPlayerId })
+					.set({ playerId: this.principalId! })
 					.where(eq(GameRoundParticipantTable.playerId, localPlayerId));
 
 				await tx
 					.update(GameRoundCallTable)
-					.set({ playerId: targetPlayerId })
+					.set({ playerId: this.principalId! })
 					.where(eq(GameRoundCallTable.playerId, localPlayerId));
 
 				await tx
 					.update(GameRoundBonusTable)
-					.set({ playerId: targetPlayerId })
+					.set({ playerId: this.principalId! })
 					.where(eq(GameRoundBonusTable.playerId, localPlayerId));
 
 				await tx
 					.update(GameRoundResultTable)
-					.set({ playerId: targetPlayerId })
+					.set({ playerId: this.principalId! })
 					.where(eq(GameRoundResultTable.playerId, localPlayerId));
 
-				// Finally delete the local player
 				await tx.delete(PlayerTable).where(eq(PlayerTable.id, localPlayerId));
 			});
-			return true;
+			return ok();
 		} catch (e) {
-			if (e instanceof Error) throw e;
-			throw new Error('Übernahme fehlgeschlagen.');
+			if (e instanceof Error) return err(e.message);
+			return err('Übernahme fehlgeschlagen.');
 		}
 	}
 
@@ -203,56 +196,70 @@ export class PlayerRepository {
 		return new Player(inserted as PlayerType);
 	}
 
-	async update(
+	async createLocal(displayName: string, groupId: string): Promise<RepoResult<Player>> {
+		const membership = await this.ensureGroupMembership(groupId);
+		if (!membership.ok) return membership as RepoResult<Player>;
+
+		const validationResult = this.validateDisplayName(displayName);
+		if (!validationResult.ok) return validationResult as RepoResult<Player>;
+
+		const [inserted] = await db
+			.insert(PlayerTable)
+			.values({
+				displayName: validationResult.value,
+				authProvider: AuthProvider.Local,
+				authProviderId: null
+			})
+			.returning();
+
+		await db.insert(GroupMemberTable).values({ groupId, playerId: inserted.id });
+		return ok(new Player(inserted as PlayerType));
+	}
+
+	async rename(displayName: string): Promise<RepoVoidResult> {
+		const principalCheck = this.requirePrincipal();
+		if (!principalCheck.ok) return principalCheck;
+
+		const validationResult = this.validateDisplayName(displayName);
+		if (!validationResult.ok) return validationResult;
+
+		return this.updatePlayerDisplayName(this.principalId!, validationResult.value);
+	}
+
+	async deleteLocal(
 		id: string,
-		data: Partial<Omit<PlayerType, 'id' | 'createdAt'>>
-	): Promise<Player | null> {
-		// Only allow updating own profile
-		if (this.principalId && id !== this.principalId) {
-			return null;
+		groupId: string,
+		checkParticipations = true
+	): Promise<RepoVoidResult> {
+		const membership = await this.ensureGroupMembership(groupId);
+		if (!membership.ok) return membership;
+
+		const playerCheck = await this.ensureLocalPlayer(id);
+		if (!playerCheck.ok) return playerCheck;
+
+		if (checkParticipations) {
+			const hasParts = await this.hasParticipations(id);
+			if (hasParts) {
+				return err(
+					'Lokaler Spieler war an Spielen/Runden beteiligt. Lösche entweder zuerst alle betreffenden Spiele oder übernehme den lokalen Spieler.'
+				);
+			}
 		}
-		const [updated] = await db
-			.update(PlayerTable)
-			.set(data)
-			.where(eq(PlayerTable.id, id))
-			.returning();
-		return updated ? new Player(updated as PlayerType) : null;
+
+		return this.deletePlayerById(id);
 	}
 
-	async delete(id: string, groupId?: string): Promise<boolean> {
-		// Only allow deleting local players
-		const player = await this.getById(id);
-		if (!player || player.authProvider !== AuthProvider.Local) {
-			return false;
-		}
+	async renameLocal(id: string, groupId: string, displayName: string): Promise<RepoVoidResult> {
+		const membership = await this.ensureGroupMembership(groupId);
+		if (!membership.ok) return membership;
 
-		// Authorization: only if caller is a member of the provided group
-		const canDeleteInGroup =
-			this.principalId && groupId ? await this.isMemberOfGroup(groupId) : false;
+		const playerCheck = await this.ensureLocalPlayer(id);
+		if (!playerCheck.ok) return playerCheck;
 
-		if (!canDeleteInGroup) {
-			return false;
-		}
+		const validationResult = this.validateDisplayName(displayName);
+		if (!validationResult.ok) return validationResult;
 
-		const result = await db.delete(PlayerTable).where(eq(PlayerTable.id, id)).returning();
-		return result.length > 0;
-	}
-
-	async updateLocalDisplayName(id: string, groupId: string, displayName: string): Promise<boolean> {
-		if (!this.principalId) return false;
-		const authorized = await this.isMemberOfGroup(groupId);
-		if (!authorized) return false;
-
-		const player = await this.getById(id);
-		if (!player) return false;
-		if (player.authProvider !== AuthProvider.Local) return false;
-
-		const result = await db
-			.update(PlayerTable)
-			.set({ displayName })
-			.where(eq(PlayerTable.id, id))
-			.returning();
-		return result.length > 0;
+		return this.updatePlayerDisplayName(id, validationResult.value);
 	}
 
 	/**
@@ -273,15 +280,36 @@ export class PlayerRepository {
 		return gr.length > 0;
 	}
 
-	private async isMemberOfGroup(groupId: string): Promise<boolean> {
-		if (!this.principalId) return false;
+	private async ensureLocalPlayer(id: string): Promise<RepoVoidResult> {
+		const player = await this.getById(id);
+		if (!player) return err('Spieler nicht gefunden.', 404);
+		if (player.authProvider !== AuthProvider.Local) {
+			return err('Nur lokale Spieler können bearbeitet werden.');
+		}
+		return ok();
+	}
+
+	private validateDisplayName(displayName: string): RepoResult<string> {
+		const parsed = PlayerDisplayNameSchema.safeParse(displayName?.trim());
+		if (!parsed.success) {
+			return err(parsed.error.issues[0]?.message || 'Bitte einen gültigen Anzeigenamen eingeben.');
+		}
+		return ok(parsed.data);
+	}
+
+	private async updatePlayerDisplayName(id: string, displayName: string): Promise<RepoVoidResult> {
 		const result = await db
-			.select({})
-			.from(GroupMemberTable)
-			.where(
-				and(eq(GroupMemberTable.groupId, groupId), eq(GroupMemberTable.playerId, this.principalId))
-			)
-			.limit(1);
-		return result.length > 0;
+			.update(PlayerTable)
+			.set({ displayName })
+			.where(eq(PlayerTable.id, id))
+			.returning();
+		if (result.length === 0) return err('Fehler beim Aktualisieren des Namens.');
+		return ok();
+	}
+
+	private async deletePlayerById(id: string): Promise<RepoVoidResult> {
+		const result = await db.delete(PlayerTable).where(eq(PlayerTable.id, id)).returning();
+		if (result.length === 0) return err('Fehler beim Löschen des Spielers.');
+		return ok();
 	}
 }

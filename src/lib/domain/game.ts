@@ -46,8 +46,28 @@ export class Game implements GameType {
 	 * Validate game-level constraints
 	 * - If game has mandatory solos, every player must play exactly one Pflicht solo (only checked when game is complete)
 	 * - Pflicht solo rounds are only allowed when game was created with withMandatorySolos
+	 * - Exactly 4 participants must be provided
+	 * - maxRoundCount must be one of: 8, 12, 16, 20, 24
+	 * - All participants must be unique
 	 */
 	static validate(game: Game): string | null {
+		// Validate participant count
+		if (game.participants.length !== 4) {
+			return 'Es müssen genau 4 Teilnehmer ausgewählt werden.';
+		}
+
+		// Validate all participants are unique
+		const uniquePlayerIds = new Set(game.participants.map((p) => p.playerId));
+		if (uniquePlayerIds.size !== 4) {
+			return 'Jeder Spieler darf nur einmal ausgewählt werden.';
+		}
+
+		// Validate maxRoundCount
+		const validRoundCounts = [8, 12, 16, 20, 24];
+		if (!validRoundCounts.includes(game.maxRoundCount)) {
+			return 'Gültige Rundenanzahlen sind: 8, 12, 16, 20, 24.';
+		}
+
 		// Validate that Pflicht solo rounds only exist if game has mandatory solos
 		const mandatorySoloRounds = game.rounds.filter((r) => r.soloType === SoloType.Pflicht);
 

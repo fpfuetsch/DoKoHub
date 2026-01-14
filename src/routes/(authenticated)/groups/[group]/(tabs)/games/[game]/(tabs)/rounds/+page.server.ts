@@ -3,7 +3,6 @@ import { RoundRepository } from '$lib/server/repositories/round';
 import { Round, type RoundData } from '$lib/domain/round';
 import { Game } from '$lib/domain/game';
 import { requireUserOrFail } from '$lib/server/auth/guard';
-import { CreateRoundSchema } from '$lib/server/db/schema';
 import { SoloType, Team as TeamEnum } from '$lib/domain/enums';
 import type {
 	TeamEnumValue as Team,
@@ -87,7 +86,7 @@ function buildTeamAssignments(teams: Record<string, string>, game: any): Map<str
 }
 
 export const actions = {
-	saveRound: async ({ request, locals, params }: RequestEvent) => {
+	save: async ({ request, locals, params }: RequestEvent) => {
 		const user = requireUserOrFail({ locals });
 		const gameId = params.game!;
 		const groupId = params.group!;
@@ -98,150 +97,56 @@ export const actions = {
 		const callsObj = parseCallsFromFormData(formData);
 		const bonusObj = parseBonusesFromFormData(formData);
 
-		const parsed = CreateRoundSchema.safeParse({
-			type: formData.get('type'),
-			soloType: formData.get('soloType') || undefined,
-			eyesRe: formData.get('eyesRe'),
-			teams: teamsObj
-		});
+		const gameRepo = new GameRepository(user.id);
+		const roundRepo = new RoundRepository(user.id);
+		const gameResult = await gameRepo.getById(gameId, groupId);
 
-		if (!parsed.success) {
-			return fail(400, {
-				error: parsed.error.issues[0]?.message || 'Fehler beim Speichern der Runde',
-				values: {
-					type: formData.get('type'),
-					eyesRe: formData.get('eyesRe')
-				}
+		if (!gameResult.ok) {
+			return fail(gameResult.status, {
+				error: gameResult.error,
+				values: {}
 			});
 		}
 
-		try {
-			const gameRepo = new GameRepository(user.id);
-			const roundRepo = new RoundRepository(user.id);
-			const game = await gameRepo.getById(gameId, groupId);
+		const game = gameResult.value;
 
-			if (!game) {
-				return fail(400, {
-					error: 'Spiel nicht gefunden',
-					values: {}
-				});
-			}
-
-			const targetRound = roundId ? game.rounds.find((r) => r.id === roundId) : null;
-			if (roundId && !targetRound) {
-				return fail(400, { error: 'Runde nicht gefunden' });
-			}
-			if (roundId && targetRound) {
-				const wasMandatory = targetRound.soloType === SoloType.Pflicht;
-				const willBeMandatory = parsed.data.soloType === SoloType.Pflicht;
-				if (wasMandatory !== willBeMandatory) {
-					return fail(400, {
-						error:
-							'Für eine bestehende Runde kann nicht geändert werden, ob sie eine Pflicht- oder Lust-Solo-Runde ist.'
-					});
-				}
-			}
-
-			const teamAssignments = buildTeamAssignments(parsed.data.teams, game);
-
-			const roundDraft: RoundData = {
-				id: roundId ?? 'draft',
-				roundNumber: targetRound?.roundNumber ?? (game.rounds?.length ? game.rounds.length + 1 : 1),
-				type: parsed.data.type,
-				soloType: parsed.data.soloType ?? null,
-				eyesRe: parsed.data.eyesRe,
-				participants: game.participants.map((p: any) => {
-					const playerKey = `player_${p.seatPosition}`;
-					return {
-						playerId: p.playerId,
-						player: p.player,
-						team: teamAssignments.get(p.playerId) as Team,
-						calls: (callsObj[playerKey] || []).map((c) => ({ ...c, playerId: p.playerId })),
-						bonuses: (bonusObj[playerKey] || []).map((b) => ({ ...b, playerId: p.playerId }))
-					};
-				})
-			};
-
-			const validationError = Round.validate(roundDraft as any, game.withMandatorySolos);
-			if (validationError) {
-				return fail(400, {
-					error: validationError,
-					values: { type: parsed.data.type }
-				});
-			}
-
-			// Create a hypothetical game state with the new/updated round to validate game-level constraints
-			const hypotheticalRounds = roundId
-				? game.rounds.map((r) => (r.id === roundId ? new Round(roundDraft as any) : r))
-				: [...game.rounds, new Round(roundDraft as any)];
-
-			const hypotheticalGame = new Game(
-				{
-					id: game.id,
-					groupId: game.groupId,
-					maxRoundCount: game.maxRoundCount,
-					withMandatorySolos: game.withMandatorySolos,
-					createdAt: game.createdAt,
-					endedAt: game.endedAt
-				},
-				game.participants,
-				hypotheticalRounds
-			);
-
-			const gameValidationError = Game.validate(hypotheticalGame);
-			if (gameValidationError) {
-				return fail(400, { error: gameValidationError });
-			}
-
-			if (roundId) {
-				const updated = await roundRepo.updateRound(roundId, gameId, groupId, roundDraft);
-				if (!updated) {
-					return fail(400, { error: 'Runde konnte nicht aktualisiert werden' });
-				}
-			} else {
-				const inserted = await roundRepo.addRound(gameId, groupId, roundDraft);
-				if (!inserted) {
-					return fail(400, { error: 'Runde konnte nicht erstellt werden' });
-				}
-			}
-
-			return { success: true };
-		} catch (error) {
-			return fail(400, {
-				error: error instanceof Error ? error.message : 'Fehler beim Speichern der Runde',
-				values: { type: formData.get('type'), eyesRe: formData.get('eyesRe') }
-			});
+		const targetRound = roundId ? game.rounds.find((r) => r.id === roundId) : null;
+		if (roundId && !targetRound) {
+			return fail(400, { error: 'Runde nicht gefunden.' });
 		}
-	},
-	finishGame: async ({ locals, params }: RequestEvent) => {
-		const user = requireUserOrFail({ locals });
-		const gameId = params.game!;
-		const groupId = params.group!;
 
-		try {
-			const gameRepo = new GameRepository(user.id);
-			const game = await gameRepo.getById(gameId, groupId);
-			if (!game) {
-				return fail(400, { error: 'Spiel nicht gefunden' });
+		const teamAssignments = buildTeamAssignments(teamsObj, game);
+
+		const roundDraft: RoundData = {
+			id: roundId ?? 'draft',
+			roundNumber: targetRound?.roundNumber ?? (game.rounds?.length ? game.rounds.length + 1 : 1),
+			type: formData.get('type') as any,
+			soloType: (formData.get('soloType') as any) || null,
+			eyesRe: Number(formData.get('eyesRe')),
+			participants: game.participants.map((p: any) => {
+				const playerKey = `player_${p.seatPosition}`;
+				return {
+					playerId: p.playerId,
+					player: p.player,
+					team: teamAssignments.get(p.playerId) as Team,
+					calls: (callsObj[playerKey] || []).map((c) => ({ ...c, playerId: p.playerId })),
+					bonuses: (bonusObj[playerKey] || []).map((b) => ({ ...b, playerId: p.playerId }))
+				};
+			})
+		};
+
+		if (roundId) {
+			const updated = await roundRepo.updateRound(roundId, gameId, groupId, roundDraft);
+			if (!updated.ok) {
+				return fail(updated.status, { error: updated.error });
 			}
-
-			// Validate game-level constraints
-			const gameValidationError = Game.validate(game);
-			if (gameValidationError) {
-				return fail(400, { error: gameValidationError });
+		} else {
+			const inserted = await roundRepo.addRound(gameId, groupId, roundDraft);
+			if (!inserted.ok) {
+				return fail(inserted.status, { error: inserted.error });
 			}
-
-			const updated = await gameRepo.updateEndTime(gameId, groupId, new Date());
-
-			if (!updated) {
-				return fail(400, { error: 'Spiel konnte nicht abgeschlossen werden' });
-			}
-
-			return { success: true };
-		} catch (error) {
-			return fail(400, {
-				error: error instanceof Error ? error.message : 'Fehler beim Abschließen des Spiels'
-			});
 		}
+
+		return { success: true };
 	}
 };
