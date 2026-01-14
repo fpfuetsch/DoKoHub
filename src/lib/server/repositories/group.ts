@@ -54,7 +54,10 @@ export class GroupRepository extends BaseRepository {
 		const validationResult = this.validateGroupName(name);
 		if (!validationResult.ok) return validationResult as RepoResult<Group>;
 
-		const [inserted] = await db.insert(GroupTable).values({ name: validationResult.value }).returning();
+		const [inserted] = await db
+			.insert(GroupTable)
+			.values({ name: validationResult.value })
+			.returning();
 		const groupInstance = new Group(inserted as GroupType);
 
 		const uniqueMemberIds = new Set([this.principalId, ...memberIds]);
@@ -76,10 +79,7 @@ export class GroupRepository extends BaseRepository {
 			.from(GroupMemberTable)
 			.innerJoin(PlayerTable, eq(GroupMemberTable.playerId, PlayerTable.id))
 			.where(
-				and(
-					eq(GroupMemberTable.groupId, id),
-					eq(PlayerTable.authProvider, AuthProvider.Local)
-				)
+				and(eq(GroupMemberTable.groupId, id), eq(PlayerTable.authProvider, AuthProvider.Local))
 			);
 
 		// Delete local players using PlayerRepository

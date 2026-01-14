@@ -213,12 +213,7 @@ export class RoundRepository extends BaseRepository {
 		const roundValidationError = Round.validate(draft, gameData.withMandatorySolos);
 		if (roundValidationError) return err(roundValidationError);
 
-		const gameValidationError = await this.validateGameWithRound(
-			gameId,
-			groupId,
-			gameData,
-			draft
-		);
+		const gameValidationError = await this.validateGameWithRound(gameId, groupId, gameData, draft);
 		if (gameValidationError) return err(gameValidationError);
 
 		const [insertedRound] = await db

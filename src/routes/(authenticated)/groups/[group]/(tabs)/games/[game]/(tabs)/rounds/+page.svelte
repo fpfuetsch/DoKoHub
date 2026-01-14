@@ -678,7 +678,11 @@
 						Alle Runden sind gespielt. Wenn du das Spiel abschließt können Runden nicht mehr
 						bearbeitet werden.
 					</p>
-					<form method="POST" action="/groups/{game.groupId}/games/{game.id}?/finish" class="mt-3 flex justify-end">
+					<form
+						method="POST"
+						action="/groups/{game.groupId}/games/{game.id}?/finish"
+						class="mt-3 flex justify-end"
+					>
 						<Button type="submit" color="primary" class="px-4 py-2">Spiel abschließen</Button>
 					</form>
 				</div>

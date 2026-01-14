@@ -13,14 +13,14 @@ export class BaseRepository {
 		return ok();
 	}
 
-    protected async isGroupMember(groupId: string, playerId: string): Promise<boolean> {
-        const result = await db
-            .select({})
-            .from(GroupMemberTable)
-            .where(and(eq(GroupMemberTable.groupId, groupId), eq(GroupMemberTable.playerId, playerId)))
-            .limit(1);
-        return result.length > 0;
-    }
+	protected async isGroupMember(groupId: string, playerId: string): Promise<boolean> {
+		const result = await db
+			.select({})
+			.from(GroupMemberTable)
+			.where(and(eq(GroupMemberTable.groupId, groupId), eq(GroupMemberTable.playerId, playerId)))
+			.limit(1);
+		return result.length > 0;
+	}
 
 	protected async ensureGroupMembership(groupId: string): Promise<RepoVoidResult> {
 		const principalCheck = this.requirePrincipal();
@@ -29,7 +29,6 @@ export class BaseRepository {
 		if (!authorized) return err('Forbidden', 403);
 		return ok();
 	}
-
 
 	protected async groupExists(groupId: string): Promise<RepoVoidResult> {
 		const result = await db

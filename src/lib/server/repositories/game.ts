@@ -2,11 +2,7 @@ import { RoundRepository } from '$lib/server/repositories/round';
 import { type RepoResult, type RepoVoidResult, ok, err } from '$lib/server/repositories/result';
 import { BaseRepository } from '$lib/server/repositories/base';
 import { db } from '$lib/server/db';
-import {
-	GameTable,
-	GameParticipantTable,
-	PlayerTable
-} from '$lib/server/db/schema';
+import { GameTable, GameParticipantTable, PlayerTable } from '$lib/server/db/schema';
 import { Game, type GameParticipant } from '$lib/domain/game';
 import { Player } from '$lib/domain/player';
 import type { GameType, PlayerType } from '$lib/server/db/schema';
