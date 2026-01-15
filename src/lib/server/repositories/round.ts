@@ -112,11 +112,7 @@ export class RoundRepository extends BaseRepository {
 			roundNumber: existing.roundNumber
 		};
 
-		const gameRow = await db
-			.select()
-			.from(GameTable)
-			.where(eq(GameTable.id, gameId))
-			.limit(1);
+		const gameRow = await db.select().from(GameTable).where(eq(GameTable.id, gameId)).limit(1);
 		if (gameRow.length === 0) return err('Spiel nicht gefunden.', 404);
 
 		const gameData = gameRow[0] as any;

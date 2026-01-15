@@ -32,9 +32,9 @@
 	$effect(() => {
 		if (isFivePlayer && ![10, 15, 20, 25, 30].includes(maxRoundCount as any)) {
 			// keep positions proportional
-			maxRoundCount = Math.round((maxRoundCount as number) / 4 * 5) as 10 | 15 | 20 | 25 | 30;
+			maxRoundCount = Math.round(((maxRoundCount as number) / 4) * 5) as 10 | 15 | 20 | 25 | 30;
 		} else if (!isFivePlayer && ![8, 12, 16, 20, 24].includes(maxRoundCount as any)) {
-			maxRoundCount = Math.round((maxRoundCount as number) / 5 * 4) as 8 | 12 | 16 | 20 | 24;
+			maxRoundCount = Math.round(((maxRoundCount as number) / 5) * 4) as 8 | 12 | 16 | 20 | 24;
 		}
 	});
 
@@ -270,8 +270,8 @@
 				Erstelle ein neues Spiel
 			</h3>
 			<p class="text-sm text-gray-600">
-				Wähle aus, ob du mit oder ohne Pflichtsoli und mit einem extra Spieler spielen möchtest. Anschließend kannst du Spieler
-				und deren Sitzreihenfolge anpassen.
+				Wähle aus, ob du mit oder ohne Pflichtsoli und mit einem extra Spieler spielen möchtest.
+				Anschließend kannst du Spieler und deren Sitzreihenfolge anpassen.
 			</p>
 			{#if form?.error}
 				<Alert color="red">
@@ -365,7 +365,7 @@
 						{/if}
 						<div
 							data-player-index={index}
-							class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 p-3 select-none {draggedIndex ===
+							class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 select-none dark:border-gray-700 dark:bg-gray-800 {draggedIndex ===
 							index
 								? 'opacity-50 ring-2 ring-secondary'
 								: dragOverIndex === index && draggedIndex !== null

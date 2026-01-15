@@ -63,9 +63,8 @@ export class Game implements GameType {
 		}
 
 		// Validate maxRoundCount based on player count
-		const validRoundCounts = game.participants.length === 4
-			? [8, 12, 16, 20, 24]
-			: [10, 15, 20, 25, 30];
+		const validRoundCounts =
+			game.participants.length === 4 ? [8, 12, 16, 20, 24] : [10, 15, 20, 25, 30];
 		if (!validRoundCounts.includes(game.maxRoundCount)) {
 			const validStr = validRoundCounts.join(', ');
 			return `Gültige Rundenanzahlen sind: ${validStr}.`;

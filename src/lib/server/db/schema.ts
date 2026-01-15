@@ -73,7 +73,8 @@ export const CreateGameSchema = z.object({
 		.number()
 		.int()
 		.refine((val) => [8, 12, 16, 20, 24, 10, 15, 25, 30].includes(val), {
-			message: 'Bitte wähle eine gültige Rundenanzahl (8, 12, 16, 20, 24 für 4 Spieler oder 10, 15, 20, 25, 30 für 5 Spieler).'
+			message:
+				'Bitte wähle eine gültige Rundenanzahl (8, 12, 16, 20, 24 für 4 Spieler oder 10, 15, 20, 25, 30 für 5 Spieler).'
 		}),
 	withMandatorySolos: z.coerce.boolean(),
 	player_0: z.string().min(1, 'Bitte wähle einen Spieler für Sitzposition 1.'),
