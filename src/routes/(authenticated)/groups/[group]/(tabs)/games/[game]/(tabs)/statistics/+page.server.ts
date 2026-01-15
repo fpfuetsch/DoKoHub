@@ -30,7 +30,7 @@ export const load: ServerLoad = async ({ params, locals, url }) => {
 			name: p.player!.getTruncatedDisplayName() || 'Unknown'
 		}));
 
-	const palette = ['#ef562f', '#0284c7', '#16a34a', '#eab308'];
+	const palette = ['#ef562f', '#0284c7', '#16a34a', '#eab308', '#000000'];
 	const playerColorMap = new Map<string, string>();
 	playerList.forEach((pl, idx) => playerColorMap.set(pl.id, palette[idx % palette.length]));
 
@@ -189,13 +189,26 @@ export const load: ServerLoad = async ({ params, locals, url }) => {
 	}
 
 	// Build rows from cumulative points map
+	// Track last known cumulative points for each player to handle 5-player games
+	// where a player (dealer) doesn't participate in a round
+	const lastCumulativePerPlayer = new Map<string, number>();
 	const rows = rounds.map((roundNum) => {
 		const row: Record<string, number | null> = { round: roundNum };
 		for (const [playerId, history] of playerPointsMap.entries()) {
 			const playerEntry = playerList.find((p) => p.id === playerId);
 			const playerName = playerEntry?.name || playerId;
 			const pointEntry = history.find((h) => h.round === roundNum);
-			row[playerName] = pointEntry ? pointEntry.cumulativePoints : null;
+
+			if (pointEntry) {
+				// Player participated in this round
+				row[playerName] = pointEntry.cumulativePoints;
+				lastCumulativePerPlayer.set(playerId, pointEntry.cumulativePoints);
+			} else {
+				// Player didn't participate (e.g., was dealer in 5-player game)
+				// Carry forward their previous cumulative points
+				const lastPoints = lastCumulativePerPlayer.get(playerId);
+				row[playerName] = lastPoints !== undefined ? lastPoints : 0;
+			}
 		}
 		return row;
 	});

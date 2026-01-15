@@ -19,7 +19,7 @@
 							x="round"
 							series={data.stats?.playerSeries?.series ?? []}
 							props={{ spline: { draw: true, strokeWidth: 3 } }}
-							legend
+							legend={{ classes: { items: 'gap-1', item: 'text-sm	', swatch: 'size-3' } }}
 						/>
 					</div>
 				</Card>

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Button, Modal, Label, Alert, ButtonGroup, Indicator } from 'flowbite-svelte';
+	import { Button, Modal, Label, Alert, ButtonGroup, Popover } from 'flowbite-svelte';
 	import {
 		PlusOutline,
 		ExclamationCircleSolid,
@@ -15,7 +15,7 @@
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import type { PageProps } from './$types';
 	import { Game } from '$lib/domain/game';
-	import { Round } from '$lib/domain/round';
+	import { Round, type GameRoundParticipant } from '$lib/domain/round';
 	import {
 		RoundType as RoundTypeEnum,
 		SoloType as SoloTypeEnum,
@@ -85,19 +85,87 @@
 	const hasUpcomingRound = $derived(game.rounds.length < game.maxRoundCount && !game.isFinished());
 	const isFinished = $derived(game.isFinished());
 	const canEditRounds = $derived(!isFinished);
-	const visibleRoundCount = $derived(roundsWithPoints.length);
 	const nextRoundNumber = $derived(game.rounds.length + 1);
-	const nextVisibleRoundNumber = $derived(visibleRoundCount + 1);
+
+	// For 5-player games, calculate dealer who sits out
+	// For 4-player games, dealer and starter follow the normal rotation
+	const is5PlayerGame = $derived(game.participants.length === 5);
+
+	// Helper function to check if a round is a mandatory solo
+	const isMandatorySolo = (round: Round) =>
+		round.type.startsWith('SOLO') && round.soloType === SoloTypeEnum.Pflicht;
+
+	// Calculate dealer position for a given round number
+	// Formula: d(r) = (r - played_mandatory_solos) mod player_count, with special handling
+	// when only mandatory solos remain
+	const getDealerPosition = (roundNumber: number) => {
+		if (!game.withMandatorySolos) {
+			// Simple rotation for games without mandatory solos
+			return (roundNumber - 1) % game.participants.length;
+		}
+
+		// Count mandatory solos played before this round
+		const playedMandatorySolos = allRoundsWithPoints.filter(
+			(r) => r.round.roundNumber < roundNumber && isMandatorySolo(r.round)
+		).length;
+
+		// Calculate remaining games
+		const unplayedRounds = game.maxRoundCount - (roundNumber - 1);
+		const unplayedMandatorySolos = game.participants.length - playedMandatorySolos;
+
+		if (unplayedRounds > unplayedMandatorySolos) {
+			// Normal rounds still exist - mandatory solos don't advance dealer
+			return (roundNumber - playedMandatorySolos - 1) % game.participants.length;
+		}
+
+		// Only mandatory solos remain - find when this phase started
+		let firstOnlyMandatoryRound = game.maxRoundCount + 1;
+
+		for (const entry of allRoundsWithPoints) {
+			const roundsAfter = game.maxRoundCount - entry.round.roundNumber;
+			const mandatorySolosBefore = allRoundsWithPoints.filter(
+				(r) => r.round.roundNumber < entry.round.roundNumber && isMandatorySolo(r.round)
+			).length;
+			const mandatorySolosAfter =
+				game.participants.length - mandatorySolosBefore - (isMandatorySolo(entry.round) ? 1 : 0);
+
+			if (roundsAfter === mandatorySolosAfter) {
+				firstOnlyMandatoryRound = entry.round.roundNumber + 1;
+				break;
+			}
+		}
+
+		// Calculate dealer position for "only mandatory" phase
+		const mandatorySolosBeforePhase = allRoundsWithPoints.filter(
+			(r) => r.round.roundNumber < firstOnlyMandatoryRound && isMandatorySolo(r.round)
+		).length;
+
+		return (
+			(firstOnlyMandatoryRound -
+				mandatorySolosBeforePhase -
+				1 +
+				(roundNumber - firstOnlyMandatoryRound)) %
+			game.participants.length
+		);
+	};
+
+	const upcomingDealerPosition = $derived(getDealerPosition(nextRoundNumber));
+
 	const upcomingDealer = $derived(
-		sortedParticipants.length
-			? sortedParticipants[(nextVisibleRoundNumber - 1) % sortedParticipants.length]
-			: null
+		sortedParticipants.length ? sortedParticipants[upcomingDealerPosition] : null
 	);
+
 	const upcomingStarter = $derived(
 		sortedParticipants.length
-			? sortedParticipants[nextVisibleRoundNumber % sortedParticipants.length]
+			? sortedParticipants[(upcomingDealerPosition + 1) % sortedParticipants.length]
 			: null
 	);
+
+	// Helper to get dealer for a past round
+	const getDealerForRound = (roundNumber: number) => {
+		const dealerPos = getDealerPosition(roundNumber);
+		return sortedParticipants[dealerPos] ?? null;
+	};
 
 	const mandatorySoloSlots = $derived(
 		((): MandatorySoloSlot[] => {
@@ -105,12 +173,19 @@
 			const soloRounds = allRoundsWithPoints.filter(
 				({ round }) => round.type.startsWith('SOLO') && round.soloType === SoloTypeEnum.Pflicht
 			);
-			return sortedParticipants.map((participant) => {
+			const slots = sortedParticipants.map((participant) => {
 				const hit = soloRounds.find(({ round }) => {
 					const soloPlayer = round.participants.find((p) => p.team === TeamEnum.RE);
 					return soloPlayer?.playerId === participant.playerId;
 				});
 				return { participant, entry: hit } satisfies MandatorySoloSlot;
+			});
+			// Sort by round number, with unplayed solos at the end
+			return slots.sort((a, b) => {
+				if (!a.entry && !b.entry) return 0;
+				if (!a.entry) return 1;
+				if (!b.entry) return -1;
+				return a.entry.round.roundNumber - b.entry.round.roundNumber;
 			});
 		})()
 	);
@@ -233,6 +308,28 @@
 	let callsEditModal = $state(false);
 	let bonusEditModal = $state(false);
 	let editingPlayerId = $state<string | null>(null);
+
+	// Calculate dealer position for the modal (either for editing or for new round)
+	const modalDealerPosition = $derived(() => {
+		if (editingRoundId) {
+			// When editing, find the round and determine dealer
+			const editingRound = allRoundsWithPoints.find((entry) => entry.round.id === editingRoundId);
+			if (editingRound && is5PlayerGame) {
+				// For 5-player games, find which player is NOT in the round participants
+				const participantIds = new Set(editingRound.round.participants.map((p) => p.playerId));
+				const dealerParticipant = sortedParticipants.find((p) => !participantIds.has(p.playerId));
+				if (dealerParticipant) {
+					return dealerParticipant.seatPosition;
+				}
+			}
+			// Fallback to calculated position for 4-player or if dealer not found
+			if (editingRound) {
+				return getDealerPosition(editingRound.round.roundNumber);
+			}
+		}
+		// When creating new round, use upcoming dealer position
+		return upcomingDealerPosition;
+	});
 
 	// Initialize player teams when modal opens
 	$effect(() => {
@@ -423,7 +520,18 @@
 								class="truncate px-2 text-center"
 								title={participant.player?.displayName ?? 'Spieler'}
 							>
-								{participant.player?.displayName ?? 'Spieler'}
+								<button
+									id="popover-{participant.playerId}"
+									class="block w-full truncate border-0 bg-transparent p-0 text-inherit"
+									title={participant.player?.displayName ?? 'Spieler'}
+								>
+									{participant.player?.displayName ?? 'Spieler'}
+								</button>
+								<Popover triggeredBy="#{`popover-${participant.playerId}`}" class="text-sm">
+									<div class="text-gray-900 normal-case dark:text-white">
+										{participant.player?.displayName ?? 'Spieler'}
+									</div>
+								</Popover>
 							</div>
 						{/each}
 					</div>
@@ -431,6 +539,7 @@
 					<div class="mx-1 my-2 h-px bg-gray-200 dark:bg-gray-700"></div>
 
 					{#each roundsWithPoints as entry, idx (entry.round.id)}
+						{@const roundDealer = getDealerForRound(entry.round.roundNumber)}
 						<div
 							role={canEditRounds ? 'button' : undefined}
 							class={`grid w-full cursor-pointer items-stretch gap-2 p-0 text-left transition hover:bg-gray-100/60 focus:outline-none dark:hover:bg-gray-800/60`}
@@ -450,26 +559,34 @@
 								</span>
 							</div>
 							{#each sortedParticipants as participant}
+								{@const isRoundDealer =
+									is5PlayerGame && roundDealer && participant.playerId === roundDealer.playerId}
 								{@const participantTeam = entry.round.participants.find(
 									(p) => p.playerId === participant.playerId
 								)?.team}
 								{@const result = getPlayerResult(entry, participant.playerId)}
 								<div
-									class={`flex flex-col items-center justify-center rounded-md px-2 py-3 text-sm font-semibold shadow-sm ${result ? resultStyles[result.result] : placeholderTile} ${participantTeam === TeamEnum.RE ? 'border' : ''}`}
-									title={result?.result === RoundResultEnum.WON
-										? 'Sieg'
-										: result?.result === RoundResultEnum.LOST
-											? 'Niederlage'
-											: result?.result === RoundResultEnum.DRAW
-												? 'Remis'
-												: 'Offen'}
+									class={`flex flex-col items-center justify-center rounded-md px-2 py-3 text-sm font-semibold shadow-sm ${isRoundDealer ? 'opacity-40' : result ? resultStyles[result.result] : placeholderTile} ${participantTeam === TeamEnum.RE ? 'border-2' : ''}`}
+									title={isRoundDealer
+										? 'Geber'
+										: result?.result === RoundResultEnum.WON
+											? 'Sieg'
+											: result?.result === RoundResultEnum.LOST
+												? 'Niederlage'
+												: result?.result === RoundResultEnum.DRAW
+													? 'Remis'
+													: 'Offen'}
 								>
-									<div class="text-lg leading-none font-bold">{result?.points ?? 0}</div>
+									{#if isRoundDealer}
+										<ShuffleOutline class="h-5 w-5" />
+									{:else}
+										<div class="text-lg leading-none font-bold">{result?.points ?? 0}</div>
+									{/if}
 								</div>
 							{/each}
 						</div>
 
-						{#if (idx + 1) % 4 === 0 && idx !== roundsWithPoints.length - 1}
+						{#if (idx + 1) % (is5PlayerGame ? 5 : 4) === 0 && idx !== roundsWithPoints.length - 1}
 							<div class="mx-1 my-2 h-px bg-gray-200 dark:bg-gray-700"></div>
 						{/if}
 					{/each}
@@ -485,10 +602,15 @@
 								<span class="leading-tight">{nextRoundNumber}</span>
 							</div>
 							{#each sortedParticipants as participant}
+								{@const isUpcomingDealer =
+									upcomingDealer && participant.playerId === upcomingDealer.playerId}
 								<div
-									class="flex flex-col items-center justify-center rounded-md border border-dashed border-slate-700 px-2 py-3 text-xs font-semibold text-gray-600 dark:border-gray-700 dark:text-gray-200"
+									class="flex flex-col items-center justify-center rounded-md border border-dashed border-slate-700 px-2 py-3 text-xs font-semibold {isUpcomingDealer &&
+									is5PlayerGame
+										? 'bg-gray-100 opacity-40 dark:bg-gray-800'
+										: 'text-gray-600 dark:text-gray-200'} dark:border-gray-700"
 								>
-									{#if upcomingDealer && participant.playerId === upcomingDealer.playerId}
+									{#if isUpcomingDealer}
 										<ShuffleOutline class="h-5 w-5" />
 									{:else if upcomingStarter && participant.playerId === upcomingStarter.playerId}
 										<RocketOutline class="h-5 w-5" />
@@ -505,7 +627,7 @@
 
 					<div class="flex items-center justify-end gap-2 text-xs text-gray-500 dark:text-gray-400">
 						<div class="flex items-center gap-1">
-							<ShuffleOutline class="h-3.5 w-3.5" /> <span>Mischen</span>
+							<ShuffleOutline class="h-3.5 w-3.5" /> <span>Geber</span>
 						</div>
 						<div class="flex items-center gap-1">
 							<RocketOutline class="h-3.5 w-3.5" /> <span>Aufspiel</span>
@@ -549,8 +671,22 @@
 					>
 						<div class="px-2 text-center">Runde</div>
 						{#each sortedParticipants as participant}
-							<div class="truncate px-2 text-center">
-								{participant.player?.displayName ?? 'Spieler'}
+							<div
+								class="truncate px-2 text-center"
+								title={participant.player?.displayName ?? 'Spieler'}
+							>
+								<button
+									id="popover-solo-{participant.playerId}"
+									class="block w-full truncate border-0 bg-transparent p-0 text-inherit"
+									title={participant.player?.displayName ?? 'Spieler'}
+								>
+									{participant.player?.displayName ?? 'Spieler'}
+								</button>
+								<Popover triggeredBy="#{`popover-solo-${participant.playerId}`}" class="text-sm">
+									<div class="text-gray-900 normal-case dark:text-white">
+										{participant.player?.displayName ?? 'Spieler'}
+									</div>
+								</Popover>
 							</div>
 						{/each}
 					</div>
@@ -588,20 +724,43 @@
 									? getPlayerResult(slot.entry, participant.playerId)
 									: null}
 								{@const participantTeam = slot.entry
-									? slot.entry.round.participants.find((p) => p.playerId === participant.playerId)
-											?.team
+									? slot.entry.round.participants.find(
+											(p: GameRoundParticipant) => p.playerId === participant.playerId
+										)?.team
 									: null}
+								{@const isSoloDealer =
+									is5PlayerGame &&
+									slot.entry &&
+									!slot.entry.round.participants.find(
+										(p: GameRoundParticipant) => p.playerId === participant.playerId
+									)}
 								<div
-									class={`flex flex-col items-center justify-center rounded-md px-2 py-3 text-sm font-semibold shadow-sm ${soloResult ? resultStyles[soloResult.result] : placeholderTile} ${participantTeam === TeamEnum.RE ? 'border' : ''}`}
-									title={soloResult?.result === RoundResultEnum.WON
-										? 'Sieg'
-										: soloResult?.result === RoundResultEnum.LOST
-											? 'Niederlage'
-											: soloResult?.result === RoundResultEnum.DRAW
-												? 'Remis'
-												: 'Offen'}
+									class={`flex flex-col items-center justify-center rounded-md px-2 py-3 text-sm font-semibold shadow-sm ${isSoloDealer ? 'opacity-40' : soloResult ? resultStyles[soloResult.result] : placeholderTile} ${participantTeam === TeamEnum.RE ? 'border-2' : ''}`}
+									title={isSoloDealer
+										? 'Geber'
+										: soloResult?.result === RoundResultEnum.WON
+											? 'Sieg'
+											: soloResult?.result === RoundResultEnum.LOST
+												? 'Niederlage'
+												: soloResult?.result === RoundResultEnum.DRAW
+													? 'Remis'
+													: 'Offen'}
 								>
-									<div class="text-lg leading-none font-bold">{soloResult?.points ?? 0}</div>
+									{#if isSoloDealer}
+										<ShuffleOutline class="h-5 w-5" />
+									{:else if soloResult}
+										<div class="text-lg leading-none font-bold">{soloResult.points}</div>
+									{:else}
+										<div class="relative text-lg leading-none font-bold">
+											<span class="invisible">0</span>
+											<div
+												class="absolute inset-0 flex items-center justify-center"
+												aria-hidden="true"
+											>
+												<div class="h-1.5 w-1.5 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+											</div>
+										</div>
+									{/if}
 									<span class="sr-only">
 										{#if soloResult?.result === RoundResultEnum.WON}
 											Sieg
@@ -944,7 +1103,7 @@
 
 				<!-- Hidden input for round type -->
 				<input type="hidden" name="type" value={getFinalRoundType()} />
-				{#if soloType}
+				{#if game.withMandatorySolos}
 					<input type="hidden" name="soloType" value={soloType} />
 				{/if}
 				{#if editingRoundId}
@@ -1040,130 +1199,114 @@
 				class="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50"
 			>
 				<Label class="text-sm font-semibold text-gray-900 dark:text-white">Spielerteams</Label>
+				{#if is5PlayerGame}
+					<p class="bold mt-2 mb-1 text-xs text-secondary-700 dark:text-secondary-200">
+						<strong
+							>{sortedParticipants[modalDealerPosition()]?.player?.displayName ?? 'Spieler'} setzt aus
+							(Geber)</strong
+						>
+					</p>
+				{/if}
 				<p class="mt-2 mb-3 text-xs text-gray-600 dark:text-gray-400">
-					Klicke auf eine Karte um das Team zu wechseln
+					Klicke auf eine Karte um das Team des Spielers zu wechseln.
 				</p>
 				<div class="grid grid-cols-2 gap-3">
 					{#each sortedParticipants as participant}
-						{@const team = playerTeams[participant.playerId]}
-						{@const calls = playerCalls[participant.playerId]}
-						<div
-							class="flex flex-col gap-2 rounded-lg border-2 p-3 transition {team === TeamEnum.RE
-								? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-								: team === TeamEnum.KONTRA
-									? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-									: 'border-gray-400 bg-gray-100 dark:bg-gray-700'}"
-						>
-							<button
-								type="button"
-								disabled={!canEditRounds}
-								onclick={() => togglePlayerTeam(participant.playerId)}
-								class={`flex flex-col items-center gap-2 transition ${!canEditRounds ? 'cursor-not-allowed opacity-60' : 'hover:opacity-80'}`}
-							>
-								{#if team}
-									<input type="hidden" name="player_{participant.seatPosition}_team" value={team} />
-									{#if calls?.calls.team}
-										<input
-											type="hidden"
-											name="player_{participant.seatPosition}_call_{calls.calls.team}"
-											value={calls.calls.team}
-										/>
-									{/if}
-									{#if calls?.calls.type}
-										<input
-											type="hidden"
-											name="player_{participant.seatPosition}_call_{calls.calls.type}"
-											value={calls.calls.type}
-										/>
-									{/if}
-									{#if bonusesAllowed}
-										{#if calls?.bonus.fuchs}
-											<input
-												type="hidden"
-												name="player_{participant.seatPosition}_bonus_FUCHS"
-												value={calls.bonus.fuchs}
-											/>
-										{/if}
-										{#if calls?.bonus.doppelkopf}
-											<input
-												type="hidden"
-												name="player_{participant.seatPosition}_bonus_DOKO"
-												value={calls.bonus.doppelkopf}
-											/>
-										{/if}
-										{#if calls?.bonus.karlchen}
-											<input
-												type="hidden"
-												name="player_{participant.seatPosition}_bonus_KARLCHEN"
-												value={1}
-											/>
-										{/if}
-									{/if}
-								{/if}
-								<div class="text-center text-sm font-medium text-gray-900 dark:text-white">
-									{participant.player?.displayName ?? 'Spieler'}
-								</div>
-								{#if team}
-									<div
-										class={`rounded px-2 py-1 text-xs font-semibold ${
-											team === 'RE'
-												? 'bg-blue-200 text-blue-800 dark:bg-blue-800 dark:text-blue-200'
-												: 'bg-red-200 text-red-800 dark:bg-red-800 dark:text-red-200'
-										}`}
-									>
-										{team}
-									</div>
-								{:else}
-									<div
-										class="rounded bg-gray-300 px-2 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-600 dark:text-gray-300"
-									>
-										Nicht ausgewählt
-									</div>
-								{/if}
-							</button>
-
+						{@const isDealer = is5PlayerGame && participant.seatPosition === modalDealerPosition()}
+						{#if !isDealer}
+							{@const team = playerTeams[participant.playerId]}
+							{@const calls = playerCalls[participant.playerId]}
 							<div
-								class="border-t {team === 'RE'
-									? 'border-blue-300 pt-2 dark:border-blue-700'
-									: team === 'KONTRA'
-										? 'border-red-300 pt-2 dark:border-red-700'
-										: 'border-gray-300 pt-2 dark:border-gray-600'} space-y-3"
+								class="flex flex-col gap-2 rounded-lg border-2 p-3 transition {team === TeamEnum.RE
+									? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+									: team === TeamEnum.KONTRA
+										? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+										: 'border-gray-400 bg-gray-100 dark:bg-gray-700'}"
 							>
-								<!-- An- und Absagen Section -->
-								<div>
-									<div class="mb-1 flex items-center justify-between">
-										<span class="text-xs font-medium text-gray-700 dark:text-gray-300"
-											>An/Absagen:</span
-										>
-										<Button
-											pill
-											size="xs"
-											color="secondary"
-											disabled={!canEditRounds}
-											onclick={() => {
-												editingPlayerId = participant.playerId;
-												callsEditModal = true;
-											}}
-											class={`p-2! ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
-											title="Ansagen bearbeiten"
-										>
-											<EditOutline class="h-4 w-4" />
-										</Button>
+								<button
+									type="button"
+									disabled={!canEditRounds}
+									onclick={() => togglePlayerTeam(participant.playerId)}
+									class={`flex flex-col items-center gap-2 transition ${!canEditRounds ? 'cursor-not-allowed opacity-60' : 'hover:opacity-80'}`}
+								>
+									{#if team}
+										<input
+											type="hidden"
+											name="player_{participant.seatPosition}_team"
+											value={team}
+										/>
+										{#if calls?.calls.team}
+											<input
+												type="hidden"
+												name="player_{participant.seatPosition}_call_{calls.calls.team}"
+												value={calls.calls.team}
+											/>
+										{/if}
+										{#if calls?.calls.type}
+											<input
+												type="hidden"
+												name="player_{participant.seatPosition}_call_{calls.calls.type}"
+												value={calls.calls.type}
+											/>
+										{/if}
+										{#if bonusesAllowed}
+											{#if calls?.bonus.fuchs}
+												<input
+													type="hidden"
+													name="player_{participant.seatPosition}_bonus_FUCHS"
+													value={calls.bonus.fuchs}
+												/>
+											{/if}
+											{#if calls?.bonus.doppelkopf}
+												<input
+													type="hidden"
+													name="player_{participant.seatPosition}_bonus_DOKO"
+													value={calls.bonus.doppelkopf}
+												/>
+											{/if}
+											{#if calls?.bonus.karlchen}
+												<input
+													type="hidden"
+													name="player_{participant.seatPosition}_bonus_KARLCHEN"
+													value={1}
+												/>
+											{/if}
+										{/if}
+									{/if}
+									<div class="text-center text-sm font-medium text-gray-900 dark:text-white">
+										{participant.player?.displayName ?? 'Spieler'}
 									</div>
-									{#if calls && (calls.calls.team || calls.calls.type)}
-										<div class="pl-2 text-xs text-gray-700 dark:text-gray-300">
-											{calls.calls.team}
-											{calls.calls.type}
+									{#if team}
+										<div
+											class={`rounded px-2 py-1 text-xs font-semibold ${
+												team === 'RE'
+													? 'bg-blue-200 text-blue-800 dark:bg-blue-800 dark:text-blue-200'
+													: 'bg-red-200 text-red-800 dark:bg-red-800 dark:text-red-200'
+											}`}
+										>
+											{team}
+										</div>
+									{:else}
+										<div
+											class="rounded bg-gray-300 px-2 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-600 dark:text-gray-300"
+										>
+											Nicht ausgewählt
 										</div>
 									{/if}
-								</div>
+								</button>
 
-								<!-- Bonuspunkte Section -->
-								{#if bonusesAllowed}
+								<div
+									class="border-t {team === 'RE'
+										? 'border-blue-300 pt-2 dark:border-blue-700'
+										: team === 'KONTRA'
+											? 'border-red-300 pt-2 dark:border-red-700'
+											: 'border-gray-300 pt-2 dark:border-gray-600'} space-y-3"
+								>
+									<!-- An- und Absagen Section -->
 									<div>
 										<div class="mb-1 flex items-center justify-between">
 											<span class="text-xs font-medium text-gray-700 dark:text-gray-300"
-												>Bonus:</span
+												>An/Absagen:</span
 											>
 											<Button
 												pill
@@ -1172,30 +1315,62 @@
 												disabled={!canEditRounds}
 												onclick={() => {
 													editingPlayerId = participant.playerId;
-													bonusEditModal = true;
+													callsEditModal = true;
 												}}
 												class={`p-2! ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
-												title="Bonus bearbeiten"
+												title="Ansagen bearbeiten"
 											>
 												<EditOutline class="h-4 w-4" />
 											</Button>
 										</div>
-										{#if calls && (calls.bonus.fuchs !== 0 || calls.bonus.doppelkopf !== 0 || calls.bonus.karlchen)}
+										{#if calls && (calls.calls.team || calls.calls.type)}
 											<div class="pl-2 text-xs text-gray-700 dark:text-gray-300">
-												{#if calls.bonus.fuchs !== 0}Fuchs {calls.bonus
-														.fuchs}x{/if}{#if calls.bonus.doppelkopf !== 0}{calls.bonus.fuchs !== 0
-														? ', '
-														: ''}Doppelkopf {calls.bonus
-														.doppelkopf}x{/if}{#if calls.bonus.karlchen}{calls.bonus.fuchs !== 0 ||
-													calls.bonus.doppelkopf !== 0
-														? ', '
-														: ''}Karlchen{/if}
+												{calls.calls.team}
+												{calls.calls.type}
 											</div>
 										{/if}
 									</div>
-								{/if}
+
+									<!-- Bonuspunkte Section -->
+									{#if bonusesAllowed}
+										<div>
+											<div class="mb-1 flex items-center justify-between">
+												<span class="text-xs font-medium text-gray-700 dark:text-gray-300"
+													>Bonus:</span
+												>
+												<Button
+													pill
+													size="xs"
+													color="secondary"
+													disabled={!canEditRounds}
+													onclick={() => {
+														editingPlayerId = participant.playerId;
+														bonusEditModal = true;
+													}}
+													class={`p-2! ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
+													title="Bonus bearbeiten"
+												>
+													<EditOutline class="h-4 w-4" />
+												</Button>
+											</div>
+											{#if calls && (calls.bonus.fuchs !== 0 || calls.bonus.doppelkopf !== 0 || calls.bonus.karlchen)}
+												<div class="pl-2 text-xs text-gray-700 dark:text-gray-300">
+													{#if calls.bonus.fuchs !== 0}Fuchs {calls.bonus
+															.fuchs}x{/if}{#if calls.bonus.doppelkopf !== 0}{calls.bonus.fuchs !==
+														0
+															? ', '
+															: ''}Doppelkopf {calls.bonus
+															.doppelkopf}x{/if}{#if calls.bonus.karlchen}{calls.bonus.fuchs !==
+															0 || calls.bonus.doppelkopf !== 0
+															? ', '
+															: ''}Karlchen{/if}
+												</div>
+											{/if}
+										</div>
+									{/if}
+								</div>
 							</div>
-						</div>
+						{/if}
 					{/each}
 				</div>
 			</div>

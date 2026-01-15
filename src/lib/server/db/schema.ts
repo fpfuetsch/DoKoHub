@@ -72,14 +72,15 @@ export const CreateGameSchema = z.object({
 	maxRoundCount: z.coerce
 		.number()
 		.int()
-		.refine((val) => [8, 12, 16, 20, 24].includes(val), {
-			message: 'Bitte wähle eine gültige Rundenanzahl (8, 12, 16, 20 oder 24).'
+		.refine((val) => [8, 12, 16, 20, 24, 10, 15, 25, 30].includes(val), {
+			message: 'Bitte wähle eine gültige Rundenanzahl (8, 12, 16, 20, 24 für 4 Spieler oder 10, 15, 20, 25, 30 für 5 Spieler).'
 		}),
 	withMandatorySolos: z.coerce.boolean(),
 	player_0: z.string().min(1, 'Bitte wähle einen Spieler für Sitzposition 1.'),
 	player_1: z.string().min(1, 'Bitte wähle einen Spieler für Sitzposition 2.'),
 	player_2: z.string().min(1, 'Bitte wähle einen Spieler für Sitzposition 3.'),
-	player_3: z.string().min(1, 'Bitte wähle einen Spieler für Sitzposition 4.')
+	player_3: z.string().min(1, 'Bitte wähle einen Spieler für Sitzposition 4.'),
+	player_4: z.string().optional() // Optional 5th player (dealer)
 });
 
 const roundTypeValues = RoundTypeDbEnum.enumValues;

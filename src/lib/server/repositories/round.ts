@@ -112,19 +112,22 @@ export class RoundRepository extends BaseRepository {
 			roundNumber: existing.roundNumber
 		};
 
-		const [game] = await db
-			.select({ withMandatorySolos: GameTable.withMandatorySolos })
+		const gameRow = await db
+			.select()
 			.from(GameTable)
-			.where(eq(GameTable.id, gameId));
-		if (!game) return err('Spiel nicht gefunden.', 404);
+			.where(eq(GameTable.id, gameId))
+			.limit(1);
+		if (gameRow.length === 0) return err('Spiel nicht gefunden.', 404);
 
-		const roundValidationError = Round.validate(draft, game.withMandatorySolos);
+		const gameData = gameRow[0] as any;
+
+		const roundValidationError = Round.validate(draft, gameData.withMandatorySolos);
 		if (roundValidationError) return err(roundValidationError);
 
 		const gameValidationError = await this.validateGameWithRound(
 			gameId,
 			groupId,
-			game,
+			gameData,
 			draft,
 			roundId
 		);
@@ -310,12 +313,17 @@ export class RoundRepository extends BaseRepository {
 	private async validateParticipants(gameId: string, round: RoundData): Promise<string | null> {
 		const gameParticipantIds = await this.getGameParticipantIds(gameId);
 		const roundParticipantIds = new Set(round.participants.map((p) => p.playerId));
-		if (
-			gameParticipantIds.size !== roundParticipantIds.size ||
-			![...roundParticipantIds].every((id) => gameParticipantIds.has(id))
-		) {
+
+		// Rounds always have exactly 4 participants (for 5-player games, dealer sits out)
+		if (roundParticipantIds.size !== 4) {
+			return 'Teilnehmeranzahl für Runde ist ungültig.';
+		}
+
+		// Check that all round participants are part of the game
+		if (![...roundParticipantIds].every((id) => gameParticipantIds.has(id))) {
 			return 'Teilnehmer stimmen nicht mit dem Spiel überein.';
 		}
+
 		return null;
 	}
 

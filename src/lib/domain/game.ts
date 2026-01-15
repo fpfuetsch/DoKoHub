@@ -12,7 +12,7 @@ export interface GameParticipant {
 export class Game implements GameType {
 	id: string;
 	groupId: string;
-	maxRoundCount: number; // 8, 12, 16, 20, 24
+	maxRoundCount: number;
 	withMandatorySolos: boolean;
 	createdAt: Date;
 	endedAt: Date | null;
@@ -46,26 +46,29 @@ export class Game implements GameType {
 	 * Validate game-level constraints
 	 * - If game has mandatory solos, every player must play exactly one Pflicht solo (only checked when game is complete)
 	 * - Pflicht solo rounds are only allowed when game was created with withMandatorySolos
-	 * - Exactly 4 participants must be provided
-	 * - maxRoundCount must be one of: 8, 12, 16, 20, 24
+	 * - 4 or 5 participants must be provided (5th player is dealer who sits out)
+	 * - maxRoundCount must be: 8, 12, 16, 20, 24 for 4 players; 10, 15, 20, 25, 30 for 5 players
 	 * - All participants must be unique
 	 */
 	static validate(game: Game): string | null {
 		// Validate participant count
-		if (game.participants.length !== 4) {
-			return 'Es müssen genau 4 Teilnehmer ausgewählt werden.';
+		if (game.participants.length !== 4 && game.participants.length !== 5) {
+			return 'Es müssen genau 4 oder 5 Teilnehmer ausgewählt werden.';
 		}
 
 		// Validate all participants are unique
 		const uniquePlayerIds = new Set(game.participants.map((p) => p.playerId));
-		if (uniquePlayerIds.size !== 4) {
+		if (uniquePlayerIds.size !== game.participants.length) {
 			return 'Jeder Spieler darf nur einmal ausgewählt werden.';
 		}
 
-		// Validate maxRoundCount
-		const validRoundCounts = [8, 12, 16, 20, 24];
+		// Validate maxRoundCount based on player count
+		const validRoundCounts = game.participants.length === 4
+			? [8, 12, 16, 20, 24]
+			: [10, 15, 20, 25, 30];
 		if (!validRoundCounts.includes(game.maxRoundCount)) {
-			return 'Gültige Rundenanzahlen sind: 8, 12, 16, 20, 24.';
+			const validStr = validRoundCounts.join(', ');
+			return `Gültige Rundenanzahlen sind: ${validStr}.`;
 		}
 
 		// Validate that Pflicht solo rounds only exist if game has mandatory solos

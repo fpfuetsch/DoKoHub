@@ -40,6 +40,12 @@ export const actions: Actions = {
 				(formData.get('player_3') ?? '').toString()
 			];
 
+			// Add 5th player if provided
+			const player4 = (formData.get('player_4') ?? '').toString();
+			if (player4) {
+				participantIds.push(player4);
+			}
+
 			const gameResult = await gameRepo.create(
 				params.group,
 				maxRoundCount,

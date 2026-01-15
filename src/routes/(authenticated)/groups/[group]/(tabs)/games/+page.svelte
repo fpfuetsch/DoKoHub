@@ -24,8 +24,19 @@
 	const canCreateGame = $derived(groupPlayers.length >= 4);
 	let gameModal = $state(false);
 	let withMandatorySolos = $state(false);
+	let isFivePlayer = $state(false);
 	let sortedPlayers = $state<Player[]>([]);
-	let maxRoundCount = $state<8 | 12 | 16 | 20 | 24>(16);
+	let maxRoundCount = $state<8 | 12 | 16 | 20 | 24 | 10 | 15 | 25 | 30>(16);
+
+	// When 5-player mode is toggled, update the default round count
+	$effect(() => {
+		if (isFivePlayer && ![10, 15, 20, 25, 30].includes(maxRoundCount as any)) {
+			// keep positions proportional
+			maxRoundCount = Math.round((maxRoundCount as number) / 4 * 5) as 10 | 15 | 20 | 25 | 30;
+		} else if (!isFivePlayer && ![8, 12, 16, 20, 24].includes(maxRoundCount as any)) {
+			maxRoundCount = Math.round((maxRoundCount as number) / 5 * 4) as 8 | 12 | 16 | 20 | 24;
+		}
+	});
 
 	const triggerHaptic = () => {
 		if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -37,13 +48,23 @@
 	let draggedIndex = $state<number | null>(null);
 	let dragOverIndex = $state<number | null>(null);
 
-	const roundOptions: Array<{ value: 8 | 12 | 16 | 20 | 24; label: number }> = [
+	const roundOptions4P: Array<{ value: 8 | 12 | 16 | 20 | 24; label: number }> = [
 		{ value: 8, label: 8 },
 		{ value: 12, label: 12 },
 		{ value: 16, label: 16 },
 		{ value: 20, label: 20 },
 		{ value: 24, label: 24 }
 	];
+
+	const roundOptions5P: Array<{ value: 10 | 15 | 20 | 25 | 30; label: number }> = [
+		{ value: 10, label: 10 },
+		{ value: 15, label: 15 },
+		{ value: 20, label: 20 },
+		{ value: 25, label: 25 },
+		{ value: 30, label: 30 }
+	];
+
+	const roundOptions = $derived(isFivePlayer ? roundOptions5P : roundOptions4P);
 
 	$effect(() => {
 		if (gameModal && sortedPlayers.length === 0) {
@@ -63,6 +84,7 @@
 				await invalidateAll();
 				gameModal = false;
 				withMandatorySolos = false;
+				isFivePlayer = false;
 				sortedPlayers = [];
 				maxRoundCount = 16;
 			}
@@ -184,7 +206,7 @@
 					href="/groups/{group.id}/games/{game.id}/rounds"
 					class="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-3 transition hover:border-gray-300 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
 				>
-					<div class="flex-1 space-y-1 font-medium dark:text-white">
+					<div class="flex-1 space-y-1 dark:text-white">
 						<div class="font-semibold text-gray-900 dark:text-white">
 							{formatDateTime(game.createdAt)}
 						</div>
@@ -248,7 +270,7 @@
 				Erstelle ein neues Spiel
 			</h3>
 			<p class="text-sm text-gray-600">
-				Wähle aus, ob du mit oder ohne Pflichtsoli spielen möchtest. Anschließend kannst du Spieler
+				Wähle aus, ob du mit oder ohne Pflichtsoli und mit einem extra Spieler spielen möchtest. Anschließend kannst du Spieler
 				und deren Sitzreihenfolge anpassen.
 			</p>
 			{#if form?.error}
@@ -262,7 +284,7 @@
 			{/if}
 
 			<div class="flex items-center justify-between">
-				<Label for="pflichtsoli" class="font-medium">Mit Pflichtsoli</Label>
+				<Label for="pflichtsoli" class="font-medium">Pflichtsoli</Label>
 				<Toggle
 					id="pflichtsoli"
 					bind:checked={withMandatorySolos}
@@ -270,6 +292,17 @@
 					color="secondary"
 				/>
 				<input type="hidden" name="withMandatorySolos" value={withMandatorySolos} />
+			</div>
+
+			<div class="flex items-center justify-between">
+				<Label for="fivePlayer" class="font-medium">5 Spieler (Geber setzt aus)</Label>
+				<Toggle
+					id="fivePlayer"
+					bind:checked={isFivePlayer}
+					disabled={groupPlayers.length === 4}
+					class="cursor-pointer"
+					color="secondary"
+				/>
 			</div>
 
 			<div class="space-y-2">
@@ -311,10 +344,14 @@
 				{#each [0, 1, 2, 3] as position}
 					<input type="hidden" name="player_{position}" value={sortedPlayers[position]?.id ?? ''} />
 				{/each}
+				{#if isFivePlayer && sortedPlayers[4]}
+					<input type="hidden" name="player_4" value={sortedPlayers[4]?.id ?? ''} />
+				{/if}
 
 				<div class="space-y-2">
 					{#each sortedPlayers as player, index (player.id)}
-						{#if index === 4}
+						{@const maxSeats = isFivePlayer ? 5 : 4}
+						{#if index === maxSeats && index > 0}
 							<div class="relative my-2">
 								<div class="absolute inset-0 flex items-center">
 									<div class="w-full border-t border-gray-300 dark:border-gray-600"></div>
@@ -328,7 +365,7 @@
 						{/if}
 						<div
 							data-player-index={index}
-							class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 select-none dark:border-gray-700 dark:bg-gray-800 {draggedIndex ===
+							class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 p-3 select-none {draggedIndex ===
 							index
 								? 'opacity-50 ring-2 ring-secondary'
 								: dragOverIndex === index && draggedIndex !== null
@@ -346,7 +383,7 @@
 								<div class="truncate font-medium text-gray-900 dark:text-white">
 									{player.displayName}
 								</div>
-								{#if index < 4}
+								{#if index < maxSeats}
 									<div class="text-xs text-gray-500 dark:text-gray-400">
 										Sitzposition {index + 1}
 									</div>

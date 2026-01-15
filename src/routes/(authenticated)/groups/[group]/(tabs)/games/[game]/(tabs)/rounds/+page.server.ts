@@ -123,14 +123,19 @@ export const actions = {
 			type: formData.get('type') as any,
 			soloType: (formData.get('soloType') as any) || null,
 			eyesRe: Number(formData.get('eyesRe')),
-			participants: game.participants.map((p: any) => {
-				const playerKey = `player_${p.seatPosition}`;
+			// Only include participants with team assignments (frontend excludes dealer for 5-player games)
+			participants: Array.from(teamAssignments.entries()).map(([playerId, team]) => {
+				const participant = game.participants.find((p: any) => p.playerId === playerId);
+				if (!participant) {
+					throw new Error(`Participant with playerId ${playerId} not found in game`);
+				}
+				const playerKey = `player_${participant.seatPosition}`;
 				return {
-					playerId: p.playerId,
-					player: p.player,
-					team: teamAssignments.get(p.playerId) as Team,
-					calls: (callsObj[playerKey] || []).map((c) => ({ ...c, playerId: p.playerId })),
-					bonuses: (bonusObj[playerKey] || []).map((b) => ({ ...b, playerId: p.playerId }))
+					playerId: playerId,
+					player: participant.player,
+					team: team,
+					calls: (callsObj[playerKey] || []).map((c) => ({ ...c, playerId: playerId })),
+					bonuses: (bonusObj[playerKey] || []).map((b) => ({ ...b, playerId: playerId }))
 				};
 			})
 		};
