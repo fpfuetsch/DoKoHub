@@ -240,37 +240,38 @@ export class Round implements RoundData {
 	}
 
 	private calculateThresholds(): { reThreshold: number; kontraThreshold: number } {
-		let reThreshold = 121;
-		let kontraThreshold = 121;
+		const reCalls = this.getCallsForTeam(Team.RE);
+		const kontraCalls = this.getCallsForTeam(Team.KONTRA);
 
-		const reAbsagen = this.getCallsForTeam(Team.RE);
-		const kontraAbsagen = this.getCallsForTeam(Team.KONTRA);
+		let reThreshold = 121;
+		let kontraThreshold = 120;
+
+		if (kontraCalls.KONTRA && !reCalls.RE) {
+			reThreshold = 120;
+			kontraThreshold = 121;
+		}
 
 		// RE team calls increase RE's threshold
-		if (reAbsagen.SCHWARZ) reThreshold = 240;
-		else if (reAbsagen.KEINE30) reThreshold = 210;
-		else if (reAbsagen.KEINE60) reThreshold = 180;
-		else if (reAbsagen.KEINE90) reThreshold = 150;
-		else if (reAbsagen.RE) reThreshold = 121;
-		// If RE has no calls, KONTRA's calls lower RE's threshold
-		else if (kontraAbsagen.SCHWARZ) reThreshold = 0;
-		else if (kontraAbsagen.KEINE30) reThreshold = 31;
-		else if (kontraAbsagen.KEINE60) reThreshold = 61;
-		else if (kontraAbsagen.KEINE90) reThreshold = 91;
-		else if (kontraAbsagen.KONTRA) reThreshold = 120;
+		if (reCalls.SCHWARZ) reThreshold = 240;
+		else if (reCalls.KEINE30) reThreshold = 211;
+		else if (reCalls.KEINE60) reThreshold = 181;
+		else if (reCalls.KEINE90) reThreshold = 151;
+		// If RE has no "absagen", KONTRA's calls lower RE's threshold
+		else if (kontraCalls.SCHWARZ) reThreshold = 0;
+		else if (kontraCalls.KEINE30) reThreshold = 30;
+		else if (kontraCalls.KEINE60) reThreshold = 60;
+		else if (kontraCalls.KEINE90) reThreshold = 90;
 
 		// KONTRA team calls increase KONTRA's threshold
-		if (kontraAbsagen.SCHWARZ) kontraThreshold = 240;
-		else if (kontraAbsagen.KEINE30) kontraThreshold = 210;
-		else if (kontraAbsagen.KEINE60) kontraThreshold = 180;
-		else if (kontraAbsagen.KEINE90) kontraThreshold = 150;
-		else if (kontraAbsagen.KONTRA) kontraThreshold = 121;
+		if (kontraCalls.SCHWARZ) kontraThreshold = 240;
+		else if (kontraCalls.KEINE30) kontraThreshold = 211;
+		else if (kontraCalls.KEINE60) kontraThreshold = 181;
+		else if (kontraCalls.KEINE90) kontraThreshold = 151;
 		// If KONTRA has no calls, RE's calls lower KONTRA's threshold
-		else if (reAbsagen.SCHWARZ) kontraThreshold = 0;
-		else if (reAbsagen.KEINE30) kontraThreshold = 31;
-		else if (reAbsagen.KEINE60) kontraThreshold = 61;
-		else if (reAbsagen.KEINE90) kontraThreshold = 91;
-		else if (reAbsagen.RE) kontraThreshold = 120;
+		else if (reCalls.SCHWARZ) kontraThreshold = 0;
+		else if (reCalls.KEINE30) kontraThreshold = 30;
+		else if (reCalls.KEINE60) kontraThreshold = 60;
+		else if (reCalls.KEINE90) kontraThreshold = 90;
 
 		return { reThreshold, kontraThreshold };
 	}

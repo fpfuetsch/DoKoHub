@@ -103,10 +103,104 @@ describe('Round.calculatePoints', () => {
 			expect(rePoints).toStrictEqual(2);
 			expect(kontraPoints).toStrictEqual(-2);
 		});
+
+		it('Kontra wins with 120 points', () => {
+			const round = createRound(
+				[
+					createParticipant('p1', Team.RE),
+					createParticipant('p2', Team.RE),
+					createParticipant('p3', Team.KONTRA),
+					createParticipant('p4', Team.KONTRA)
+				],
+				120
+			);
+
+			const points = round.calculatePoints();
+			const rePoints = points[0].points;
+			const reResult = points[0].result;
+			const kontraPoints = points[2].points;
+			const kontraResult = points[2].result;
+
+			// Should have: +1 win, +1 for against Re
+			expect(reResult).toBe(RoundResult.LOST);
+			expect(kontraResult).toBe(RoundResult.WON);
+			expect(rePoints).toStrictEqual(-2);
+			expect(kontraPoints).toStrictEqual(2);
+		});
+
+		it('Re wins with 121 points', () => {
+			const round = createRound(
+				[
+					createParticipant('p1', Team.RE),
+					createParticipant('p2', Team.RE),
+					createParticipant('p3', Team.KONTRA),
+					createParticipant('p4', Team.KONTRA)
+				],
+				121
+			);
+
+			const points = round.calculatePoints();
+			const rePoints = points[0].points;
+			const reResult = points[0].result;
+			const kontraPoints = points[2].points;
+			const kontraResult = points[2].result;
+
+			// Should have: +1 win
+			expect(reResult).toBe(RoundResult.WON);
+			expect(kontraResult).toBe(RoundResult.LOST);
+			expect(rePoints).toStrictEqual(1);
+			expect(kontraPoints).toStrictEqual(-1);
+		});
 	});
 
-	describe('call points - ansagen', () => {
-		it('should award ansage points', () => {
+	describe('call points', () => {
+		it('KONTRA calls requires 121 points if RE was not called', () => {
+			const round = createRound(
+				[
+					createParticipant('p1', Team.RE),
+					createParticipant('p2', Team.RE),
+					createParticipant('p3', Team.KONTRA, [{ callType: CallType.KONTRA }]),
+					createParticipant('p4', Team.KONTRA)
+				],
+				120
+			);
+
+			const points = round.calculatePoints();
+			const rePoints = points[0].points;
+			const reResult = points[0].result;
+			const kontraPoints = points[2].points;
+			const kontraResult = points[2].result;
+
+			expect(reResult).toBe(RoundResult.WON);
+			expect(kontraResult).toBe(RoundResult.LOST);
+			expect(rePoints).toStrictEqual(3);
+			expect(kontraPoints).toStrictEqual(-3);
+		});
+
+		it('KONTRA call equires 120 points if RE also called', () => {
+			const round = createRound(
+				[
+					createParticipant('p1', Team.RE, [{ callType: CallType.RE }]),
+					createParticipant('p2', Team.RE),
+					createParticipant('p3', Team.KONTRA, [{ callType: CallType.KONTRA }]),
+					createParticipant('p4', Team.KONTRA)
+				],
+				120
+			);
+
+			const points = round.calculatePoints();
+			const rePoints = points[0].points;
+			const reResult = points[0].result;
+			const kontraPoints = points[2].points;
+			const kontraResult = points[2].result;
+
+			expect(reResult).toBe(RoundResult.LOST);
+			expect(kontraResult).toBe(RoundResult.WON);
+			expect(rePoints).toStrictEqual(-6);
+			expect(kontraPoints).toStrictEqual(6);
+		});
+
+		it('should award call points', () => {
 			const round = createRound(
 				[
 					createParticipant('p1', Team.RE, [{ callType: CallType.Keine90 }]),
@@ -126,7 +220,7 @@ describe('Round.calculatePoints', () => {
 			expect(kontraPoints).toStrictEqual(-5);
 		});
 
-		it('should award ansage points from both teams when somebody wins', () => {
+		it('should award call points from both teams when somebody wins', () => {
 			const round = createRound(
 				[
 					createParticipant('p1', Team.RE, [{ callType: CallType.RE }]),
@@ -150,12 +244,12 @@ describe('Round.calculatePoints', () => {
 			expect(kontraPoints).toStrictEqual(-9);
 		});
 
-		it('should not award ansage points when nobody wins (draw)', () => {
+		it('should not award call points when nobody wins (draw)', () => {
 			const round = createRound(
 				[
-					createParticipant('p1', Team.RE, [{ callType: CallType.RE }]),
+					createParticipant('p1', Team.RE, [{ callType: CallType.Keine90 }]),
 					createParticipant('p2', Team.RE),
-					createParticipant('p3', Team.KONTRA, [{ callType: CallType.KONTRA }]),
+					createParticipant('p3', Team.KONTRA, [{ callType: CallType.Keine90 }]),
 					createParticipant('p4', Team.KONTRA)
 				],
 				120
@@ -274,6 +368,59 @@ describe('Round.calculatePoints', () => {
 	});
 
 	describe('threshold calculation with calls', () => {
+		it('Re "Ansage" does not matter if Kontra gave "Absage', () => {
+			const round = createRound(
+				[
+					createParticipant('p1', Team.RE, [{ callType: CallType.RE }]),
+					createParticipant('p2', Team.RE),
+					createParticipant('p3', Team.KONTRA),
+					createParticipant('p4', Team.KONTRA, [{ callType: CallType.Keine90 }])
+				],
+				90,
+			);
+
+			const points = round.calculatePoints();
+			const rePoints = points[0].points;
+			const kontraPoints = points[2].points;
+			const reResult = points[0].result;
+			const kontraResult = points[2].result;
+
+			// RE should get: +1 win, +2 for RE call, +2 for implicit Kontra, +1 for keine90 call
+			expect(reResult).toBe(RoundResult.WON);
+			expect(kontraResult).toBe(RoundResult.LOST);
+			expect(rePoints).toStrictEqual(6);
+			expect(kontraPoints).toStrictEqual(-6);
+		});
+
+		it('Kontra "Ansage" does not matter if Re gave "Absage', () => {
+			const round = createRound(
+				[
+					createParticipant('p1', Team.RE, [{ callType: CallType.Keine60 }]),
+					createParticipant('p2', Team.RE),
+					createParticipant('p3', Team.KONTRA),
+					createParticipant('p4', Team.KONTRA, [{ callType: CallType.KONTRA }])
+				],
+				175,
+			);
+
+			const points = round.calculatePoints();
+			const rePoints = points[0].points;
+			const kontraPoints = points[2].points;
+			const reResult = points[0].result;
+			const kontraResult = points[2].result;
+
+			// Kontra should get: +1 win, +1 againste Re,
+			// +2 for Kontra call, +2 for implicit Re,
+			// +1 for implicit keine90 call, +1 for keine60 call,
+			// -1 for > 90 points
+			expect(reResult).toBe(RoundResult.LOST);
+			expect(kontraResult).toBe(RoundResult.WON);
+			expect(rePoints).toStrictEqual(-7);
+			expect(kontraPoints).toStrictEqual(7);
+		});
+	});
+
+	describe('bonus points', () => {
 		it('should apply Kreuz damen bonus when KONTRA wins', () => {
 			const round = createRound(
 				[
@@ -317,9 +464,6 @@ describe('Round.calculatePoints', () => {
 			expect(rePoints).toStrictEqual(3);
 			expect(kontraPoints).toStrictEqual(-3);
 		});
-	});
-
-	describe('bonus points', () => {
 		it('should award Doko bonus in normal rounds', () => {
 			const round = createRound(
 				[
