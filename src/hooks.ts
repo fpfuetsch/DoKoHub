@@ -1,6 +1,7 @@
 import { Game } from '$lib/domain/game';
 import { Group } from '$lib/domain/group';
 import { Player } from '$lib/domain/player';
+import { Round } from '$lib/domain/round';
 import type { Transport } from '@sveltejs/kit';
 
 export const transport: Transport = {
@@ -15,5 +16,9 @@ export const transport: Transport = {
 	Game: {
 		encode: (value) => value instanceof Game && value.toJSON(),
 		decode: (value) => Game.fromJSON(value)
+	},
+	Round: {
+		encode: (value) => value instanceof Round && value.toJSON(),
+		decode: (value) => Round.fromJSON(value)
 	}
 };
