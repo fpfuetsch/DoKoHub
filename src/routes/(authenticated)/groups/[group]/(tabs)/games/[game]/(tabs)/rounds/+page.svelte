@@ -53,8 +53,7 @@
 			// Filter out mandatory solos if game has them
 			if (
 				game.withMandatorySolos &&
-				entry.round.type.startsWith('SOLO') &&
-				entry.round.soloType === SoloTypeEnum.Pflicht
+				entry.round.isMandatorySolo()
 			) {
 				return false;
 			}
@@ -91,87 +90,21 @@
 	// For 4-player games, dealer and starter follow the normal rotation
 	const is5PlayerGame = $derived(game.participants.length === 5);
 
-	// Helper function to check if a round is a mandatory solo
-	const isMandatorySolo = (round: Round) =>
-		round.type.startsWith('SOLO') && round.soloType === SoloTypeEnum.Pflicht;
+	const upcomingDealerPosition = $derived(game.getDealerPosition(nextRoundNumber));
 
-	// Calculate dealer position for a given round number
-	// Formula: d(r) = (r - played_mandatory_solos) mod player_count, with special handling
-	// when only mandatory solos remain
-	const getDealerPosition = (roundNumber: number) => {
-		if (!game.withMandatorySolos) {
-			// Simple rotation for games without mandatory solos
-			return (roundNumber - 1) % game.participants.length;
-		}
-
-		// Count mandatory solos played before this round
-		const playedMandatorySolos = allRoundsWithPoints.filter(
-			(r) => r.round.roundNumber < roundNumber && isMandatorySolo(r.round)
-		).length;
-
-		// Calculate remaining games
-		const unplayedRounds = game.maxRoundCount - (roundNumber - 1);
-		const unplayedMandatorySolos = game.participants.length - playedMandatorySolos;
-
-		if (unplayedRounds > unplayedMandatorySolos) {
-			// Normal rounds still exist - mandatory solos don't advance dealer
-			return (roundNumber - playedMandatorySolos - 1) % game.participants.length;
-		}
-
-		// Only mandatory solos remain - find when this phase started
-		let firstOnlyMandatoryRound = game.maxRoundCount + 1;
-
-		for (const entry of allRoundsWithPoints) {
-			const roundsAfter = game.maxRoundCount - entry.round.roundNumber;
-			const mandatorySolosBefore = allRoundsWithPoints.filter(
-				(r) => r.round.roundNumber < entry.round.roundNumber && isMandatorySolo(r.round)
-			).length;
-			const mandatorySolosAfter =
-				game.participants.length - mandatorySolosBefore - (isMandatorySolo(entry.round) ? 1 : 0);
-
-			if (roundsAfter === mandatorySolosAfter) {
-				firstOnlyMandatoryRound = entry.round.roundNumber + 1;
-				break;
-			}
-		}
-
-		// Calculate dealer position for "only mandatory" phase
-		const mandatorySolosBeforePhase = allRoundsWithPoints.filter(
-			(r) => r.round.roundNumber < firstOnlyMandatoryRound && isMandatorySolo(r.round)
-		).length;
-
-		return (
-			(firstOnlyMandatoryRound -
-				mandatorySolosBeforePhase -
-				1 +
-				(roundNumber - firstOnlyMandatoryRound)) %
-			game.participants.length
-		);
-	};
-
-	const upcomingDealerPosition = $derived(getDealerPosition(nextRoundNumber));
-
-	const upcomingDealer = $derived(
-		sortedParticipants.length ? sortedParticipants[upcomingDealerPosition] : null
-	);
+	const upcomingDealer = $derived(game.getDealerForRound(nextRoundNumber));
 
 	const upcomingStarter = $derived(
-		sortedParticipants.length
-			? sortedParticipants[(upcomingDealerPosition + 1) % sortedParticipants.length]
+		upcomingDealer
+			? sortedParticipants[(upcomingDealer.seatPosition + 1) % sortedParticipants.length]
 			: null
 	);
-
-	// Helper to get dealer for a past round
-	const getDealerForRound = (roundNumber: number) => {
-		const dealerPos = getDealerPosition(roundNumber);
-		return sortedParticipants[dealerPos] ?? null;
-	};
 
 	const mandatorySoloSlots = $derived(
 		((): MandatorySoloSlot[] => {
 			if (!game.withMandatorySolos) return [];
 			const soloRounds = allRoundsWithPoints.filter(
-				({ round }) => round.type.startsWith('SOLO') && round.soloType === SoloTypeEnum.Pflicht
+				({ round }) => round.isMandatorySolo()
 			);
 			const slots = sortedParticipants.map((participant) => {
 				const hit = soloRounds.find(({ round }) => {
@@ -194,7 +127,7 @@
 		new Set(
 			allRoundsWithPoints
 				.filter(
-					({ round }) => round.type.startsWith('SOLO') && round.soloType === SoloTypeEnum.Pflicht
+					({ round }) => round.isMandatorySolo()
 				)
 				.map(({ round }) => round.participants.find((p) => p.team === TeamEnum.RE)?.playerId)
 				.filter(Boolean) as string[]
@@ -312,22 +245,9 @@
 	// Calculate dealer position for the modal (either for editing or for new round)
 	const modalDealerPosition = $derived(() => {
 		if (editingRoundId) {
-			// When editing, find the round and determine dealer
 			const editingRound = allRoundsWithPoints.find((entry) => entry.round.id === editingRoundId);
-			if (editingRound && is5PlayerGame) {
-				// For 5-player games, find which player is NOT in the round participants
-				const participantIds = new Set(editingRound.round.participants.map((p) => p.playerId));
-				const dealerParticipant = sortedParticipants.find((p) => !participantIds.has(p.playerId));
-				if (dealerParticipant) {
-					return dealerParticipant.seatPosition;
-				}
-			}
-			// Fallback to calculated position for 4-player or if dealer not found
-			if (editingRound) {
-				return getDealerPosition(editingRound.round.roundNumber);
-			}
+			return editingRound ? game.getDealerPosition(editingRound.round.roundNumber) : upcomingDealerPosition;
 		}
-		// When creating new round, use upcoming dealer position
 		return upcomingDealerPosition;
 	});
 
@@ -539,7 +459,7 @@
 					<div class="mx-1 my-2 h-px bg-gray-200 dark:bg-gray-700"></div>
 
 					{#each roundsWithPoints as entry, idx (entry.round.id)}
-						{@const roundDealer = getDealerForRound(entry.round.roundNumber)}
+						{@const roundDealer = game.getDealerForRound(entry.round.roundNumber)}
 						<div
 							role={canEditRounds ? 'button' : undefined}
 							class={`grid w-full cursor-pointer items-stretch gap-2 p-0 text-left transition hover:bg-gray-100/60 focus:outline-none dark:hover:bg-gray-800/60`}

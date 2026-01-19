@@ -94,6 +94,20 @@ export class Round implements RoundData {
 		});
 	}
 
+	/**
+	 * Check if this round is a mandatory solo
+	 */
+	isMandatorySolo(): boolean {
+		return this.isSolo() && this.soloType === SoloType.Pflicht;
+	}
+
+	/**
+	 * Check if this round is a solo variant (any type that is not Normal or HochzeitNormal)
+	 */
+	isSolo(): boolean {
+		return this.type !== RoundType.Normal && this.type !== RoundType.HochzeitNormal;
+	}
+
 	static validate(round: RoundData, withMandatorySolos: boolean = false): string | null {
 		// Validate solo type is only LUST or PFLICHT when game has mandatory solos
 		if (round.soloType && !withMandatorySolos) {
@@ -108,7 +122,7 @@ export class Round implements RoundData {
 
 		const reCount = round.participants.filter((p) => p.team === Team.RE).length;
 		const kontraCount = round.participants.filter((p) => p.team === Team.KONTRA).length;
-		const isSolo = round.type.startsWith('SOLO');
+		const isSolo = round instanceof Round ? round.isSolo() : (round.type !== RoundType.Normal && round.type !== RoundType.HochzeitNormal);
 		const isStilleOrUngeklarteHochzeit =
 			round.type === RoundType.HochzeitStill || round.type === RoundType.HochzeitUngeklaert;
 
@@ -214,10 +228,7 @@ export class Round implements RoundData {
 		kontraPoints += kontraBonusPoints - reBonusPoints;
 
 		// In solo games (including stille and ungeklärte hochzeit), the solo player (RE) gets 3x the points
-		const isSolo =
-			this.type.startsWith('SOLO') ||
-			this.type === RoundType.HochzeitStill ||
-			this.type === RoundType.HochzeitUngeklaert;
+		const isSolo = this.isSolo() || this.type === RoundType.HochzeitStill || this.type === RoundType.HochzeitUngeklaert;
 		const soloRePoints = isSolo ? rePoints * 3 : rePoints;
 
 		// Distribute points to players
