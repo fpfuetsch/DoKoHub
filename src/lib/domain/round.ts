@@ -122,7 +122,10 @@ export class Round implements RoundData {
 
 		const reCount = round.participants.filter((p) => p.team === Team.RE).length;
 		const kontraCount = round.participants.filter((p) => p.team === Team.KONTRA).length;
-		const isSolo = round instanceof Round ? round.isSolo() : (round.type !== RoundType.Normal && round.type !== RoundType.HochzeitNormal);
+		const isSolo =
+			round instanceof Round
+				? round.isSolo()
+				: round.type !== RoundType.Normal && round.type !== RoundType.HochzeitNormal;
 		const isStilleOrUngeklarteHochzeit =
 			round.type === RoundType.HochzeitStill || round.type === RoundType.HochzeitUngeklaert;
 
@@ -228,7 +231,10 @@ export class Round implements RoundData {
 		kontraPoints += kontraBonusPoints - reBonusPoints;
 
 		// In solo games (including stille and ungeklärte hochzeit), the solo player (RE) gets 3x the points
-		const isSolo = this.isSolo() || this.type === RoundType.HochzeitStill || this.type === RoundType.HochzeitUngeklaert;
+		const isSolo =
+			this.isSolo() ||
+			this.type === RoundType.HochzeitStill ||
+			this.type === RoundType.HochzeitUngeklaert;
 		const soloRePoints = isSolo ? rePoints * 3 : rePoints;
 
 		// Distribute points to players

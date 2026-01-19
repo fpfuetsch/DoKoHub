@@ -376,7 +376,7 @@ describe('Round.calculatePoints', () => {
 					createParticipant('p3', Team.KONTRA),
 					createParticipant('p4', Team.KONTRA, [{ callType: CallType.Keine90 }])
 				],
-				90,
+				90
 			);
 
 			const points = round.calculatePoints();
@@ -400,7 +400,7 @@ describe('Round.calculatePoints', () => {
 					createParticipant('p3', Team.KONTRA),
 					createParticipant('p4', Team.KONTRA, [{ callType: CallType.KONTRA }])
 				],
-				175,
+				175
 			);
 
 			const points = round.calculatePoints();

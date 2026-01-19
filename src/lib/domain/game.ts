@@ -185,7 +185,8 @@ export class Game implements GameType {
 	isParadeActive(roundNumber: number): boolean {
 		if (!this.withMandatorySolos) return false;
 		const remainingRounds = this.maxRoundCount - (roundNumber - 1);
-		const remainingMandatory = this.participants.length - this.countMandatorySolosBefore(roundNumber);
+		const remainingMandatory =
+			this.participants.length - this.countMandatorySolosBefore(roundNumber);
 		return remainingRounds === remainingMandatory;
 	}
 
@@ -221,10 +222,7 @@ export class Game implements GameType {
 		if (dealer) {
 			const startIndex = sortedBySeat.findIndex((p) => p.playerId === dealer.playerId);
 			if (startIndex !== -1) {
-				ordered = [
-					...sortedBySeat.slice(startIndex + 1),
-					...sortedBySeat.slice(0, startIndex)
-				];
+				ordered = [...sortedBySeat.slice(startIndex + 1), ...sortedBySeat.slice(0, startIndex)];
 			}
 			// Dealer cannot fulfill mandatory solo in parade
 			ordered = ordered.filter((p) => p.playerId !== dealer.playerId);

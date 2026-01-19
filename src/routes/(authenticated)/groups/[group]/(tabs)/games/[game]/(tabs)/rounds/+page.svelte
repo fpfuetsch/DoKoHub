@@ -51,10 +51,7 @@
 	const roundsWithPoints: RoundWithPoints[] = $derived(
 		allRoundsWithPoints.filter((entry) => {
 			// Filter out mandatory solos if game has them
-			if (
-				game.withMandatorySolos &&
-				entry.round.isMandatorySolo()
-			) {
+			if (game.withMandatorySolos && entry.round.isMandatorySolo()) {
 				return false;
 			}
 			return true;
@@ -103,9 +100,7 @@
 	const mandatorySoloSlots = $derived(
 		((): MandatorySoloSlot[] => {
 			if (!game.withMandatorySolos) return [];
-			const soloRounds = allRoundsWithPoints.filter(
-				({ round }) => round.isMandatorySolo()
-			);
+			const soloRounds = allRoundsWithPoints.filter(({ round }) => round.isMandatorySolo());
 			const slots = sortedParticipants.map((participant) => {
 				const hit = soloRounds.find(({ round }) => {
 					const soloPlayer = round.participants.find((p) => p.team === TeamEnum.RE);
@@ -126,9 +121,7 @@
 	const mandatorySoloPlayerIds = $derived(
 		new Set(
 			allRoundsWithPoints
-				.filter(
-					({ round }) => round.isMandatorySolo()
-				)
+				.filter(({ round }) => round.isMandatorySolo())
 				.map(({ round }) => round.participants.find((p) => p.team === TeamEnum.RE)?.playerId)
 				.filter(Boolean) as string[]
 		)
@@ -246,7 +239,9 @@
 	const modalDealerPosition = $derived(() => {
 		if (editingRoundId) {
 			const editingRound = allRoundsWithPoints.find((entry) => entry.round.id === editingRoundId);
-			return editingRound ? game.getDealerPosition(editingRound.round.roundNumber) : upcomingDealerPosition;
+			return editingRound
+				? game.getDealerPosition(editingRound.round.roundNumber)
+				: upcomingDealerPosition;
 		}
 		return upcomingDealerPosition;
 	});
