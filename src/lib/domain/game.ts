@@ -110,7 +110,7 @@ export class Game implements GameType {
 					if (count === 0) {
 						const player = game.participants.find((p) => p.playerId === playerId);
 						const playerName = player?.player?.displayName ?? 'Spieler';
-						return `${playerName} muss sein Pflichtsolo spielen.`;
+						return `${playerName} muss noch ein Pflichtsolo spielen.`;
 					}
 				}
 			} else {
@@ -151,7 +151,7 @@ export class Game implements GameType {
 
 				if (expectedSoloist && (!soloPlayer || soloPlayer.playerId !== expectedSoloist.playerId)) {
 					const name = expectedSoloist.player?.displayName ?? 'Spieler';
-					return `Vorführung läuft: ${name} muss nun sein Pflichtsolo spielen.`;
+					return `Vorführung läuft, ${name} muss ein Pflichtsolo spielen.`;
 				}
 			}
 		}
