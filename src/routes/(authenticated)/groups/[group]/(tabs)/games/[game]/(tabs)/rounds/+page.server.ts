@@ -1,9 +1,7 @@
 import { GameRepository } from '$lib/server/repositories/game';
 import { RoundRepository } from '$lib/server/repositories/round';
-import { Round, type RoundData } from '$lib/domain/round';
-import { Game } from '$lib/domain/game';
+import { type RoundData } from '$lib/domain/round';
 import { requireUserOrFail } from '$lib/server/auth/guard';
-import { SoloType, Team as TeamEnum } from '$lib/domain/enums';
 import type {
 	TeamEnumValue as Team,
 	CallTypeEnumValue,
