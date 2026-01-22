@@ -1,5 +1,9 @@
 # DoKoHub
 
+<p align="center">
+  <img src="src/lib/assets/dokohub.png" alt="DoKoHub Logo" width="50%">
+</p>
+
 A web-based scorecard and game management application for tracking **Doppelkopf** card game sessions with groups of players.
 
 ## Use Case
