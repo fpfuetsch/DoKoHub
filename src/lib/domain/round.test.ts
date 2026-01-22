@@ -776,7 +776,9 @@ describe('Round.validate', () => {
 			round.participants[0].bonuses = [{ playerId: 'p1', bonusType: BonusType.Fuchs, count: 1 }];
 
 			const error = Round.validate(round);
-			expect(error).toBe('Bonuspunkte werden nur in Normalspielen oder normaler Hochzeit gewertet.');
+			expect(error).toBe(
+				'Bonuspunkte werden nur in Normalspielen oder normaler Hochzeit gewertet.'
+			);
 		});
 
 		it('accepts bonuses in normal rounds', () => {
@@ -806,9 +808,7 @@ describe('Round.validate', () => {
 
 		it('rejects more than 1 Karlchen', () => {
 			const round = createValidRoundData();
-			round.participants[0].bonuses = [
-				{ playerId: 'p1', bonusType: BonusType.Karlchen, count: 2 }
-			];
+			round.participants[0].bonuses = [{ playerId: 'p1', bonusType: BonusType.Karlchen, count: 2 }];
 
 			const error = Round.validate(round);
 			expect(error).toBe('Es kann max. 1 Karlchen geben.');
@@ -876,7 +876,9 @@ describe('Round.validate', () => {
 			round.participants[3].team = Team.KONTRA;
 
 			const error = Round.validate(round, false);
-			expect(error).toBe('Solotyp (Lust- oder Pflichtsolo) ist nur bei Spielen mit Pflichtsolo erlaubt.');
+			expect(error).toBe(
+				'Solotyp (Lust- oder Pflichtsolo) ist nur bei Spielen mit Pflichtsolo erlaubt.'
+			);
 		});
 
 		it('rejects Pflicht solo without mandatory solos enabled', () => {
@@ -888,7 +890,9 @@ describe('Round.validate', () => {
 			round.participants[3].team = Team.KONTRA;
 
 			const error = Round.validate(round, false);
-			expect(error).toBe('Solotyp (Lust- oder Pflichtsolo) ist nur bei Spielen mit Pflichtsolo erlaubt.');
+			expect(error).toBe(
+				'Solotyp (Lust- oder Pflichtsolo) ist nur bei Spielen mit Pflichtsolo erlaubt.'
+			);
 		});
 
 		it('accepts Pflicht solo when mandatory solos are enabled', () => {

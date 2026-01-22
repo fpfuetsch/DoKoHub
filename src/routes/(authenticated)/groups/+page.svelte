@@ -94,7 +94,12 @@
 			{/if}
 			<Label class="space-y-2">
 				<span>Gruppenname</span>
-				<Input type="text" name="groupName" value={form?.values?.groupName ?? ''} required />
+				<Input
+					type="text"
+					name="groupName"
+					value={String(form?.values?.groupName ?? '')}
+					required
+				/>
 			</Label>
 			<div class="flex justify-end gap-3">
 				<Button type="submit" value="create">Erstellen</Button>

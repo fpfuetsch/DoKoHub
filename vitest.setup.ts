@@ -7,12 +7,10 @@ vi.mock('$lib/server/db', async (_importOriginal) => {
 		'./src/lib/server/db/schema'
 	);
 
-	const { PGlite } = await vi.importActual<typeof import('@electric-sql/pglite')>(
-		'@electric-sql/pglite'
-	);
-	const { drizzle } = await vi.importActual<typeof import('drizzle-orm/pglite')>(
-		'drizzle-orm/pglite'
-	);
+	const { PGlite } =
+		await vi.importActual<typeof import('@electric-sql/pglite')>('@electric-sql/pglite');
+	const { drizzle } =
+		await vi.importActual<typeof import('drizzle-orm/pglite')>('drizzle-orm/pglite');
 
 	// use require to defeat dynamic require error
 	const { createRequire } = await vi.importActual<typeof import('node:module')>('node:module');

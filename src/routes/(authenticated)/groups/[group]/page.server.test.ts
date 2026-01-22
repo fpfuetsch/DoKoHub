@@ -61,7 +61,11 @@ describe('group rename action', () => {
 			body: formData
 		});
 
-		const promise = actions.rename({ request, locals: { user: null }, params: { group: 'group-1' } } as any);
+		const promise = actions.rename({
+			request,
+			locals: { user: null },
+			params: { group: 'group-1' }
+		} as any);
 
 		await expect(promise).rejects.toMatchObject({ status: 401 });
 	});

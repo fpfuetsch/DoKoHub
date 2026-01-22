@@ -1,28 +1,25 @@
 import { fail } from '@sveltejs/kit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const {
-	requireUserOrFailMock,
-	finishGameMock,
-	deleteGameMock,
-	gameRepositoryCtor
-} = vi.hoisted(() => {
-	const requireUserOrFailMock = vi.fn();
-	const finishGameMock = vi.fn();
-	const deleteGameMock = vi.fn();
+const { requireUserOrFailMock, finishGameMock, deleteGameMock, gameRepositoryCtor } = vi.hoisted(
+	() => {
+		const requireUserOrFailMock = vi.fn();
+		const finishGameMock = vi.fn();
+		const deleteGameMock = vi.fn();
 
-	const gameRepositoryCtor = vi.fn(function MockGameRepository(this: any) {
-		this.finish = finishGameMock;
-		this.delete = deleteGameMock;
-	});
+		const gameRepositoryCtor = vi.fn(function MockGameRepository(this: any) {
+			this.finish = finishGameMock;
+			this.delete = deleteGameMock;
+		});
 
-	return {
-		requireUserOrFailMock,
-		finishGameMock,
-		deleteGameMock,
-		gameRepositoryCtor
-	};
-});
+		return {
+			requireUserOrFailMock,
+			finishGameMock,
+			deleteGameMock,
+			gameRepositoryCtor
+		};
+	}
+);
 
 vi.mock('$lib/server/auth/guard', () => ({
 	requireUserOrFail: requireUserOrFailMock

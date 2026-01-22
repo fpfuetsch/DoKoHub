@@ -70,10 +70,7 @@ describe('GameRepository', () => {
 		});
 
 		it('returns 404 when game not found', async () => {
-			const result = await repository.getById(
-				'00000000-0000-0000-0000-000000000000',
-				testGroupId
-			);
+			const result = await repository.getById('00000000-0000-0000-0000-000000000000', testGroupId);
 
 			expect(result).toEqual({ ok: false, error: 'Spiel nicht gefunden.', status: 404 });
 		});

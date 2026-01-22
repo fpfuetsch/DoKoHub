@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const {
-	requireUserOrRedirectToLoginMock,
-	getByIdMock,
-	gameRepositoryCtor
-} = vi.hoisted(() => {
+const { requireUserOrRedirectToLoginMock, getByIdMock, gameRepositoryCtor } = vi.hoisted(() => {
 	const requireUserOrRedirectToLoginMock = vi.fn();
 	const getByIdMock = vi.fn();
 

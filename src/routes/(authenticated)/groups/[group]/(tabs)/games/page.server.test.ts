@@ -187,12 +187,12 @@ describe('games page create action', () => {
 		} as any);
 
 		expect(gameRepositoryCtor).toHaveBeenCalledWith('user-1');
-		expect(createGameMock).toHaveBeenCalledWith(
-			'group-1',
-			10,
-			true,
-			['player-1', 'player-2', 'player-3', 'player-4']
-		);
+		expect(createGameMock).toHaveBeenCalledWith('group-1', 10, true, [
+			'player-1',
+			'player-2',
+			'player-3',
+			'player-4'
+		]);
 		expect(result).toEqual({ success: true, gameId: 'game-1' });
 	});
 
@@ -220,12 +220,13 @@ describe('games page create action', () => {
 		} as any);
 
 		expect(gameRepositoryCtor).toHaveBeenCalledWith('user-1');
-		expect(createGameMock).toHaveBeenCalledWith(
-			'group-1',
-			12,
-			false,
-			['player-1', 'player-2', 'player-3', 'player-4', 'player-5']
-		);
+		expect(createGameMock).toHaveBeenCalledWith('group-1', 12, false, [
+			'player-1',
+			'player-2',
+			'player-3',
+			'player-4',
+			'player-5'
+		]);
 		expect(result).toEqual({ success: true, gameId: 'game-1' });
 	});
 

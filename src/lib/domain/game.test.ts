@@ -14,7 +14,11 @@ const createPlayer = (id: string, displayName: string): Player => {
 	});
 };
 
-const createParticipant = (playerId: string, seatPosition: number, displayName?: string): GameParticipant => ({
+const createParticipant = (
+	playerId: string,
+	seatPosition: number,
+	displayName?: string
+): GameParticipant => ({
 	playerId,
 	seatPosition,
 	player: displayName ? createPlayer(playerId, displayName) : undefined
@@ -386,20 +390,18 @@ describe('Game.validate', () => {
 			for (let idx = 0; idx < soloists.length; idx++) {
 				const roundNumber = idx + 1;
 				const dealerId = game.getDealerForRound(roundNumber)?.playerId ?? '';
-                expect(dealerId).toBe("p1")
-				game.rounds.push(
-					new Round(createRoundWithoutDealer(roundNumber, dealerId, soloists[idx]))
-				);
-                const error = Game.validate(game);
-			    expect(error).toBeNull();
+				expect(dealerId).toBe('p1');
+				game.rounds.push(new Round(createRoundWithoutDealer(roundNumber, dealerId, soloists[idx])));
+				const error = Game.validate(game);
+				expect(error).toBeNull();
 			}
 
 			// Rounds 5-9: normal rounds (5 rounds)
 			for (let roundNumber = 5; roundNumber <= 9; roundNumber++) {
 				const dealerId = game.getDealerForRound(roundNumber)?.playerId ?? '';
 				game.rounds.push(new Round(createRoundWithoutDealer(roundNumber, dealerId)));
-                const error = Game.validate(game);
-			    expect(error).toBeNull();
+				const error = Game.validate(game);
+				expect(error).toBeNull();
 			}
 
 			// Round 10: parade - p1 plays their mandatory solo
@@ -409,7 +411,7 @@ describe('Game.validate', () => {
 			expect(dealerId10).toBe('p2');
 
 			// p1 must play their mandatory solo
-			game.rounds.push(new Round(createRoundWithoutDealer(10, dealerId10, "p1")));
+			game.rounds.push(new Round(createRoundWithoutDealer(10, dealerId10, 'p1')));
 
 			const error = Game.validate(game);
 			expect(error).toBeNull();
@@ -546,7 +548,6 @@ describe('Game.validate', () => {
 			wrongOrderRound.participants[3].team = Team.KONTRA;
 			game.rounds.push(new Round(wrongOrderRound));
 
-
 			const error = Game.validate(game);
 			// The error should indicate that p3 must play their solo, not p4
 			expect(error).toContain('Player 2 muss ein Pflichtsolo spielen');
@@ -566,17 +567,16 @@ describe('Game.validate', () => {
 				const roundData = createRound(i);
 				roundData.type = RoundType.SoloHerz;
 				roundData.soloType = SoloType.Pflicht;
-                // 2, 3, 4, 1
+				// 2, 3, 4, 1
 				const playerIndex = (i - 4) % 4;
 				roundData.participants[0].playerId = `p${playerIndex + 1}`;
 				roundData.participants[1].team = Team.KONTRA;
 				roundData.participants[2].team = Team.KONTRA;
 				roundData.participants[3].team = Team.KONTRA;
 				game.rounds.push(new Round(roundData));
-                const error = Game.validate(game);
-                expect(error).toBeNull();
+				const error = Game.validate(game);
+				expect(error).toBeNull();
 			}
-
 		});
 
 		describe('5-player parade', () => {
