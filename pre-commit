@@ -1,0 +1,34 @@
+#!/bin/sh
+
+# Pre-commit hook for DoKoHub
+# Runs tests and linting before allowing commit
+
+echo "Running pre-commit checks..."
+
+# Run linting
+echo "→ Checking code formatting..."
+npm run lint
+if [ $? -ne 0 ]; then
+  echo "❌ Linting failed. Please fix formatting issues."
+  echo "   Run 'npm run format' to auto-fix."
+  exit 1
+fi
+
+# Run type check
+echo "→ Running type check..."
+npm run check
+if [ $? -ne 0 ]; then
+  echo "❌ Type checking failed. Please fix type errors."
+  exit 1
+fi
+
+# Run tests
+echo "→ Running tests..."
+npm run test -- --run
+if [ $? -ne 0 ]; then
+  echo "❌ Tests failed. Please fix failing tests."
+  exit 1
+fi
+
+echo "✅ All pre-commit checks passed!"
+exit 0

@@ -52,6 +52,16 @@ npm run dev
 
 The application will be available at `http://localhost:5173`
 
+### 7. (Optional) Install pre-commit hook
+
+To automatically run tests and linting before each commit:
+
+```bash
+cp pre-commit .git/hooks/pre-commit
+```
+
+This will ensure code quality by running checks before allowing commits.
+
 ## Available Commands
 
 ```bash

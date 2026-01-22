@@ -15,7 +15,6 @@ DoKoHub is designed for groups of friends or regular card game players who want 
 - **Record game statistics** including rounds, scores, team assignments, and special events (calls, bonuses)
 - **Analyze performance** with visual statistics and cumulative scoring charts
 - **Invite players** to join groups and participate in games
-- **OAuth2 based Authentication** via Google
 
 ## Ruleset
 
@@ -25,6 +24,7 @@ Developed based on the official "Tunierspielregeln" (tournament rules) of the "G
 
 ### Group & Player Management
 
+- **OAuth2 based Authentication** via Google
 - **Create and manage groups** with multiple players
 - **Player types**:
   - **Local players**: Created directly in groups for casual play, no authentication required
