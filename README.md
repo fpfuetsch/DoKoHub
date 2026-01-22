@@ -9,6 +9,7 @@ A web-based scorecard and game management application for tracking **Doppelkopf*
 ## Use Case
 
 DoKoHub is designed for groups of friends or regular card game players who want to:
+
 - **Track games** across multiple sessions with consistent groups
 - **Manage players** and their memberships in different groups
 - **Record game statistics** including rounds, scores, team assignments, and special events (calls, bonuses)
@@ -17,11 +18,13 @@ DoKoHub is designed for groups of friends or regular card game players who want 
 - **OAuth2 based Authentication** via Google
 
 ## Ruleset
+
 Developed based on the official "Tunierspielregeln" (tournament rules) of the "German Doppelkopf-Verband e. V."
 
 ## Features
 
 ### Group & Player Management
+
 - **Create and manage groups** with multiple players
 - **Player types**:
   - **Local players**: Created directly in groups for casual play, no authentication required
@@ -29,6 +32,7 @@ Developed based on the official "Tunierspielregeln" (tournament rules) of the "G
 - **Invite system** for adding non-local players to groups via link or QR code
 
 ### Game Management
+
 - **Create games** with configurable rules:
   - Customizable number of rounds
   - Mandatory solo rounds (Pflicht-Solo) mode
@@ -42,6 +46,7 @@ Developed based on the official "Tunierspielregeln" (tournament rules) of the "G
   - Point calculations with automatic result determination
 
 ### Statistics & Analytics
+
 - Point accumulation charts showing cumulative scores per player across rounds
 - Team distribution (Re vs. Kontra participation)
 - Win/loss records per player

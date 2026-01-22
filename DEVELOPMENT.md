@@ -75,6 +75,7 @@ npm run db:generate     # Generate migration files
 npm run db:migrate      # Run migrations
 npm run db:studio       # Open Drizzle Studio
 ```
+
 ## Database Management
 
 ### Working with Migrations
