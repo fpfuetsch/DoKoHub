@@ -1,45 +1,48 @@
 # DoKoHub
 
+A web-based scorecard and game management application for tracking **Doppelkopf** card game sessions with groups of players.
+
+## Use Case
+
+DoKoHub is designed for groups of friends or regular card game players who want to:
+- **Track games** across multiple sessions with consistent groups
+- **Manage players** and their memberships in different groups
+- **Record game statistics** including rounds, scores, team assignments, and special events (calls, bonuses)
+- **Analyze performance** with visual statistics and cumulative scoring charts
+- **Invite players** to join groups and participate in games
+- **OAuth2 based Authentication** via Google
+
+## Ruleset
+Developed based on the official "Tunierspielregeln" (tournament rules) of the "German Doppelkopf-Verband e. V."
+
+## Features
+
+### Group & Player Management
+- **Create and manage groups** with multiple players
+- **Player types**:
+  - **Local players**: Created directly in groups for casual play, no authentication required
+  - **Non-local players**: OAuth-authenticated players that can be invited and manage multiple groups
+- **Invite system** for adding non-local players to groups via link or QR code
+
+### Game Management
+- **Create games** with configurable rules:
+  - Customizable number of rounds
+  - Mandatory solo rounds (Pflicht-Solo) mode
+  - Support for both 4-player and 5-player games (dealer sits out in 5-player format)
+- **Track rounds** with full details:
+  - Round types: Normal, Hochzeit (wedding), Stille Hochzeit (silent wedding)
+  - Solo variants (Kreuz, Pik, Herz, Karo)
+  - Team assignments (Re vs. Kontra)
+  - Player calls and announcements (Re, Kontra, various Absagen)
+  - Bonuses: Fuchs, Doppelkopf, Karlchen
+  - Point calculations with automatic result determination
+
+### Statistics & Analytics
+- Point accumulation charts showing cumulative scores per player across rounds
+- Team distribution (Re vs. Kontra participation)
+- Win/loss records per player
+- Performance metrics across multiple games
+
 ## Development Setup
 
-This project requires a few environment variables and a running Postgres database for local development. Below are the minimal steps to get a development environment running.
-
-1. Create a `.env` file in the repository root (see `.env.example`)
-2. Start the development Postgres (uses `dev.compose.yaml`):
-
-```bash
-docker compose -f dev.compose.yaml up -d
-```
-
-3. Install dependencies:
-
-```bash
-npm install
-# or pnpm install
-```
-
-4. Run database migrations (Drizzle):
-
-```bash
-npx drizzle-kit migrate
-```
-
-5. Start the dev server:
-
-```bash
-npm run dev
-```
-
-The app typically appears at `http://localhost:5173` — check the terminal output for the exact URL.
-
-## Building
-
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+See [DEVELOPMENT.md](DEVELOPMENT.md) for detailed setup instructions, available commands, and development guidelines.
