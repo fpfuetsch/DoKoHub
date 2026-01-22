@@ -167,7 +167,7 @@
 								}}
 							>
 								<div class="flex items-center gap-2">
-									<LinkOutline class="h-6 w-6" />
+									<LinkOutline class="h-4 w-4" />
 									<span>Account verknüpfen</span>
 								</div>
 							</DropdownItem>
@@ -180,7 +180,7 @@
 								}}
 							>
 								<div class="flex items-center gap-2">
-									<EditOutline class="h-6 w-6" />
+									<EditOutline class="h-4 w-4" />
 									<span>Umbenennen</span>
 								</div>
 							</DropdownItem>
@@ -191,7 +191,7 @@
 								}}
 							>
 								<div class="flex items-center gap-2">
-									<TrashBinOutline class="h-6 w-6" />
+									<TrashBinOutline class="h-4 w-4" />
 									<span>Löschen</span>
 								</div>
 							</DropdownItem>
