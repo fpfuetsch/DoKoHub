@@ -70,6 +70,18 @@ export class Game implements GameType {
 			return `Gültige Rundenanzahlen sind: ${validStr}.`;
 		}
 
+		// Validate latest round participants are members of the game
+		// (only need to check the latest round since it's the only one being added/updated)
+		const gameParticipantIds = new Set(game.participants.map((p) => p.playerId));
+		if (game.rounds.length > 0) {
+			const latestRound = game.rounds[game.rounds.length - 1];
+			for (const participant of latestRound.participants) {
+				if (!gameParticipantIds.has(participant.playerId)) {
+					return 'Teilnehmer stimmen nicht mit dem Spiel überein.';
+				}
+			}
+		}
+
 		// Validate that Pflicht solo rounds only exist if game has mandatory solos
 		const mandatorySoloRounds = game.rounds.filter((r) => r.soloType === SoloType.Pflicht);
 
@@ -224,8 +236,10 @@ export class Game implements GameType {
 			if (startIndex !== -1) {
 				ordered = [...sortedBySeat.slice(startIndex + 1), ...sortedBySeat.slice(0, startIndex)];
 			}
-			// Dealer cannot fulfill mandatory solo in parade
-			ordered = ordered.filter((p) => p.playerId !== dealer.playerId);
+			// In 5-player games the dealer sits, so skip them for mandatory solos
+			if (this.participants.length === 5) {
+				ordered = ordered.filter((p) => p.playerId !== dealer.playerId);
+			}
 		}
 
 		const next = ordered.find((p) => !played.has(p.playerId));
@@ -254,10 +268,6 @@ export class Game implements GameType {
 
 		// Count mandatory solos played before this round
 		const playedMandatorySolos = this.countMandatorySolosBefore(roundNumber);
-
-		// Calculate remaining games
-		const unplayedRounds = this.maxRoundCount - (roundNumber - 1);
-		const unplayedMandatorySolos = this.participants.length - playedMandatorySolos;
 
 		if (!this.isParadeActive(roundNumber)) {
 			// Normal rounds still exist - mandatory solos don't advance dealer

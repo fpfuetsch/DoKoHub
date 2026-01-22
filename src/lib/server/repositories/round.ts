@@ -103,9 +103,6 @@ export class RoundRepository extends BaseRepository {
 			);
 		}
 
-		const participantError = await this.validateParticipants(gameId, round);
-		if (participantError) return err(participantError);
-
 		const draft: RoundData = {
 			...round,
 			id: roundId,
@@ -156,28 +153,6 @@ export class RoundRepository extends BaseRepository {
 		return ok(new Round(updatedRound as RoundData));
 	}
 
-	async deleteRound(roundId: string, gameId: string, groupId: string): Promise<RepoVoidResult> {
-		if (!(await this.roundBelongsToUserGroup(roundId, gameId, groupId))) {
-			return err('Runde nicht gefunden oder keine Berechtigung.', 404);
-		}
-
-		// Cleanup round results first
-		await db.delete(GameRoundResultTable).where(eq(GameRoundResultTable.roundId, roundId));
-
-		await db.delete(GameRoundBonusTable).where(eq(GameRoundBonusTable.roundId, roundId));
-		await db.delete(GameRoundCallTable).where(eq(GameRoundCallTable.roundId, roundId));
-		await db
-			.delete(GameRoundParticipantTable)
-			.where(eq(GameRoundParticipantTable.roundId, roundId));
-
-		const result = await db
-			.delete(GameRoundTable)
-			.where(eq(GameRoundTable.id, roundId))
-			.returning();
-		if (result.length === 0) return err('Runde konnte nicht gelöscht werden.');
-		return ok();
-	}
-
 	async addRound(gameId: string, groupId: string, round: RoundData): Promise<RepoResult<Round>> {
 		if (!(await this.isGroupMember(groupId, this.principalId))) return err('Forbidden.', 403);
 
@@ -190,9 +165,6 @@ export class RoundRepository extends BaseRepository {
 		if (gameRow.length === 0) return err('Spiel nicht gefunden.', 404);
 
 		const gameData = gameRow[0] as any;
-
-		const participantError = await this.validateParticipants(gameId, round);
-		if (participantError) return err(participantError);
 
 		const roundCount = await db
 			.select()
@@ -304,31 +276,6 @@ export class RoundRepository extends BaseRepository {
 			eyesRe: roundData.eyesRe,
 			participants
 		};
-	}
-
-	private async validateParticipants(gameId: string, round: RoundData): Promise<string | null> {
-		const gameParticipantIds = await this.getGameParticipantIds(gameId);
-		const roundParticipantIds = new Set(round.participants.map((p) => p.playerId));
-
-		// Rounds always have exactly 4 participants (for 5-player games, dealer sits out)
-		if (roundParticipantIds.size !== 4) {
-			return 'Teilnehmeranzahl für Runde ist ungültig.';
-		}
-
-		// Check that all round participants are part of the game
-		if (![...roundParticipantIds].every((id) => gameParticipantIds.has(id))) {
-			return 'Teilnehmer stimmen nicht mit dem Spiel überein.';
-		}
-
-		return null;
-	}
-
-	private async getGameParticipantIds(gameId: string): Promise<Set<string>> {
-		const rows = await db
-			.select()
-			.from(GameParticipantTable)
-			.where(eq(GameParticipantTable.gameId, gameId));
-		return new Set(rows.map((row) => row.playerId));
 	}
 
 	private async validateGameWithRound(

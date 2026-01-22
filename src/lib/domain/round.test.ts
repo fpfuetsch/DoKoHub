@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Round } from './round';
-import { Team, CallType, BonusType, RoundType, RoundResult } from '$lib/domain/enums';
+import { Team, CallType, BonusType, RoundType, RoundResult, SoloType } from '$lib/domain/enums';
 import type { RoundData, GameRoundParticipant } from './round';
 
 describe('Round.calculatePoints', () => {
@@ -649,6 +649,300 @@ describe('Round.calculatePoints', () => {
 			expect(kontraPoints).toStrictEqual(-1);
 			expect(reResult).toBe(RoundResult.DRAW);
 			expect(kontraResult).toBe(RoundResult.DRAW);
+		});
+	});
+});
+
+describe('Round.validate', () => {
+	const createValidRoundData = (): RoundData => ({
+		id: 'round-1',
+		roundNumber: 1,
+		type: RoundType.Normal,
+		soloType: null,
+		eyesRe: 121,
+		participants: [
+			{ playerId: 'p1', team: Team.RE, calls: [], bonuses: [] },
+			{ playerId: 'p2', team: Team.RE, calls: [], bonuses: [] },
+			{ playerId: 'p3', team: Team.KONTRA, calls: [], bonuses: [] },
+			{ playerId: 'p4', team: Team.KONTRA, calls: [], bonuses: [] }
+		]
+	});
+
+	describe('participant count validation', () => {
+		it('validates exactly 4 participants are required', () => {
+			const round = createValidRoundData();
+			round.participants = round.participants.slice(0, 3);
+
+			const error = Round.validate(round);
+			expect(error).toBe('Es müssen genau 4 Teilnehmer gesetzt sein.');
+		});
+
+		it('rejects more than 4 participants', () => {
+			const round = createValidRoundData();
+			round.participants.push({ playerId: 'p5', team: Team.RE, calls: [], bonuses: [] });
+
+			const error = Round.validate(round);
+			expect(error).toBe('Es müssen genau 4 Teilnehmer gesetzt sein.');
+		});
+
+		it('accepts exactly 4 participants', () => {
+			const round = createValidRoundData();
+
+			const error = Round.validate(round);
+			expect(error).toBeNull();
+		});
+	});
+
+	describe('team assignment validation', () => {
+		it('requires all participants to have a team', () => {
+			const round = createValidRoundData();
+			round.participants[0].team = null as any;
+
+			const error = Round.validate(round);
+			expect(error).toBe('Alle Spieler müssen einem Team zugeordnet werden.');
+		});
+
+		it('requires exactly 2 RE and 2 KONTRA for normal rounds', () => {
+			const round = createValidRoundData();
+			round.participants[0].team = Team.KONTRA; // Now 3 KONTRA, 1 RE
+
+			const error = Round.validate(round);
+			expect(error).toBe('Es müssen genau 2 Spieler im Re-Team sein.');
+		});
+
+		it('requires exactly 1 RE and 3 KONTRA for solo rounds', () => {
+			const round = createValidRoundData();
+			round.type = RoundType.SoloHerz;
+			// Keep 2 RE, 2 KONTRA - should fail validation
+
+			const error = Round.validate(round);
+			expect(error).toBe('Es muss genau 1 Spieler im Re-Team sein.');
+		});
+
+		it('accepts 1 RE and 3 KONTRA for solo rounds', () => {
+			const round = createValidRoundData();
+			round.type = RoundType.SoloHerz;
+			round.participants[1].team = Team.KONTRA;
+			round.participants[2].team = Team.KONTRA;
+			round.participants[3].team = Team.KONTRA;
+
+			const error = Round.validate(round);
+			expect(error).toBeNull();
+		});
+	});
+
+	describe('eyes validation', () => {
+		it('rejects negative eyes', () => {
+			const round = createValidRoundData();
+			round.eyesRe = -10;
+
+			const error = Round.validate(round);
+			expect(error).toBe('Augensumme muss >= 0 und <= 240 sein.');
+		});
+
+		it('rejects eyes over 240', () => {
+			const round = createValidRoundData();
+			round.eyesRe = 250;
+
+			const error = Round.validate(round);
+			expect(error).toBe('Augensumme muss >= 0 und <= 240 sein.');
+		});
+
+		it('accepts 0 eyes', () => {
+			const round = createValidRoundData();
+			round.eyesRe = 0;
+
+			const error = Round.validate(round);
+			expect(error).toBeNull();
+		});
+
+		it('accepts 240 eyes', () => {
+			const round = createValidRoundData();
+			round.eyesRe = 240;
+
+			const error = Round.validate(round);
+			expect(error).toBeNull();
+		});
+	});
+
+	describe('bonus validation', () => {
+		it('rejects bonuses in solo rounds', () => {
+			const round = createValidRoundData();
+			round.type = RoundType.SoloHerz;
+			round.participants[0].team = Team.RE;
+			round.participants[1].team = Team.KONTRA;
+			round.participants[2].team = Team.KONTRA;
+			round.participants[3].team = Team.KONTRA;
+			round.participants[0].bonuses = [{ playerId: 'p1', bonusType: BonusType.Fuchs, count: 1 }];
+
+			const error = Round.validate(round);
+			expect(error).toBe('Bonuspunkte werden nur in Normalspielen oder normaler Hochzeit gewertet.');
+		});
+
+		it('accepts bonuses in normal rounds', () => {
+			const round = createValidRoundData();
+			round.participants[0].bonuses = [{ playerId: 'p1', bonusType: BonusType.Fuchs, count: 1 }];
+
+			const error = Round.validate(round);
+			expect(error).toBeNull();
+		});
+
+		it('accepts bonuses in Hochzeit Normal', () => {
+			const round = createValidRoundData();
+			round.type = RoundType.HochzeitNormal;
+			round.participants[0].bonuses = [{ playerId: 'p1', bonusType: BonusType.Doko, count: 1 }];
+
+			const error = Round.validate(round);
+			expect(error).toBeNull();
+		});
+
+		it('rejects more than 2 Fuchs', () => {
+			const round = createValidRoundData();
+			round.participants[0].bonuses = [{ playerId: 'p1', bonusType: BonusType.Fuchs, count: 3 }];
+
+			const error = Round.validate(round);
+			expect(error).toBe('Es können max. 2 Füchse gefangen werden.');
+		});
+
+		it('rejects more than 1 Karlchen', () => {
+			const round = createValidRoundData();
+			round.participants[0].bonuses = [
+				{ playerId: 'p1', bonusType: BonusType.Karlchen, count: 2 }
+			];
+
+			const error = Round.validate(round);
+			expect(error).toBe('Es kann max. 1 Karlchen geben.');
+		});
+
+		it('rejects more than 5 Doppelköpfe', () => {
+			const round = createValidRoundData();
+			round.participants[0].bonuses = [{ playerId: 'p1', bonusType: BonusType.Doko, count: 6 }];
+
+			const error = Round.validate(round);
+			expect(error).toBe('Es können max. 5 Doppelköpfe vergeben werden.');
+		});
+
+		it('validates aggregate bonuses across all participants', () => {
+			const round = createValidRoundData();
+			round.participants[0].bonuses = [{ playerId: 'p1', bonusType: BonusType.Fuchs, count: 1 }];
+			round.participants[2].bonuses = [{ playerId: 'p3', bonusType: BonusType.Fuchs, count: 2 }];
+
+			const error = Round.validate(round);
+			expect(error).toBe('Es können max. 2 Füchse gefangen werden.');
+		});
+	});
+
+	describe('call validation', () => {
+		it('requires RE calls to come from RE team', () => {
+			const round = createValidRoundData();
+			round.participants[2].calls = [{ playerId: 'p3', callType: CallType.RE }]; // p3 is KONTRA
+
+			const error = Round.validate(round);
+			expect(error).toBe('Re-Ansage muss vom Re-Team kommen.');
+		});
+
+		it('requires KONTRA calls to come from KONTRA team', () => {
+			const round = createValidRoundData();
+			round.participants[0].calls = [{ playerId: 'p1', callType: CallType.KONTRA }]; // p1 is RE
+
+			const error = Round.validate(round);
+			expect(error).toBe('Kontra-Ansage muss vom Kontra-Team kommen.');
+		});
+
+		it('accepts RE call from RE team', () => {
+			const round = createValidRoundData();
+			round.participants[0].calls = [{ playerId: 'p1', callType: CallType.RE }];
+
+			const error = Round.validate(round);
+			expect(error).toBeNull();
+		});
+
+		it('accepts KONTRA call from KONTRA team', () => {
+			const round = createValidRoundData();
+			round.participants[2].calls = [{ playerId: 'p3', callType: CallType.KONTRA }];
+
+			const error = Round.validate(round);
+			expect(error).toBeNull();
+		});
+	});
+
+	describe('solo type validation', () => {
+		it('rejects Lust solo without mandatory solos enabled', () => {
+			const round = createValidRoundData();
+			round.type = RoundType.SoloHerz;
+			round.soloType = SoloType.Lust;
+			round.participants[1].team = Team.KONTRA;
+			round.participants[2].team = Team.KONTRA;
+			round.participants[3].team = Team.KONTRA;
+
+			const error = Round.validate(round, false);
+			expect(error).toBe('Solotyp (Lust- oder Pflichtsolo) ist nur bei Spielen mit Pflichtsolo erlaubt.');
+		});
+
+		it('rejects Pflicht solo without mandatory solos enabled', () => {
+			const round = createValidRoundData();
+			round.type = RoundType.SoloHerz;
+			round.soloType = SoloType.Pflicht;
+			round.participants[1].team = Team.KONTRA;
+			round.participants[2].team = Team.KONTRA;
+			round.participants[3].team = Team.KONTRA;
+
+			const error = Round.validate(round, false);
+			expect(error).toBe('Solotyp (Lust- oder Pflichtsolo) ist nur bei Spielen mit Pflichtsolo erlaubt.');
+		});
+
+		it('accepts Pflicht solo when mandatory solos are enabled', () => {
+			const round = createValidRoundData();
+			round.type = RoundType.SoloHerz;
+			round.soloType = SoloType.Pflicht;
+			round.participants[1].team = Team.KONTRA;
+			round.participants[2].team = Team.KONTRA;
+			round.participants[3].team = Team.KONTRA;
+
+			const error = Round.validate(round, true);
+			expect(error).toBeNull();
+		});
+
+		it('accepts Lust solo when mandatory solos are enabled', () => {
+			const round = createValidRoundData();
+			round.type = RoundType.SoloHerz;
+			round.soloType = SoloType.Lust;
+			round.participants[1].team = Team.KONTRA;
+			round.participants[2].team = Team.KONTRA;
+			round.participants[3].team = Team.KONTRA;
+
+			const error = Round.validate(round, true);
+			expect(error).toBeNull();
+		});
+	});
+
+	describe('Hochzeit variations', () => {
+		it('requires 1 RE and 3 KONTRA for HochzeitStill', () => {
+			const round = createValidRoundData();
+			round.type = RoundType.HochzeitStill;
+			// Keep 2 RE, 2 KONTRA
+
+			const error = Round.validate(round);
+			expect(error).toBe('Es muss genau 1 Spieler im Re-Team sein.');
+		});
+
+		it('accepts 1 RE and 3 KONTRA for HochzeitStill', () => {
+			const round = createValidRoundData();
+			round.type = RoundType.HochzeitStill;
+			round.participants[1].team = Team.KONTRA;
+			round.participants[2].team = Team.KONTRA;
+			round.participants[3].team = Team.KONTRA;
+
+			const error = Round.validate(round);
+			expect(error).toBeNull();
+		});
+
+		it('requires 1 RE and 3 KONTRA for HochzeitUngeklaert', () => {
+			const round = createValidRoundData();
+			round.type = RoundType.HochzeitUngeklaert;
+
+			const error = Round.validate(round);
+			expect(error).toBe('Es muss genau 1 Spieler im Re-Team sein.');
 		});
 	});
 });

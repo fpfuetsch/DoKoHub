@@ -284,7 +284,7 @@ export class PlayerRepository extends BaseRepository {
 		const player = await this.getById(id);
 		if (!player) return err('Spieler nicht gefunden.', 404);
 		if (player.authProvider !== AuthProvider.Local) {
-			return err('Nur lokale Spieler können bearbeitet werden.');
+			return err('Nur lokale Spieler erlaubt.');
 		}
 		return ok();
 	}

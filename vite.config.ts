@@ -9,5 +9,10 @@ export default defineConfig({
 	},
 	optimizeDeps: {
 		include: ['layerchart', 'layercake']
+	},
+	test: {
+		globals: true,
+		environment: 'node',
+		setupFiles: './vitest.setup.ts',
 	}
 });
