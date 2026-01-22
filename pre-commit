@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 # Pre-commit hook for DoKoHub
 # Runs tests and linting before allowing commit
