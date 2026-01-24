@@ -24,7 +24,9 @@
 		<div class="mx-auto flex flex-wrap justify-center gap-1">
 			<div class="w-full p-2 sm:w-1/2 md:w-1/2 lg:w-1/3 xl:w-1/4 2xl:w-1/4">
 				<Card class="h-full p-4 shadow-lg">
-					<h3 class="text-md mb-2 font-semibold text-gray-900 dark:text-white">Punktentwicklung</h3>
+					<h3 class="text-md mb-2 font-semibold text-gray-900 dark:text-white">
+						Punkteentwicklung
+					</h3>
 					<div class="flex w-full items-center justify-center" style="aspect-ratio: 5 / 4;">
 						{#if !stats?.playerSeries}
 							<Spinner size="12" type="bars" color="primary" />
@@ -34,7 +36,7 @@
 								x="round"
 								series={stats?.playerSeries?.series ?? []}
 								props={{ spline: { draw: true, strokeWidth: 3 } }}
-								legend={{ classes: { items: 'gap-1', item: 'text-sm\t', swatch: 'size-3' } }}
+								legend={{ classes: { items: 'gap-1', item: 'text-sm', swatch: 'size-3' } }}
 							/>
 						{/if}
 					</div>
