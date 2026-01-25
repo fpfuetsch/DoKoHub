@@ -165,6 +165,7 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 	const soloCounts = new Map<string, number>();
 	const playerNormalCount = new Map<string, number>();
 	const playerHochzeitCount = new Map<string, number>();
+	const playerSoloParticipationCount = new Map<string, number>(); // counts solo rounds participation for round-share
 	const playerSoloCount = new Map<string, number>();
 
 	// Solo type tracking
@@ -217,6 +218,7 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 		soloCounts.set(pl.id, 0);
 		playerNormalCount.set(pl.id, 0);
 		playerHochzeitCount.set(pl.id, 0);
+		playerSoloParticipationCount.set(pl.id, 0);
 		playerSoloCount.set(pl.id, 0);
 
 		const soloTypeCountMap = new Map<RoundType, number>();
@@ -293,7 +295,9 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 			if (category === 'normal') increment(playerNormalCount, participant.playerId);
 			else if (category === 'hochzeit') increment(playerHochzeitCount, participant.playerId);
 			else {
-				// Only count solos for the RE player
+				// Count solo participation for round-type share regardless of team
+				increment(playerSoloParticipationCount, participant.playerId);
+				// Only count solo-type stats for the RE player
 				if (participant.team === Team.RE) {
 					increment(playerSoloCount, participant.playerId);
 					const soloTypeMap = playerSoloTypeCounts.get(participant.playerId);
@@ -606,7 +610,7 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 	const roundTypeShareByPlayer = playerList.map((pl) => {
 		const normal = playerNormalCount.get(pl.id) || 0;
 		const hochzeit = playerHochzeitCount.get(pl.id) || 0;
-		const solo = playerSoloCount.get(pl.id) || 0;
+		const solo = playerSoloParticipationCount.get(pl.id) || 0;
 		const total = normal + hochzeit + solo;
 		return {
 			player: pl.name,

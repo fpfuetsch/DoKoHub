@@ -437,8 +437,7 @@ describe('group statistics calculation edge cases', () => {
 		expect(stats.gamesWon).toEqual([]);
 		expect(stats.roundsPlayed).toEqual([]);
 		expect(stats.pairTeamCounts).toEqual([]);
-		// soloRoundsByType returns all solo types with 0 values
-		expect(stats.soloRoundsByType).toHaveLength(9); // All 9 solo types (including HochzeitStill and HochzeitUngeklaert)
-		expect(stats.soloRoundsByType.every((s) => s.value === 0)).toBe(true);
+		// soloRoundsByType now filters out solo types with 0 occurrences
+		expect(stats.soloRoundsByType).toEqual([]);
 	});
 });
