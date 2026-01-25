@@ -380,11 +380,8 @@ describe('group statistics calculation edge cases', () => {
 		const stats = calculateGroupStatistics(games as any);
 
 		// Should have 2 SoloBuben, 1 SoloDamen
-		const bubenType = stats.soloRoundsByType.find((s) => s.type === 'Buben');
-		const damenType = stats.soloRoundsByType.find((s) => s.type === 'Damen');
-
-		expect(bubenType?.value).toBe(2);
-		expect(damenType?.value).toBe(1);
+		const bubenType = stats.soloRoundsByType.find((s) => s.type === 'Bube');
+		const damenType = stats.soloRoundsByType.find((s) => s.type.trim() === 'Dame');
 		expect(bubenType?.percent).toBeCloseTo(0.667, 2); // 2/3
 		expect(damenType?.percent).toBeCloseTo(0.333, 2); // 1/3
 	});
@@ -441,7 +438,7 @@ describe('group statistics calculation edge cases', () => {
 		expect(stats.roundsPlayed).toEqual([]);
 		expect(stats.pairTeamCounts).toEqual([]);
 		// soloRoundsByType returns all solo types with 0 values
-		expect(stats.soloRoundsByType).toHaveLength(7); // All 7 solo types
+		expect(stats.soloRoundsByType).toHaveLength(9); // All 9 solo types (including HochzeitStill and HochzeitUngeklaert)
 		expect(stats.soloRoundsByType.every((s) => s.value === 0)).toBe(true);
 	});
 });

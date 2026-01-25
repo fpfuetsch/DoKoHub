@@ -2,6 +2,7 @@ import { Team, BonusType, CallType, RoundType } from '$lib/domain/enums';
 import type { Game } from '$lib/domain/game';
 import { GameRepository } from '$lib/server/repositories/game';
 import { error } from '@sveltejs/kit';
+import { generateDistinctColorPalette } from '$lib/utils/colors';
 
 export interface GroupStatistics {
 	// Reused structures
@@ -39,6 +40,16 @@ export interface GroupStatistics {
 		Schwarz: number;
 		color?: string;
 	}>;
+	callSuccessRate: Array<{
+		player: string;
+		RE: number;
+		KONTRA: number;
+		Keine90: number;
+		Keine60: number;
+		Keine30: number;
+		Schwarz: number;
+		color?: string;
+	}>;
 
 	// Group-only structures
 	gamesPlayed: Array<Record<string, any>>;
@@ -59,9 +70,22 @@ export interface GroupStatistics {
 	}>;
 	roundsByType: Array<{ type: string; value: number; percent: number }>;
 	soloRoundsByType: Array<{ type: string; value: number; percent: number; color?: string }>;
+	roundTypeShareByPlayer: Array<{
+		player: string;
+		normalShare: number;
+		hochzeitShare: number;
+		soloShare: number;
+		color?: string;
+	}>;
+	soloTypeShareByPlayer: Array<Record<string, any>>;
+	soloTypeWinRateByPlayer: Array<Record<string, any>>;
+	avgPointsBySoloType: Array<Record<string, any>>;
+	soloTypeSeries: Array<{ key: string; label: string; color?: string }>;
+	roundTypeSeries: Array<{ key: string; label: string; color?: string }>;
+	callSeries: Array<{ key: string; label: string; color?: string }>;
+	bonusSeries: Array<{ key: string; label: string; color?: string }>;
 }
 
-const playerColorPalette = ['#ef562f', '#0284c7', '#16a34a', '#eab308', '#000000'];
 // normal, hochzeit, solo colors
 const roundTypeColorPalette = ['#3b82f6', '#10b981', '#f59e0b'];
 const soloTypeOrder = [
@@ -71,34 +95,28 @@ const soloTypeOrder = [
 	RoundType.SoloKreuz,
 	RoundType.SoloPik,
 	RoundType.SoloHerz,
-	RoundType.SoloKaro
+	RoundType.SoloKaro,
+	RoundType.HochzeitStill,
+	RoundType.HochzeitUngeklaert
 ];
-const soloTypeLabels: Record<RoundType, string> = {
-	[RoundType.SoloDamen]: 'Damen',
-	[RoundType.SoloBuben]: 'Buben',
+const soloTypeLabels: Partial<Record<RoundType, string>> = {
+	[RoundType.SoloBuben]: 'Bube',
+	[RoundType.SoloDamen]: 'Dame    ',
+	[RoundType.SoloAss]: 'Ass',
 	[RoundType.SoloKreuz]: '♣️',
 	[RoundType.SoloPik]: '♠️',
 	[RoundType.SoloHerz]: '♥️',
 	[RoundType.SoloKaro]: '♦️',
-	[RoundType.SoloAss]: 'Ass',
-	[RoundType.Normal]: 'Normal',
-	[RoundType.HochzeitNormal]: 'Hochzeit Normal',
-	[RoundType.HochzeitStill]: 'Hochzeit Still',
-	[RoundType.HochzeitUngeklaert]: 'Hochzeit Ungeklärt'
+	[RoundType.HochzeitStill]: 'Stille',
+	[RoundType.HochzeitUngeklaert]: 'Ungeklärt'
 };
-const soloTypeColors: Record<RoundType, string> = {
-	[RoundType.SoloBuben]: '#0f766e',
-	[RoundType.SoloDamen]: '#a855f7',
-	[RoundType.SoloAss]: '#22c55e',
-	[RoundType.SoloKreuz]: '#0ea5e9',
-	[RoundType.SoloPik]: '#2563eb',
-	[RoundType.SoloHerz]: '#ef4444',
-	[RoundType.SoloKaro]: '#fb923c',
-	[RoundType.Normal]: '#000000',
-	[RoundType.HochzeitNormal]: '#000000',
-	[RoundType.HochzeitStill]: '#000000',
-	[RoundType.HochzeitUngeklaert]: '#000000'
-};
+
+// Generate distinct colors for solo types
+const soloTypePalette = generateDistinctColorPalette(soloTypeOrder.length);
+const soloTypeColors: Partial<Record<RoundType, string>> = {};
+soloTypeOrder.forEach((type, idx) => {
+	soloTypeColors[type] = soloTypePalette[idx];
+});
 
 const increment = <K>(map: Map<K, number>, key: K, delta = 1) => {
 	map.set(key, (map.get(key) || 0) + delta);
@@ -120,6 +138,10 @@ export function calculateGroupStatistics(games: Game[]): GroupStatistics {
 		}
 	}
 	const players = Array.from(playerMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+
+	// Generate color palette based on actual number of players
+	const playerColorPalette = generateDistinctColorPalette(players.length);
+
 	const playerColorMap = new Map<string, string>();
 	players.forEach((pl, idx) =>
 		playerColorMap.set(pl.id, playerColorPalette[idx % playerColorPalette.length])
@@ -163,6 +185,30 @@ export function calculateGroupStatistics(games: Game[]): GroupStatistics {
 	const soloTypeCounts = new Map<RoundType, number>();
 	soloTypeOrder.forEach((t) => soloTypeCounts.set(t, 0));
 
+	// Per-player tracking for new statistics
+	const playerNormalCount = new Map<string, number>();
+	const playerHochzeitCount = new Map<string, number>();
+	const playerSoloCount = new Map<string, number>();
+	const playerSoloTypeCounts = new Map<string, Map<RoundType, number>>();
+	const playerSoloTypeWins = new Map<string, Map<RoundType, number>>();
+	const playerSoloTypePoints = new Map<string, Map<RoundType, number>>();
+	for (const pl of players) {
+		playerNormalCount.set(pl.id, 0);
+		playerHochzeitCount.set(pl.id, 0);
+		playerSoloCount.set(pl.id, 0);
+		const soloTypeCountMap = new Map<RoundType, number>();
+		const soloTypeWinMap = new Map<RoundType, number>();
+		const soloTypePointMap = new Map<RoundType, number>();
+		soloTypeOrder.forEach((t) => {
+			soloTypeCountMap.set(t, 0);
+			soloTypeWinMap.set(t, 0);
+			soloTypePointMap.set(t, 0);
+		});
+		playerSoloTypeCounts.set(pl.id, soloTypeCountMap);
+		playerSoloTypeWins.set(pl.id, soloTypeWinMap);
+		playerSoloTypePoints.set(pl.id, soloTypePointMap);
+	}
+
 	// Track total rounds by type
 	let totalNormalRounds = 0;
 	let totalHochzeitRounds = 0;
@@ -177,6 +223,7 @@ export function calculateGroupStatistics(games: Game[]): GroupStatistics {
 		CallType.Schwarz
 	];
 	const callCountsMap: Record<string, Map<string, number>> = {};
+	const callWinsMap: Record<string, Map<string, number>> = {};
 
 	// Player pairs for avg points per pair
 	const pairs: { a: { id: string; name: string }; b: { id: string; name: string } }[] = [];
@@ -232,8 +279,13 @@ export function calculateGroupStatistics(games: Game[]): GroupStatistics {
 		soloTotals.set(pl.id, 0);
 		soloCounts.set(pl.id, 0);
 		const m = new Map<string, number>();
-		callTypes.forEach((ct) => m.set(ct, 0));
+		const wm = new Map<string, number>();
+		callTypes.forEach((ct) => {
+			m.set(ct, 0);
+			wm.set(ct, 0);
+		});
 		callCountsMap[pl.id] = m;
+		callWinsMap[pl.id] = wm;
 	}
 
 	for (const game of finishedGames) {
@@ -268,9 +320,7 @@ export function calculateGroupStatistics(games: Game[]): GroupStatistics {
 			const category: 'normal' | 'hochzeit' | 'solo' =
 				rType === RoundType.Normal
 					? 'normal'
-					: rType === RoundType.HochzeitNormal ||
-						  rType === RoundType.HochzeitStill ||
-						  rType === RoundType.HochzeitUngeklaert
+					: rType === RoundType.HochzeitNormal
 						? 'hochzeit'
 						: 'solo';
 
@@ -280,6 +330,17 @@ export function calculateGroupStatistics(games: Game[]): GroupStatistics {
 			else {
 				totalSoloRounds++;
 				increment(soloTypeCounts, rType);
+			}
+
+			// Track per-player round type counts
+			for (const participant of round.participants) {
+				if (category === 'normal') increment(playerNormalCount, participant.playerId);
+				else if (category === 'hochzeit') increment(playerHochzeitCount, participant.playerId);
+				else {
+					increment(playerSoloCount, participant.playerId);
+					const soloTypeMap = playerSoloTypeCounts.get(participant.playerId);
+					if (soloTypeMap) increment(soloTypeMap, rType);
+				}
 			}
 
 			// Team map for this round
@@ -334,6 +395,17 @@ export function calculateGroupStatistics(games: Game[]): GroupStatistics {
 				// per-game totals
 				increment(gameTotals, rp.playerId, rp.points);
 
+				// Track call success (if player won the round)
+				if (rp.points > 0) {
+					const roundParticipant = round.participants.find((p) => p.playerId === rp.playerId);
+					if (roundParticipant) {
+						(roundParticipant.calls || []).forEach((c: any) => {
+							const wm = callWinsMap[rp.playerId];
+							if (wm) increment(wm, c.callType);
+						});
+					}
+				}
+
 				// Track totals per game type
 				if (category === 'normal') increment(normalTotal, rp.playerId);
 				else if (category === 'hochzeit') increment(hochzeitTotal, rp.playerId);
@@ -343,7 +415,20 @@ export function calculateGroupStatistics(games: Game[]): GroupStatistics {
 					increment(roundsWonCount, rp.playerId);
 					if (category === 'normal') increment(normalWins, rp.playerId);
 					else if (category === 'hochzeit') increment(hochzeitWins, rp.playerId);
-					else increment(soloWins, rp.playerId);
+					else {
+						increment(soloWins, rp.playerId);
+						const soloTypeWinMap = playerSoloTypeWins.get(rp.playerId);
+						if (soloTypeWinMap) increment(soloTypeWinMap, rType);
+					}
+				}
+
+				// Track points per solo type
+				if (category === 'solo') {
+					const soloTypePointMap = playerSoloTypePoints.get(rp.playerId);
+					if (soloTypePointMap) {
+						const current = soloTypePointMap.get(rType) || 0;
+						soloTypePointMap.set(rType, current + rp.points);
+					}
 				}
 
 				const team = teamMap.get(rp.playerId);
@@ -498,6 +583,44 @@ export function calculateGroupStatistics(games: Game[]): GroupStatistics {
 		color: playerColorMap.get(pl.id)
 	}));
 
+	const callSuccessRate = players.map((pl) => {
+		const counts = callCountsMap[pl.id];
+		const wins = callWinsMap[pl.id];
+		if (!counts || !wins)
+			return {
+				player: pl.name,
+				RE: 0,
+				KONTRA: 0,
+				Keine90: 0,
+				Keine60: 0,
+				Keine30: 0,
+				Schwarz: 0,
+				color: playerColorMap.get(pl.id)
+			};
+		return {
+			player: pl.name,
+			RE: counts.get(CallType.RE)
+				? (wins.get(CallType.RE) || 0) / (counts.get(CallType.RE) || 1)
+				: 0,
+			KONTRA: counts.get(CallType.KONTRA)
+				? (wins.get(CallType.KONTRA) || 0) / (counts.get(CallType.KONTRA) || 1)
+				: 0,
+			Keine90: counts.get(CallType.Keine90)
+				? (wins.get(CallType.Keine90) || 0) / (counts.get(CallType.Keine90) || 1)
+				: 0,
+			Keine60: counts.get(CallType.Keine60)
+				? (wins.get(CallType.Keine60) || 0) / (counts.get(CallType.Keine60) || 1)
+				: 0,
+			Keine30: counts.get(CallType.Keine30)
+				? (wins.get(CallType.Keine30) || 0) / (counts.get(CallType.Keine30) || 1)
+				: 0,
+			Schwarz: counts.get(CallType.Schwarz)
+				? (wins.get(CallType.Schwarz) || 0) / (counts.get(CallType.Schwarz) || 1)
+				: 0,
+			color: playerColorMap.get(pl.id)
+		};
+	});
+
 	const gamesPlayedArr = players.map((pl) => {
 		const games = gamesPlayed.get(pl.id) || 0;
 		return {
@@ -606,12 +729,104 @@ export function calculateGroupStatistics(games: Game[]): GroupStatistics {
 		const value = soloTypeCounts.get(type) || 0;
 		const percent = totalSoloTypeRounds ? value / totalSoloTypeRounds : 0;
 		return {
-			type: soloTypeLabels[type],
+			type: soloTypeLabels[type] || '',
 			value,
 			percent,
-			color: soloTypeColors[type]
+			color: soloTypeColors[type] || '#000000'
 		};
 	});
+
+	// Round type share by player
+	const roundTypeShareByPlayer = players.map((pl) => {
+		const normal = playerNormalCount.get(pl.id) || 0;
+		const hochzeit = playerHochzeitCount.get(pl.id) || 0;
+		const solo = playerSoloCount.get(pl.id) || 0;
+		const total = normal + hochzeit + solo;
+		return {
+			player: pl.name,
+			normalShare: total ? normal / total : 0,
+			hochzeitShare: total ? hochzeit / total : 0,
+			soloShare: total ? solo / total : 0,
+			color: playerColorMap.get(pl.id)
+		};
+	});
+
+	// Solo type share by player
+	const soloTypeShareByPlayer = players.map((pl) => {
+		const soloTypeMap = playerSoloTypeCounts.get(pl.id);
+		if (!soloTypeMap) return { player: pl.name, color: playerColorMap.get(pl.id) };
+		const totalSolos = Array.from(soloTypeMap.values()).reduce((a, b) => a + b, 0);
+		const result: Record<string, any> = { player: pl.name, color: playerColorMap.get(pl.id) };
+		soloTypeOrder.forEach((type) => {
+			const count = soloTypeMap.get(type) || 0;
+			const label = soloTypeLabels[type] || '';
+			result[label] = totalSolos ? count / totalSolos : 0;
+		});
+		return result;
+	});
+
+	// Solo type win rate by player
+	const soloTypeWinRateByPlayer = players.map((pl) => {
+		const soloTypeCountMap = playerSoloTypeCounts.get(pl.id);
+		const soloTypeWinMap = playerSoloTypeWins.get(pl.id);
+		if (!soloTypeCountMap || !soloTypeWinMap)
+			return { player: pl.name, color: playerColorMap.get(pl.id) };
+		const result: Record<string, any> = { player: pl.name, color: playerColorMap.get(pl.id) };
+		soloTypeOrder.forEach((type) => {
+			const count = soloTypeCountMap.get(type) || 0;
+			const wins = soloTypeWinMap.get(type) || 0;
+			const label = soloTypeLabels[type] || '';
+			result[label] = count ? wins / count : 0;
+		});
+		return result;
+	});
+
+	// Average points per solo type by player
+	const avgPointsBySoloType = players.map((pl) => {
+		const soloTypeCountMap = playerSoloTypeCounts.get(pl.id);
+		const soloTypePointMap = playerSoloTypePoints.get(pl.id);
+		if (!soloTypeCountMap || !soloTypePointMap)
+			return { player: pl.name, color: playerColorMap.get(pl.id) };
+		const result: Record<string, any> = { player: pl.name, color: playerColorMap.get(pl.id) };
+		soloTypeOrder.forEach((type) => {
+			const count = soloTypeCountMap.get(type) || 0;
+			const points = soloTypePointMap.get(type) || 0;
+			const label = soloTypeLabels[type] || '';
+			result[label] = count ? points / count : 0;
+		});
+		return result;
+	});
+
+	// Solo type series for charts
+	const soloTypeSeries = soloTypeOrder.map((type) => ({
+		key: soloTypeLabels[type] || '',
+		label: soloTypeLabels[type] || '',
+		color: soloTypeColors[type] || '#000000'
+	}));
+
+	// Round type series for charts
+	const roundTypeSeries = [
+		{ key: 'normal', label: 'Normal', color: roundTypeColorPalette[0] },
+		{ key: 'hochzeit', label: 'Hochzeit', color: roundTypeColorPalette[1] },
+		{ key: 'solo', label: 'Solo', color: roundTypeColorPalette[2] }
+	];
+
+	// Call series for charts
+	const callSeries = [
+		{ key: 'RE', label: 'Re', color: 'var(--color-amber-500)' },
+		{ key: 'KONTRA', label: 'Kontra', color: 'var(--color-purple-500)' },
+		{ key: 'Keine90', label: 'K90', color: 'var(--color-sky-400)' },
+		{ key: 'Keine60', label: 'K60', color: 'var(--color-sky-500)' },
+		{ key: 'Keine30', label: 'K30', color: 'var(--color-sky-600)' },
+		{ key: 'Schwarz', label: 'Schwarz', color: 'var(--color-gray-700)' }
+	];
+
+	// Bonus series for charts
+	const bonusSeries = [
+		{ key: 'doko', label: 'Doppelkopf', color: 'var(--color-lime-500)' },
+		{ key: 'fuchs', label: 'Fuchs', color: 'var(--color-red-500)' },
+		{ key: 'karlchen', label: 'Karlchen', color: 'var(--color-cyan-500)' }
+	];
 
 	// Build cumulative timelines over time (per group)
 	const gamesTimeline: Array<{ date: string; games: number }> = [];
@@ -637,6 +852,7 @@ export function calculateGroupStatistics(games: Game[]): GroupStatistics {
 		avgEyesGrouped,
 		avgEyes,
 		callGrouped,
+		callSuccessRate,
 		pairTeamCounts,
 		gamesPlayed: gamesPlayedArr,
 		gamesWon,
@@ -649,7 +865,15 @@ export function calculateGroupStatistics(games: Game[]): GroupStatistics {
 		teamWinRates,
 		avgPointsByGameType,
 		roundsByType,
-		soloRoundsByType
+		soloRoundsByType,
+		roundTypeShareByPlayer,
+		soloTypeShareByPlayer,
+		soloTypeWinRateByPlayer,
+		avgPointsBySoloType,
+		soloTypeSeries,
+		roundTypeSeries,
+		callSeries,
+		bonusSeries
 	};
 }
 
@@ -664,6 +888,7 @@ const emptyGroupStatistics = (): GroupStatistics => ({
 	avgEyesGrouped: [],
 	avgEyes: [],
 	callGrouped: [],
+	callSuccessRate: [],
 	gamesPlayed: [],
 	gamesWon: [],
 	roundsPlayed: [],
@@ -675,7 +900,15 @@ const emptyGroupStatistics = (): GroupStatistics => ({
 	teamWinRates: [],
 	avgPointsByGameType: [],
 	roundsByType: [],
-	soloRoundsByType: []
+	soloRoundsByType: [],
+	roundTypeShareByPlayer: [],
+	soloTypeShareByPlayer: [],
+	soloTypeWinRateByPlayer: [],
+	avgPointsBySoloType: [],
+	soloTypeSeries: [],
+	roundTypeSeries: [],
+	callSeries: [],
+	bonusSeries: []
 });
 
 export async function getGroupStatistics(args: {

@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import { Team, BonusType, CallType } from '$lib/domain/enums';
 import { GameRepository } from '$lib/server/repositories/game';
 import type { Game } from '$lib/domain/game';
+import { generateDistinctColorPalette } from '$lib/utils/colors';
 
 export interface GameStatistics {
 	playerSeries: {
@@ -62,8 +63,6 @@ export interface GameStatistics {
  * No I/O, no side effects. Testable without database.
  */
 export function calculateGameStatistics(game: Game): GameStatistics {
-	const palette = ['#ef562f', '#0284c7', '#16a34a', '#eab308', '#000000'];
-
 	// Prepare player list and color map
 	const rounds = Array.from(new Set(game.rounds.map((r) => r.roundNumber))).sort((a, b) => a - b);
 	const playerList = game.participants
@@ -71,7 +70,11 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 		.map((p) => ({
 			id: p.player!.id,
 			name: p.player!.getTruncatedDisplayName() || 'Unknown'
-		}));
+		}))
+		.sort((a, b) => a.name.localeCompare(b.name)); // Sort by name for consistent color assignment
+
+	// Generate color palette based on actual number of players
+	const palette = generateDistinctColorPalette(playerList.length);
 
 	const playerColorMap = new Map<string, string>();
 	playerList.forEach((pl, idx) => playerColorMap.set(pl.id, palette[idx % palette.length]));
