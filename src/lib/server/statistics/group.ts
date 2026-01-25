@@ -3,6 +3,15 @@ import type { Game } from '$lib/domain/game';
 import { GameRepository } from '$lib/server/repositories/game';
 import { error } from '@sveltejs/kit';
 import { generateDistinctColorPalette } from '$lib/utils/colors';
+import {
+	bonusSeries,
+	callSeries,
+	increment,
+	roundTypeColorPalette,
+	soloTypeColors,
+	soloTypeLabels,
+	soloTypeOrder
+} from './shared';
 
 export interface GroupStatistics {
 	// Reused structures
@@ -86,41 +95,7 @@ export interface GroupStatistics {
 	bonusSeries: Array<{ key: string; label: string; color?: string }>;
 }
 
-// normal, hochzeit, solo colors
-const roundTypeColorPalette = ['#3b82f6', '#10b981', '#f59e0b'];
-const soloTypeOrder = [
-	RoundType.SoloBuben,
-	RoundType.SoloDamen,
-	RoundType.SoloAss,
-	RoundType.SoloKreuz,
-	RoundType.SoloPik,
-	RoundType.SoloHerz,
-	RoundType.SoloKaro,
-	RoundType.HochzeitStill,
-	RoundType.HochzeitUngeklaert
-];
-const soloTypeLabels: Partial<Record<RoundType, string>> = {
-	[RoundType.SoloBuben]: 'Bube',
-	[RoundType.SoloDamen]: 'Dame    ',
-	[RoundType.SoloAss]: 'Ass',
-	[RoundType.SoloKreuz]: '♣️',
-	[RoundType.SoloPik]: '♠️',
-	[RoundType.SoloHerz]: '♥️',
-	[RoundType.SoloKaro]: '♦️',
-	[RoundType.HochzeitStill]: 'Stille',
-	[RoundType.HochzeitUngeklaert]: 'Ungeklärt'
-};
-
-// Generate distinct colors for solo types
-const soloTypePalette = generateDistinctColorPalette(soloTypeOrder.length);
-const soloTypeColors: Partial<Record<RoundType, string>> = {};
-soloTypeOrder.forEach((type, idx) => {
-	soloTypeColors[type] = soloTypePalette[idx];
-});
-
-const increment = <K>(map: Map<K, number>, key: K, delta = 1) => {
-	map.set(key, (map.get(key) || 0) + delta);
-};
+// Shared statistics constants/helpers imported from statistics/shared
 
 export function calculateGroupStatistics(games: Game[]): GroupStatistics {
 	// Only count finished games
@@ -809,23 +784,6 @@ export function calculateGroupStatistics(games: Game[]): GroupStatistics {
 		{ key: 'normal', label: 'Normal', color: roundTypeColorPalette[0] },
 		{ key: 'hochzeit', label: 'Hochzeit', color: roundTypeColorPalette[1] },
 		{ key: 'solo', label: 'Solo', color: roundTypeColorPalette[2] }
-	];
-
-	// Call series for charts
-	const callSeries = [
-		{ key: 'RE', label: 'Re', color: 'var(--color-amber-500)' },
-		{ key: 'KONTRA', label: 'Kontra', color: 'var(--color-purple-500)' },
-		{ key: 'Keine90', label: 'K90', color: 'var(--color-sky-400)' },
-		{ key: 'Keine60', label: 'K60', color: 'var(--color-sky-500)' },
-		{ key: 'Keine30', label: 'K30', color: 'var(--color-sky-600)' },
-		{ key: 'Schwarz', label: 'Schwarz', color: 'var(--color-gray-700)' }
-	];
-
-	// Bonus series for charts
-	const bonusSeries = [
-		{ key: 'doko', label: 'Doppelkopf', color: 'var(--color-lime-500)' },
-		{ key: 'fuchs', label: 'Fuchs', color: 'var(--color-red-500)' },
-		{ key: 'karlchen', label: 'Karlchen', color: 'var(--color-cyan-500)' }
 	];
 
 	// Build cumulative timelines over time (per group)

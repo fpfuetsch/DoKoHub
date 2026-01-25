@@ -1,221 +1,386 @@
 <script lang="ts">
-	import { LineChart, BarChart } from 'layerchart';
-	import { Card, Spinner } from 'flowbite-svelte';
+	import { LineChart, BarChart, PieChart } from 'layerchart';
+	import { Alert } from 'flowbite-svelte';
+	import { InfoCircleSolid } from 'flowbite-svelte-icons';
+	import StatsCard from '$lib/components/StatsCard.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
-
 	let stats: any = $state(null);
+	let error: any = $state(null);
 
 	$effect(() => {
 		data.statsPromise
-			.then((calculatedStats: any) => {
-				stats = calculatedStats;
+			.then((calculated: any) => {
+				stats = calculated;
+				error = null;
 			})
-			.catch((error: any) => {
-				console.error('Failed to load statistics:', error);
+			.catch((err: any) => {
+				console.error('Failed to load statistics:', err);
+				error = err;
+				stats = null;
 			});
 	});
 </script>
 
-<div class="p-4">
-	<div class="mx-auto max-w-7xl">
-		<!-- Simple flex row with wrapping and centered items -->
-		<div class="mx-auto flex flex-wrap justify-center gap-1">
-			<div class="w-full p-2 sm:w-1/2 md:w-1/2 lg:w-1/3 xl:w-1/4 2xl:w-1/4">
-				<Card class="h-full p-4 shadow-lg">
-					<h3 class="text-md mb-2 font-semibold text-gray-900 dark:text-white">
-						Punkteentwicklung
-					</h3>
-					<div class="flex w-full items-center justify-center" style="aspect-ratio: 5 / 4;">
-						{#if !stats?.playerSeries}
-							<Spinner size="12" type="bars" color="primary" />
-						{:else}
-							<LineChart
-								data={stats?.playerSeries?.rows ?? []}
-								x="round"
-								series={stats?.playerSeries?.series ?? []}
-								props={{ spline: { draw: true, strokeWidth: 3 } }}
-								legend={{ classes: { items: 'gap-1', item: 'text-sm', swatch: 'size-3' } }}
-							/>
-						{/if}
-					</div>
-				</Card>
-			</div>
-			<div class="w-full p-2 sm:w-1/2 md:w-1/2 lg:w-1/3 xl:w-1/4 2xl:w-1/4">
-				<Card class="h-full p-4 shadow-lg">
-					<h3 class="text-md mb-2 font-semibold text-gray-900 dark:text-white">
-						Gewonnen / Verloren Anteil
-					</h3>
-					<div class="flex w-full items-center justify-center" style="aspect-ratio: 5 / 4;">
-						{#if !stats?.winLostShare}
-							<Spinner size="12" type="bars" color="primary" />
-						{:else}
-							<BarChart
-								data={stats?.winLostShare ?? []}
-								x="player"
-								series={[
-									{ key: 'wonShare', label: 'Gewonnen', color: 'var(--color-emerald-300)' },
-									{ key: 'lostShare', label: 'Verloren', color: 'var(--color-rose-300)' }
-								]}
-								seriesLayout="group"
-								props={{
-									yAxis: { format: 'percentRound' },
-									bars: { motion: 'tween' }
-								}}
-								legend
-							/>
-						{/if}
-					</div>
-				</Card>
-			</div>
-			<div class="w-full p-2 sm:w-1/2 md:w-1/2 lg:w-1/3 xl:w-1/4 2xl:w-1/4">
-				<Card class="h-full p-4 shadow-lg">
-					<h3 class="text-md mb-2 font-semibold text-gray-900 dark:text-white">
-						Re / Kontra Anteil
-					</h3>
-					<div class="flex w-full items-center justify-center" style="aspect-ratio: 5 / 4;">
-						{#if !stats?.reKontraShare}
-							<Spinner size="12" type="bars" color="primary" />
-						{:else}
-							<BarChart
-								data={stats?.reKontraShare ?? []}
-								x="player"
-								series={[
-									{ key: 'reShare', label: 'Re', color: 'var(--color-amber-500)' },
-									{ key: 'kontraShare', label: 'Kontra', color: 'var(--color-purple-500)' }
-								]}
-								seriesLayout="group"
-								props={{
-									yAxis: { format: 'percentRound' },
-									bars: { motion: 'tween' }
-								}}
-								legend
-							/>
-						{/if}
-					</div>
-				</Card>
-			</div>
-			<div class="w-full p-2 sm:w-1/2 md:w-1/2 lg:w-1/3 xl:w-1/4 2xl:w-1/4">
-				<Card class="h-full p-4 shadow-lg">
-					<h3 class="text-md mb-2 font-semibold text-gray-900 dark:text-white">
-						Re / Kontra Durchschnittspunkte
-					</h3>
-					<div class="flex w-full items-center justify-center" style="aspect-ratio: 5 / 4;">
-						{#if !stats?.avgReKontra}
-							<Spinner size="12" type="bars" color="primary" />
-						{:else}
-							<BarChart
-								data={stats?.avgReKontra ?? []}
-								x="key"
-								series={[
-									{ key: 'reAvg', label: 'Re', color: 'var(--color-amber-500)' },
-									{ key: 'kontraAvg', label: 'Kontra', color: 'var(--color-purple-500)' }
-								]}
-								seriesLayout="group"
-								props={{ bars: { motion: 'tween' } }}
-								legend
-							/>
-						{/if}
-					</div>
-				</Card>
-			</div>
-			<div class="w-full p-2 sm:w-1/2 md:w-1/2 lg:w-1/3 xl:w-1/4 2xl:w-1/4">
-				<Card class="h-full p-4 shadow-lg">
-					<h3 class="text-md mb-2 font-semibold text-gray-900 dark:text-white">
-						Durchschnittspunkte je Paar
-					</h3>
-					<div class="flex w-full items-center justify-center" style="aspect-ratio: 5 / 4;">
-						{#if !stats?.avgPairs}
-							<Spinner size="12" type="bars" color="primary" />
-						{:else}
-							<BarChart
-								data={stats?.avgPairs ?? []}
-								y="key"
-								x="value"
-								series={[
-									{ key: 'value', label: 'Durchschnittspunkte', color: 'var(--color-teal-400)' }
-								]}
-								orientation="horizontal"
-								padding={{ left: 120, bottom: 10 }}
-							/>
-						{/if}
-					</div>
-				</Card>
-			</div>
-			<div class="w-full p-2 sm:w-1/2 md:w-1/2 lg:w-1/3 xl:w-1/4 2xl:w-1/4">
-				<Card class="h-full p-4 shadow-lg">
-					<h3 class="text-md mb-2 font-semibold text-gray-900 dark:text-white">
-						Durchschnittliche Augen im Team
-					</h3>
-					<div class="flex w-full items-center justify-center" style="aspect-ratio: 5 / 4;">
-						{#if !stats?.avgEyesGrouped}
-							<Spinner size="12" type="bars" color="primary" />
-						{:else}
-							<BarChart
-								data={stats?.avgEyesGrouped ?? []}
-								x="player"
-								series={stats?.playerSeries?.series ?? []}
-								props={{ yAxis: { format: 'integer' }, bars: { motion: 'tween' } }}
-								legend={false}
-							/>
-						{/if}
-					</div>
-				</Card>
-			</div>
-			<div class="w-full p-2 sm:w-1/2 md:w-1/2 lg:w-1/3 xl:w-1/4 2xl:w-1/4">
-				<Card class="h-full p-4 shadow-lg">
-					<h3 class="text-md mb-2 font-semibold text-gray-900 dark:text-white">
-						An-/Absagen Häufigkeit
-					</h3>
-					<div class="flex w-full items-center justify-center" style="aspect-ratio: 5 / 4;">
-						{#if !stats?.callGrouped}
-							<Spinner size="12" type="bars" color="primary" />
-						{:else}
-							<BarChart
-								data={stats?.callGrouped ?? []}
-								x="player"
-								series={[
-									{ key: 'RE', label: 'Re', color: 'var(--color-amber-500)' },
-									{ key: 'KONTRA', label: 'Kontra', color: 'var(--color-purple-500)' },
-									{ key: 'Keine90', label: 'K90', color: 'var(--color-sky-400)' },
-									{ key: 'Keine60', label: 'K60', color: 'var(--color-sky-500)' },
-									{ key: 'Keine30', label: 'K30', color: 'var(--color-sky-600)' },
-									{ key: 'Schwarz', label: 'Schwarz', color: 'var(--color-gray-700)' }
-								]}
-								seriesLayout="group"
-								props={{ bars: { motion: 'tween' }, yAxis: { format: 'integer' } }}
-								legend={{ classes: { items: 'gap-1', item: 'text-sm\t', swatch: 'size-3' } }}
-							/>
-						{/if}
-					</div>
-				</Card>
-			</div>
-			<div class="w-full p-2 sm:w-1/2 md:w-1/2 lg:w-1/3 xl:w-1/4 2xl:w-1/4">
-				<Card class="h-full p-4 shadow-lg">
-					<h3 class="text-md mb-2 font-semibold text-gray-900 dark:text-white">
-						Bonuspunkte Häufigkeit
-					</h3>
-					<div class="flex w-full items-center justify-center" style="aspect-ratio: 5 / 4;">
-						{#if !stats?.bonusGrouped}
-							<Spinner size="12" type="bars" color="primary" />
-						{:else}
-							<BarChart
-								data={stats?.bonusGrouped ?? []}
-								x="player"
-								series={[
-									{ key: 'doko', label: 'Doppelkopf', color: 'var(--color-lime-500)' },
-									{ key: 'fuchs', label: 'Fuchs', color: 'var(--color-red-500)' },
-									{ key: 'karlchen', label: 'Karlchen', color: 'var(--color-cyan-500)' }
-								]}
-								seriesLayout="group"
-								props={{ bars: { motion: 'tween' }, yAxis: { format: 'integer' } }}
-								legend
-							/>
-						{/if}
-					</div>
-				</Card>
+<div class="mx-auto max-w-7xl">
+	{#if error}
+		<Alert color="secondary" class="mx-auto mb-8 w-full max-w-xl">
+			{#snippet icon()}
+				<InfoCircleSolid class="h-5 w-5" />
+			{/snippet}
+			<span class="font-medium">Fehler beim Laden der Statistiken.</span>
+			<div>{error.message || 'Ein unerwarteter Fehler ist aufgetreten.'}</div>
+		</Alert>
+	{:else}
+		<!-- Runden Section -->
+		<div class="mb-8">
+			<h2 class="text-center text-xl font-bold text-gray-700 dark:text-white">Runden</h2>
+			<div class="mx-auto flex flex-wrap justify-center gap-1">
+				<StatsCard title="Punkteentwicklung" loading={!stats} hide={stats && !stats?.playerSeries}>
+					<LineChart
+						data={stats?.playerSeries?.rows ?? []}
+						x="round"
+						series={stats?.playerSeries?.series ?? []}
+						props={{ spline: { draw: true, strokeWidth: 3 } }}
+						legend={{ classes: { items: 'gap-1', item: 'text-sm', swatch: 'size-3' } }}
+					/>
+				</StatsCard>
+
+				<StatsCard
+					title="Runden gewonnen"
+					loading={!stats}
+					hide={stats && (!stats?.roundsWon || stats.roundsWon.length === 0)}
+				>
+					<PieChart
+						data={stats.roundsWon}
+						key="player"
+						value="value"
+						props={{ pie: { motion: 'tween', sort: null } }}
+						padding={{ bottom: 50 }}
+						c="color"
+						legend={{
+							classes: {
+								root: 'w-full',
+								items: 'gap-2 flex-wrap justify-center',
+								item: 'text-xs',
+								swatch: 'size-2'
+							}
+						}}
+					/>
+				</StatsCard>
+
+				<StatsCard
+					title="Runden nach Typ"
+					loading={!stats}
+					hide={stats && (!stats?.roundsByType || stats.roundsByType.length === 0)}
+				>
+					<PieChart
+						data={stats.roundsByType}
+						key="type"
+						value="value"
+						props={{ pie: { motion: 'tween', sort: null } }}
+						c="color"
+						legend
+					/>
+				</StatsCard>
+
+				<StatsCard
+					title="Solorunden nach Typ"
+					loading={!stats}
+					hide={stats && (!stats?.soloRoundsByType || stats.soloRoundsByType.length === 0)}
+				>
+					<PieChart
+						data={stats.soloRoundsByType}
+						key="type"
+						value="value"
+						padding={{ bottom: 50 }}
+						props={{ pie: { motion: 'tween', sort: null } }}
+						c="color"
+						legend={{
+							classes: {
+								root: 'w-full',
+								items: 'gap-2 flex-wrap justify-center',
+								item: 'text-xs',
+								swatch: 'size-2'
+							}
+						}}
+					/>
+				</StatsCard>
+
+				<StatsCard
+					title="Anteil je Rundentyp"
+					loading={!stats}
+					hide={stats && !stats?.roundTypeShareByPlayer}
+				>
+					<BarChart
+						data={stats?.roundTypeShareByPlayer ?? []}
+						x="player"
+						series={stats?.roundTypeSeries?.map((s: any) => ({
+							key: s.key + 'Share',
+							label: s.label,
+							color: s.color
+						})) ?? []}
+						seriesLayout="group"
+						props={{ yAxis: { format: 'percentRound' }, bars: { motion: 'tween' } }}
+						legend
+					/>
+				</StatsCard>
+
+				<StatsCard
+					title="Siegrate je Rundentyp"
+					loading={!stats}
+					hide={stats && !stats?.winLostShareByType}
+				>
+					<BarChart
+						data={stats?.winLostShareByType ?? []}
+						x="player"
+						series={stats?.roundTypeSeries?.map((s: any) => ({
+							key: s.key + 'WinShare',
+							label: s.label,
+							color: s.color
+						})) ?? []}
+						seriesLayout="group"
+						props={{ yAxis: { format: 'percentRound' }, bars: { motion: 'tween' } }}
+						legend
+					/>
+				</StatsCard>
+
+				<StatsCard
+					title="Punkte je Rundentyp"
+					loading={!stats}
+					hide={stats && !stats?.avgPointsByGameType}
+				>
+					<BarChart
+						data={stats?.avgPointsByGameType ?? []}
+						x="player"
+						series={stats?.roundTypeSeries ?? []}
+						seriesLayout="group"
+						props={{ bars: { motion: 'tween' } }}
+						legend
+					/>
+				</StatsCard>
+
+				<StatsCard
+					title="Anteil je Solotyp"
+					loading={!stats}
+					hide={stats && !stats?.soloTypeShareByPlayer}
+				>
+					<BarChart
+						data={stats?.soloTypeShareByPlayer ?? []}
+						x="player"
+						series={stats?.soloTypeSeries ?? []}
+						seriesLayout="group"
+						props={{ yAxis: { format: 'percentRound' }, bars: { motion: 'tween' } }}
+						padding={{ bottom: 60, left: 20 }}
+						legend={{
+							classes: {
+								root: 'w-full',
+								items: 'gap-1 flex-wrap justify-center',
+								item: 'text-xs',
+								swatch: 'size-2'
+							}
+						}}
+					/>
+				</StatsCard>
+
+				<StatsCard
+					title="Siegrate je Solotyp"
+					loading={!stats}
+					hide={stats && !stats?.soloTypeWinRateByPlayer}
+				>
+					<BarChart
+						data={stats?.soloTypeWinRateByPlayer ?? []}
+						x="player"
+						series={stats?.soloTypeSeries ?? []}
+						seriesLayout="group"
+						props={{ yAxis: { format: 'percentRound' }, bars: { motion: 'tween' } }}
+						padding={{ bottom: 60, left: 20 }}
+						legend={{
+							classes: {
+								root: 'w-full',
+								items: 'gap-1 flex-wrap justify-center',
+								item: 'text-xs',
+								swatch: 'size-2'
+							}
+						}}
+					/>
+				</StatsCard>
+
+				<StatsCard
+					title="Punkte je Solotyp"
+					loading={!stats}
+					hide={stats && !stats?.avgPointsBySoloType}
+				>
+					<BarChart
+						data={stats?.avgPointsBySoloType ?? []}
+						x="player"
+						series={stats?.soloTypeSeries ?? []}
+						seriesLayout="group"
+						props={{ bars: { motion: 'tween' } }}
+						padding={{ bottom: 60, left: 10 }}
+						legend={{
+							classes: {
+								root: 'w-full',
+								items: 'gap-1 flex-wrap justify-center',
+								item: 'text-xs',
+								swatch: 'size-2'
+							}
+						}}
+					/>
+				</StatsCard>
+
+				<StatsCard
+					title="Anteil Re / Kontra"
+					loading={!stats}
+					hide={stats && !stats?.reKontraShare}
+				>
+					<BarChart
+						data={stats?.reKontraShare ?? []}
+						x="player"
+						series={[
+							{ key: 'reShare', label: 'Re', color: 'var(--color-amber-500)' },
+							{ key: 'kontraShare', label: 'Kontra', color: 'var(--color-purple-500)' }
+						]}
+						seriesLayout="group"
+						props={{ yAxis: { format: 'percentRound' }, bars: { motion: 'tween' } }}
+						legend
+					/>
+				</StatsCard>
+
+				<StatsCard
+					title="Siegrate Re / Kontra"
+					loading={!stats}
+					hide={stats && !stats?.teamWinRates}
+				>
+					<BarChart
+						data={stats?.teamWinRates ?? []}
+						x="player"
+						series={[
+							{ key: 'reRate', label: 'Re', color: 'var(--color-amber-500)' },
+							{ key: 'kontraRate', label: 'Kontra', color: 'var(--color-purple-500)' }
+						]}
+						seriesLayout="group"
+						props={{ yAxis: { format: 'percentRound' }, bars: { motion: 'tween' } }}
+						legend
+					/>
+				</StatsCard>
+
+				<StatsCard title="Punkte Re / Kontra" loading={!stats} hide={stats && !stats?.avgReKontra}>
+					<BarChart
+						data={stats?.avgReKontra ?? []}
+						x="key"
+						series={[
+							{ key: 'reAvg', label: 'Re', color: 'var(--color-amber-500)' },
+							{ key: 'kontraAvg', label: 'Kontra', color: 'var(--color-purple-500)' }
+						]}
+						seriesLayout="group"
+						props={{ bars: { motion: 'tween' } }}
+						legend
+					/>
+				</StatsCard>
+
+				<StatsCard title="Augen im Team" loading={!stats} hide={stats && !stats?.avgEyesGrouped}>
+					<BarChart
+						data={stats?.avgEyesGrouped ?? []}
+						x="player"
+						series={stats?.playerSeries?.series ?? []}
+						props={{ yAxis: { format: 'integer' }, bars: { motion: 'tween' } }}
+						legend={false}
+					/>
+				</StatsCard>
 			</div>
 		</div>
-	</div>
+
+		<!-- An-und Absagen & Boni Section -->
+		<div class="mb-8">
+			<h2 class="text-center text-xl font-bold text-gray-700 dark:text-white">
+				An-/ Absagen & Boni
+			</h2>
+			<div class="mx-auto flex flex-wrap justify-center gap-1">
+				<!-- An-/Absagen Häufigkeit -->
+				<StatsCard
+					title="Häufigkeit An-/Absagen"
+					loading={!stats}
+					hide={stats && !stats?.callGrouped}
+				>
+					<BarChart
+						data={stats?.callGrouped ?? []}
+						x="player"
+						series={stats?.callSeries ?? []}
+						seriesLayout="group"
+						props={{ bars: { motion: 'tween' }, yAxis: { format: 'integer' } }}
+						legend={{ classes: { items: 'gap-1', item: 'text-sm', swatch: 'size-3' } }}
+					/>
+				</StatsCard>
+
+				<!-- Erfolgsrate An-/Absagen -->
+				<StatsCard
+					title="Erfolgsrate An-/Absagen"
+					loading={!stats}
+					hide={stats && !stats?.callSuccessRate}
+				>
+					<BarChart
+						data={stats?.callSuccessRate ?? []}
+						x="player"
+						series={stats?.callSeries ?? []}
+						seriesLayout="group"
+						props={{ yAxis: { format: 'percentRound' }, bars: { motion: 'tween' } }}
+						legend={{ classes: { items: 'gap-1', item: 'text-sm', swatch: 'size-3' } }}
+					/>
+				</StatsCard>
+
+				<!-- Bonuspunkte Häufigkeit -->
+				<StatsCard
+					title="Häufigkeit Bonuspunkte"
+					loading={!stats}
+					hide={stats && !stats?.bonusGrouped}
+				>
+					<BarChart
+						data={stats?.bonusGrouped ?? []}
+						x="player"
+						series={stats?.bonusSeries ?? []}
+						props={{ bars: { motion: 'tween' }, yAxis: { format: 'integer' } }}
+						legend
+					/>
+				</StatsCard>
+			</div>
+		</div>
+
+		<!-- Team Section -->
+		<div class="mb-8">
+			<h2 class="text-center text-xl font-bold text-gray-700 dark:text-white">Spielerpaare</h2>
+			<div class="mx-auto flex flex-wrap justify-center gap-1">
+				<!-- Häufigkeit Team-Paare -->
+				<StatsCard
+					title="Häufigkeit je Paar"
+					loading={!stats}
+					hide={stats && !stats?.pairTeamCounts}
+				>
+					<BarChart
+						data={stats?.pairTeamCounts ?? []}
+						y="key"
+						x="value"
+						series={[{ key: 'value', label: 'Runden zusammen', color: 'var(--color-teal-400)' }]}
+						orientation="horizontal"
+						padding={{ left: 120, bottom: 10 }}
+						props={{ xAxis: { format: 'integer' } }}
+					/>
+				</StatsCard>
+				<!-- Durchschnittspunkte je Paar -->
+				<StatsCard title="Punkte je Paar" loading={!stats} hide={stats && !stats?.avgPairs}>
+					<BarChart
+						data={stats?.avgPairs ?? []}
+						y="key"
+						x="value"
+						series={[
+							{ key: 'value', label: 'Durchschnittspunkte', color: 'var(--color-teal-400)' }
+						]}
+						orientation="horizontal"
+						padding={{ left: 120, bottom: 10 }}
+					/>
+				</StatsCard>
+			</div>
+		</div>
+	{/if}
 </div>

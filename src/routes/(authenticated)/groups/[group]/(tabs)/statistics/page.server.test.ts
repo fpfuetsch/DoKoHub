@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Team, BonusType, CallType } from '$lib/domain/enums';
+import { Team } from '$lib/domain/enums';
 
 const { requireUserOrRedirectToLoginMock, getGroupStatisticsMock, listByGroupMock, gameRepoCtor } =
 	vi.hoisted(() => {

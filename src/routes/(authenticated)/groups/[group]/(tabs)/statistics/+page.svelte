@@ -353,6 +353,7 @@
 						data={stats?.bonusGrouped ?? []}
 						x="player"
 						series={stats?.bonusSeries ?? []}
+						props={{ bars: { motion: 'tween' }, yAxis: { format: 'integer' } }}
 						legend
 					/>
 				</StatsCard>
@@ -372,6 +373,7 @@
 						series={[{ key: 'value', label: 'Runden zusammen', color: 'var(--color-teal-400)' }]}
 						orientation="horizontal"
 						padding={{ left: 120, bottom: 10 }}
+						props={{ xAxis: { format: 'integer' } }}
 					/>
 				</StatsCard>
 				<!-- Durchschnittspunkte je Paar -->

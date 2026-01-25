@@ -1,8 +1,17 @@
 import { error } from '@sveltejs/kit';
-import { Team, BonusType, CallType } from '$lib/domain/enums';
+import { Team, BonusType, CallType, RoundType } from '$lib/domain/enums';
 import { GameRepository } from '$lib/server/repositories/game';
 import type { Game } from '$lib/domain/game';
 import { generateDistinctColorPalette } from '$lib/utils/colors';
+import {
+	bonusSeries,
+	callSeries,
+	increment,
+	roundTypeColorPalette,
+	soloTypeColors,
+	soloTypeLabels,
+	soloTypeOrder
+} from './shared';
 
 export interface GameStatistics {
 	playerSeries: {
@@ -15,10 +24,11 @@ export interface GameStatistics {
 		kontraShare: number;
 		color?: string;
 	}>;
-	winLostShare: Array<{
+	winLostShareByType: Array<{
 		player: string;
-		wonShare: number;
-		lostShare: number;
+		normalWinShare: number;
+		hochzeitWinShare: number;
+		soloWinShare: number;
 		color?: string;
 	}>;
 	avgReKontra: Array<{
@@ -28,6 +38,11 @@ export interface GameStatistics {
 		color?: string;
 	}>;
 	avgPairs: Array<{
+		key: string;
+		value: number;
+		color?: string;
+	}>;
+	pairTeamCounts: Array<{
 		key: string;
 		value: number;
 		color?: string;
@@ -55,7 +70,44 @@ export interface GameStatistics {
 		Schwarz: number;
 		color?: string;
 	}>;
+	callSuccessRate: Array<{
+		player: string;
+		RE: number;
+		KONTRA: number;
+		Keine90: number;
+		Keine60: number;
+		Keine30: number;
+		Schwarz: number;
+		color?: string;
+	}>;
+	roundsWon: Array<{ player: string; value: number; percent: number; color?: string }>;
+	roundsByType: Array<{ type: string; value: number; percent: number }>;
+	soloRoundsByType: Array<{ type: string; value: number; percent: number; color?: string }>;
+	roundTypeShareByPlayer: Array<{
+		player: string;
+		normalShare: number;
+		hochzeitShare: number;
+		soloShare: number;
+		color?: string;
+	}>;
+	soloTypeShareByPlayer: Array<Record<string, any>>;
+	soloTypeWinRateByPlayer: Array<Record<string, any>>;
+	avgPointsByGameType: Array<{
+		player: string;
+		normal: number;
+		hochzeit: number;
+		solo: number;
+		color?: string;
+	}>;
+	avgPointsBySoloType: Array<Record<string, any>>;
+	teamWinRates: Array<{ player: string; reRate: number; kontraRate: number; color?: string }>;
+	soloTypeSeries: Array<{ key: string; label: string; color?: string }>;
+	roundTypeSeries: Array<{ key: string; label: string; color?: string }>;
+	callSeries: Array<{ key: string; label: string; color?: string }>;
+	bonusSeries: Array<{ key: string; label: string; color?: string }>;
 }
+
+// Shared palettes and helpers are imported from statistics/shared
 
 /**
  * Pure calculation function. Takes a game with participants and rounds,
@@ -83,8 +135,6 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 	const playerPointsMap = new Map<string, { round: number; cumulativePoints: number }[]>();
 	const reCounts = new Map<string, number>();
 	const kontraCounts = new Map<string, number>();
-	const winRoundCounts = new Map<string, number>();
-	const loseRoundCounts = new Map<string, number>();
 	const reTotals = new Map<string, number>();
 	const reCountsMap = new Map<string, number>();
 	const kontraTotals = new Map<string, number>();
@@ -94,6 +144,36 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 	const dokoCounts = new Map<string, number>();
 	const fuchsCounts = new Map<string, number>();
 	const karlchenCounts = new Map<string, number>();
+	const roundsWonCount = new Map<string, number>();
+	const reRoundsPlayed = new Map<string, number>();
+	const reRoundsWon = new Map<string, number>();
+	const kontraRoundsPlayed = new Map<string, number>();
+	const kontraRoundsWon = new Map<string, number>();
+
+	// Round type tracking
+	const normalWins = new Map<string, number>();
+	const normalTotal = new Map<string, number>();
+	const hochzeitWins = new Map<string, number>();
+	const hochzeitTotal = new Map<string, number>();
+	const soloWins = new Map<string, number>();
+	const soloTotal = new Map<string, number>();
+	const normalTotals = new Map<string, number>();
+	const normalCounts = new Map<string, number>();
+	const hochzeitTotals = new Map<string, number>();
+	const hochzeitCounts = new Map<string, number>();
+	const soloTotals = new Map<string, number>();
+	const soloCounts = new Map<string, number>();
+	const playerNormalCount = new Map<string, number>();
+	const playerHochzeitCount = new Map<string, number>();
+	const playerSoloCount = new Map<string, number>();
+
+	// Solo type tracking
+	const soloTypeCounts = new Map<RoundType, number>();
+	const playerSoloTypeCounts = new Map<string, Map<RoundType, number>>();
+	const playerSoloTypeWins = new Map<string, Map<RoundType, number>>();
+	const playerSoloTypePoints = new Map<string, Map<RoundType, number>>();
+	soloTypeOrder.forEach((t) => soloTypeCounts.set(t, 0));
+
 	const callTypes = [
 		CallType.RE,
 		CallType.KONTRA,
@@ -103,13 +183,12 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 		CallType.Schwarz
 	];
 	const callCountsMap: Record<string, Map<string, number>> = {};
+	const callWinsMap: Record<string, Map<string, number>> = {};
 
 	playerList.forEach((pl) => {
 		playerPointsMap.set(pl.id, []);
 		reCounts.set(pl.id, 0);
 		kontraCounts.set(pl.id, 0);
-		winRoundCounts.set(pl.id, 0);
-		loseRoundCounts.set(pl.id, 0);
 		reTotals.set(pl.id, 0);
 		reCountsMap.set(pl.id, 0);
 		kontraTotals.set(pl.id, 0);
@@ -119,9 +198,47 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 		dokoCounts.set(pl.id, 0);
 		fuchsCounts.set(pl.id, 0);
 		karlchenCounts.set(pl.id, 0);
+		roundsWonCount.set(pl.id, 0);
+		reRoundsPlayed.set(pl.id, 0);
+		reRoundsWon.set(pl.id, 0);
+		kontraRoundsPlayed.set(pl.id, 0);
+		kontraRoundsWon.set(pl.id, 0);
+		normalWins.set(pl.id, 0);
+		normalTotal.set(pl.id, 0);
+		hochzeitWins.set(pl.id, 0);
+		hochzeitTotal.set(pl.id, 0);
+		soloWins.set(pl.id, 0);
+		soloTotal.set(pl.id, 0);
+		normalTotals.set(pl.id, 0);
+		normalCounts.set(pl.id, 0);
+		hochzeitTotals.set(pl.id, 0);
+		hochzeitCounts.set(pl.id, 0);
+		soloTotals.set(pl.id, 0);
+		soloCounts.set(pl.id, 0);
+		playerNormalCount.set(pl.id, 0);
+		playerHochzeitCount.set(pl.id, 0);
+		playerSoloCount.set(pl.id, 0);
+
+		const soloTypeCountMap = new Map<RoundType, number>();
+		const soloTypeWinMap = new Map<RoundType, number>();
+		const soloTypePointMap = new Map<RoundType, number>();
+		soloTypeOrder.forEach((t) => {
+			soloTypeCountMap.set(t, 0);
+			soloTypeWinMap.set(t, 0);
+			soloTypePointMap.set(t, 0);
+		});
+		playerSoloTypeCounts.set(pl.id, soloTypeCountMap);
+		playerSoloTypeWins.set(pl.id, soloTypeWinMap);
+		playerSoloTypePoints.set(pl.id, soloTypePointMap);
+
 		const m = new Map<string, number>();
-		callTypes.forEach((ct) => m.set(ct, 0));
+		const wm = new Map<string, number>();
+		callTypes.forEach((ct) => {
+			m.set(ct, 0);
+			wm.set(ct, 0);
+		});
 		callCountsMap[pl.id] = m;
+		callWinsMap[pl.id] = wm;
 	});
 
 	// Prepare unordered player pairs for pair-averages
@@ -134,46 +251,70 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 
 	const pairTotals = new Map<string, number>();
 	const pairCounts = new Map<string, number>();
+	const pairTeamRoundCounts = new Map<string, number>();
 	for (const pair of pairs) {
 		const key = `${pair.a.name} & ${pair.b.name}`;
 		pairTotals.set(key, 0);
 		pairCounts.set(key, 0);
+		pairTeamRoundCounts.set(key, 0);
 	}
+
+	// Track round type totals
+	let totalNormalRounds = 0;
+	let totalHochzeitRounds = 0;
+	let totalSoloRounds = 0;
 
 	// Single pass over rounds to compute all aggregates
 	for (const round of game.rounds) {
 		const roundPoints = round.calculatePoints();
 		const eyesRe = round.eyesRe ?? 0;
+		const rType = (round as any).type as RoundType;
+		const category: 'normal' | 'hochzeit' | 'solo' =
+			rType === RoundType.Normal
+				? 'normal'
+				: rType === RoundType.HochzeitNormal
+					? 'hochzeit'
+					: 'solo';
+
+		// Count total rounds by type
+		if (category === 'normal') totalNormalRounds++;
+		else if (category === 'hochzeit') totalHochzeitRounds++;
+		else {
+			totalSoloRounds++;
+			increment(soloTypeCounts, rType);
+		}
 
 		// Map participant -> team for this round and process participant-level aggregates
 		const teamMap = new Map<string, string>();
 		for (const participant of round.participants) {
 			teamMap.set(participant.playerId, participant.team);
 
+			// Track per-player round type counts
+			if (category === 'normal') increment(playerNormalCount, participant.playerId);
+			else if (category === 'hochzeit') increment(playerHochzeitCount, participant.playerId);
+			else {
+				increment(playerSoloCount, participant.playerId);
+				const soloTypeMap = playerSoloTypeCounts.get(participant.playerId);
+				if (soloTypeMap) increment(soloTypeMap, rType);
+			}
+
 			// re/kontra counts
 			if (participant.team === Team.RE) {
-				reCounts.set(participant.playerId, (reCounts.get(participant.playerId) || 0) + 1);
+				increment(reCounts, participant.playerId);
+				increment(reRoundsPlayed, participant.playerId);
 			} else if (participant.team === Team.KONTRA) {
-				kontraCounts.set(participant.playerId, (kontraCounts.get(participant.playerId) || 0) + 1);
+				increment(kontraCounts, participant.playerId);
+				increment(kontraRoundsPlayed, participant.playerId);
 			}
 
 			// bonuses
 			(participant.bonuses || []).forEach((b: any) => {
 				if (b.bonusType === BonusType.Doko) {
-					dokoCounts.set(
-						participant.playerId,
-						(dokoCounts.get(participant.playerId) || 0) + (b.count || 0)
-					);
+					increment(dokoCounts, participant.playerId, b.count || 0);
 				} else if (b.bonusType === BonusType.Fuchs) {
-					fuchsCounts.set(
-						participant.playerId,
-						(fuchsCounts.get(participant.playerId) || 0) + (b.count || 0)
-					);
+					increment(fuchsCounts, participant.playerId, b.count || 0);
 				} else if (b.bonusType === BonusType.Karlchen) {
-					karlchenCounts.set(
-						participant.playerId,
-						(karlchenCounts.get(participant.playerId) || 0) + (b.count || 0)
-					);
+					increment(karlchenCounts, participant.playerId, b.count || 0);
 				}
 			});
 
@@ -181,16 +322,23 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 			(participant.calls || []).forEach((c: any) => {
 				const m = callCountsMap[participant.playerId];
 				if (!m) return;
-				m.set(c.callType, (m.get(c.callType) || 0) + 1);
+				increment(m, c.callType);
 			});
 
 			// eyes (team achieved)
 			const achievedEyes = participant.team === Team.RE ? eyesRe : 240 - eyesRe;
-			eyesTotals.set(
-				participant.playerId,
-				(eyesTotals.get(participant.playerId) || 0) + achievedEyes
-			);
-			eyesCounts.set(participant.playerId, (eyesCounts.get(participant.playerId) || 0) + 1);
+			increment(eyesTotals, participant.playerId, achievedEyes);
+			increment(eyesCounts, participant.playerId);
+		}
+
+		// Track pair team rounds
+		for (const pair of pairs) {
+			const teamA = teamMap.get(pair.a.id);
+			const teamB = teamMap.get(pair.b.id);
+			if (teamA && teamB && teamA === teamB) {
+				const pairKey = `${pair.a.name} & ${pair.b.name}`;
+				increment(pairTeamRoundCounts, pairKey);
+			}
 		}
 
 		// update cumulative points and per-player round stats
@@ -204,21 +352,64 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 			});
 			playerPointsMap.set(rp.playerId, playerHistory);
 
-			// win/lose counts
+			// win counts
 			if (rp.points > 0) {
-				winRoundCounts.set(rp.playerId, (winRoundCounts.get(rp.playerId) || 0) + 1);
-			} else if (rp.points < 0) {
-				loseRoundCounts.set(rp.playerId, (loseRoundCounts.get(rp.playerId) || 0) + 1);
+				increment(roundsWonCount, rp.playerId);
+
+				// Track call success (if player won the round)
+				const roundParticipant = round.participants.find((p) => p.playerId === rp.playerId);
+				if (roundParticipant) {
+					(roundParticipant.calls || []).forEach((c: any) => {
+						const wm = callWinsMap[rp.playerId];
+						if (wm) increment(wm, c.callType);
+					});
+				}
+
+				// Track wins by round type
+				if (category === 'normal') {
+					increment(normalWins, rp.playerId);
+				} else if (category === 'hochzeit') {
+					increment(hochzeitWins, rp.playerId);
+				} else {
+					increment(soloWins, rp.playerId);
+					const soloTypeWinMap = playerSoloTypeWins.get(rp.playerId);
+					if (soloTypeWinMap) increment(soloTypeWinMap, rType);
+				}
+
+				// Track team win rates
+				const team = teamMap.get(rp.playerId);
+				if (team === Team.RE) {
+					increment(reRoundsWon, rp.playerId);
+				} else if (team === Team.KONTRA) {
+					increment(kontraRoundsWon, rp.playerId);
+				}
+			}
+
+			// Track participation in round types
+			if (category === 'normal') {
+				increment(normalTotal, rp.playerId);
+				increment(normalTotals, rp.playerId, rp.points);
+				increment(normalCounts, rp.playerId);
+			} else if (category === 'hochzeit') {
+				increment(hochzeitTotal, rp.playerId);
+				increment(hochzeitTotals, rp.playerId, rp.points);
+				increment(hochzeitCounts, rp.playerId);
+			} else {
+				increment(soloTotal, rp.playerId);
+				increment(soloTotals, rp.playerId, rp.points);
+				increment(soloCounts, rp.playerId);
+				const soloTypePointMap = playerSoloTypePoints.get(rp.playerId);
+				if (soloTypePointMap) increment(soloTypePointMap, rType, rp.points);
 			}
 
 			// avg re/kontra totals
 			const team = teamMap.get(rp.playerId);
 			if (team === Team.RE) {
-				reTotals.set(rp.playerId, (reTotals.get(rp.playerId) || 0) + rp.points);
-				reCountsMap.set(rp.playerId, (reCountsMap.get(rp.playerId) || 0) + 1);
+				increment(reTotals, rp.playerId, rp.points);
+				increment(reCountsMap, rp.playerId);
 			} else if (team === Team.KONTRA) {
-				kontraTotals.set(rp.playerId, (kontraTotals.get(rp.playerId) || 0) + rp.points);
-				kontraCountsMap.set(rp.playerId, (kontraCountsMap.get(rp.playerId) || 0) + 1);
+				increment(kontraTotals, rp.playerId, rp.points);
+				increment(kontraCountsMap, rp.playerId);
 			}
 		}
 
@@ -278,18 +469,6 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 		};
 	});
 
-	const winLostShare = playerList.map((pl) => {
-		const won = winRoundCounts.get(pl.id) || 0;
-		const lost = loseRoundCounts.get(pl.id) || 0;
-		const total = won + lost;
-		return {
-			player: pl.name,
-			wonShare: total ? won / total : 0,
-			lostShare: total ? lost / total : 0,
-			color: playerColorMap.get(pl.id)
-		};
-	});
-
 	const avgReKontra = playerList.map((pl) => ({
 		key: pl.name,
 		reAvg: reCountsMap.get(pl.id) ? reTotals.get(pl.id)! / (reCountsMap.get(pl.id) || 1) : 0,
@@ -343,19 +522,238 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 		color: playerColorMap.get(pl.id)
 	}));
 
+	// Call success rate
+	const callSuccessRate = playerList.map((pl) => {
+		const calcRate = (callType: CallType) => {
+			const count = callCountsMap[pl.id].get(callType) || 0;
+			const wins = callWinsMap[pl.id].get(callType) || 0;
+			return count > 0 ? wins / count : 0;
+		};
+		return {
+			player: pl.name,
+			RE: calcRate(CallType.RE),
+			KONTRA: calcRate(CallType.KONTRA),
+			Keine90: calcRate(CallType.Keine90),
+			Keine60: calcRate(CallType.Keine60),
+			Keine30: calcRate(CallType.Keine30),
+			Schwarz: calcRate(CallType.Schwarz),
+			color: playerColorMap.get(pl.id)
+		};
+	});
+
+	// Rounds won pie chart
+	const totalRoundsWon = Array.from(roundsWonCount.values()).reduce((a, b) => a + b, 0);
+	const roundsWon = playerList.map((pl) => {
+		const value = roundsWonCount.get(pl.id) || 0;
+		return {
+			player: pl.name,
+			value,
+			percent: totalRoundsWon > 0 ? value / totalRoundsWon : 0,
+			color: playerColorMap.get(pl.id)
+		};
+	});
+
+	// Rounds by type pie chart
+	const totalRounds = totalNormalRounds + totalHochzeitRounds + totalSoloRounds;
+	const roundsByType = [
+		{
+			type: 'Normal',
+			value: totalNormalRounds,
+			percent: totalRounds > 0 ? totalNormalRounds / totalRounds : 0,
+			color: roundTypeColorPalette[0]
+		},
+		{
+			type: 'Hochzeit',
+			value: totalHochzeitRounds,
+			percent: totalRounds > 0 ? totalHochzeitRounds / totalRounds : 0,
+			color: roundTypeColorPalette[1]
+		},
+		{
+			type: 'Solo',
+			value: totalSoloRounds,
+			percent: totalRounds > 0 ? totalSoloRounds / totalRounds : 0,
+			color: roundTypeColorPalette[2]
+		}
+	];
+
+	// Solo rounds by type pie chart
+	const soloRoundsByType = soloTypeOrder
+		.map((rType) => {
+			const value = soloTypeCounts.get(rType) || 0;
+			return {
+				type: soloTypeLabels[rType] || rType,
+				value,
+				percent: totalSoloRounds > 0 ? value / totalSoloRounds : 0,
+				color: soloTypeColors[rType]
+			};
+		})
+		.filter((item) => item.value > 0);
+
+	// Round type share by player
+	const roundTypeShareByPlayer = playerList.map((pl) => {
+		const normal = playerNormalCount.get(pl.id) || 0;
+		const hochzeit = playerHochzeitCount.get(pl.id) || 0;
+		const solo = playerSoloCount.get(pl.id) || 0;
+		const total = normal + hochzeit + solo;
+		return {
+			player: pl.name,
+			normalShare: total > 0 ? normal / total : 0,
+			hochzeitShare: total > 0 ? hochzeit / total : 0,
+			soloShare: total > 0 ? solo / total : 0,
+			color: playerColorMap.get(pl.id)
+		};
+	});
+
+	// Win/lost share by type
+	const winLostShareByType = playerList.map((pl) => {
+		const normalTotalRounds = normalTotal.get(pl.id) || 0;
+		const hochzeitTotalRounds = hochzeitTotal.get(pl.id) || 0;
+		const soloTotalRounds = soloTotal.get(pl.id) || 0;
+		return {
+			player: pl.name,
+			normalWinShare: normalTotalRounds > 0 ? (normalWins.get(pl.id) || 0) / normalTotalRounds : 0,
+			hochzeitWinShare:
+				hochzeitTotalRounds > 0 ? (hochzeitWins.get(pl.id) || 0) / hochzeitTotalRounds : 0,
+			soloWinShare: soloTotalRounds > 0 ? (soloWins.get(pl.id) || 0) / soloTotalRounds : 0,
+			color: playerColorMap.get(pl.id)
+		};
+	});
+
+	// Average points by game type
+	const avgPointsByGameType = playerList.map((pl) => ({
+		player: pl.name,
+		normal: normalCounts.get(pl.id) ? (normalTotals.get(pl.id) || 0) / normalCounts.get(pl.id)! : 0,
+		hochzeit: hochzeitCounts.get(pl.id)
+			? (hochzeitTotals.get(pl.id) || 0) / hochzeitCounts.get(pl.id)!
+			: 0,
+		solo: soloCounts.get(pl.id) ? (soloTotals.get(pl.id) || 0) / soloCounts.get(pl.id)! : 0,
+		color: playerColorMap.get(pl.id)
+	}));
+
+	// Solo type share by player
+	const soloTypeShareByPlayer = playerList.map((pl) => {
+		const result: Record<string, any> = {
+			player: pl.name,
+			color: playerColorMap.get(pl.id)
+		};
+		const soloTypeMap = playerSoloTypeCounts.get(pl.id);
+		const playerTotalSolos = playerSoloCount.get(pl.id) || 0;
+		if (soloTypeMap) {
+			soloTypeOrder.forEach((rType) => {
+				const key = soloTypeLabels[rType] + 'Share';
+				const count = soloTypeMap.get(rType) || 0;
+				result[key] = playerTotalSolos > 0 ? count / playerTotalSolos : 0;
+			});
+		}
+		return result;
+	});
+
+	// Solo type win rate by player
+	const soloTypeWinRateByPlayer = playerList.map((pl) => {
+		const result: Record<string, any> = {
+			player: pl.name,
+			color: playerColorMap.get(pl.id)
+		};
+		const soloTypeCountMap = playerSoloTypeCounts.get(pl.id);
+		const soloTypeWinMap = playerSoloTypeWins.get(pl.id);
+		if (soloTypeCountMap && soloTypeWinMap) {
+			soloTypeOrder.forEach((rType) => {
+				const key = soloTypeLabels[rType] + 'WinRate';
+				const count = soloTypeCountMap.get(rType) || 0;
+				const wins = soloTypeWinMap.get(rType) || 0;
+				result[key] = count > 0 ? wins / count : 0;
+			});
+		}
+		return result;
+	});
+
+	// Average points by solo type
+	const avgPointsBySoloType = playerList.map((pl) => {
+		const result: Record<string, any> = {
+			player: pl.name,
+			color: playerColorMap.get(pl.id)
+		};
+		const soloTypeCountMap = playerSoloTypeCounts.get(pl.id);
+		const soloTypePointMap = playerSoloTypePoints.get(pl.id);
+		if (soloTypeCountMap && soloTypePointMap) {
+			soloTypeOrder.forEach((rType) => {
+				const label = soloTypeLabels[rType];
+				if (label) {
+					const count = soloTypeCountMap.get(rType) || 0;
+					const points = soloTypePointMap.get(rType) || 0;
+					result[label] = count > 0 ? points / count : 0;
+				}
+			});
+		}
+		return result;
+	});
+
+	// Team win rates (Re/Kontra)
+	const teamWinRates = playerList.map((pl) => ({
+		player: pl.name,
+		reRate: reRoundsPlayed.get(pl.id)
+			? (reRoundsWon.get(pl.id) || 0) / reRoundsPlayed.get(pl.id)!
+			: 0,
+		kontraRate: kontraRoundsPlayed.get(pl.id)
+			? (kontraRoundsWon.get(pl.id) || 0) / kontraRoundsPlayed.get(pl.id)!
+			: 0,
+		color: playerColorMap.get(pl.id)
+	}));
+
+	// Pair team counts
+	const pairTeamCounts = Array.from(pairTeamRoundCounts.entries())
+		.map(([key, value]) => ({
+			key,
+			value,
+			color: (() => {
+				const firstName = key.split(' & ')[0];
+				const pl = playerList.find((p) => p.name === firstName);
+				return pl ? playerColorMap.get(pl.id) : palette[0];
+			})()
+		}))
+		.sort((a, b) => b.value - a.value);
+
+	// Series definitions
+	const roundTypeSeries = [
+		{ key: 'normal', label: 'Normal', color: roundTypeColorPalette[0] },
+		{ key: 'hochzeit', label: 'Hochzeit', color: roundTypeColorPalette[1] },
+		{ key: 'solo', label: 'Solo', color: roundTypeColorPalette[2] }
+	];
+
+	const soloTypeSeries = soloTypeOrder.map((rType) => ({
+		key: soloTypeLabels[rType] || rType,
+		label: soloTypeLabels[rType] || rType,
+		color: soloTypeColors[rType]
+	}));
+
 	return {
 		playerSeries: {
 			rows,
 			series
 		},
 		reKontraShare,
+		winLostShareByType,
+		avgReKontra,
 		avgPairs,
+		pairTeamCounts,
 		bonusGrouped,
 		avgEyesGrouped,
-		callGrouped,
 		avgEyes,
-		avgReKontra,
-		winLostShare
+		callGrouped,
+		callSuccessRate,
+		roundsWon,
+		roundsByType,
+		soloRoundsByType,
+		roundTypeShareByPlayer,
+		soloTypeShareByPlayer,
+		soloTypeWinRateByPlayer,
+		avgPointsByGameType,
+		avgPointsBySoloType,
+		teamWinRates,
+		soloTypeSeries,
+		roundTypeSeries,
+		callSeries,
+		bonusSeries
 	};
 }
 

@@ -160,7 +160,7 @@
 	</div>
 </header>
 
-<div class="w-full">
+<div class="w-full p-4">
 	{@render children()}
 </div>
 

@@ -416,7 +416,7 @@
 	};
 </script>
 
-<div class="flex flex-col p-4 sm:p-6">
+<div class="flex flex-col">
 	<section class={`mx-auto w-full max-w-4xl space-y-4 ${hasUpcomingRound ? 'pb-20' : ''}`}>
 		<div class="space-y-3">
 			<div class="flex items-center justify-between">

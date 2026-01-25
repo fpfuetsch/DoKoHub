@@ -81,7 +81,6 @@ describe('statistics page load', () => {
 		getGameStatisticsMock.mockResolvedValue({
 			playerSeries: { rows: [], series: [] },
 			reKontraShare: [],
-			winLostShare: [],
 			avgReKontra: [],
 			avgPairs: [],
 			bonusGrouped: [],
@@ -112,7 +111,6 @@ describe('statistics page load', () => {
 		getGameStatisticsMock.mockResolvedValue({
 			playerSeries: { rows: [], series: [] },
 			reKontraShare: [],
-			winLostShare: [],
 			avgReKontra: [],
 			avgPairs: [],
 			bonusGrouped: [],

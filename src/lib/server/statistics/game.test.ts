@@ -30,10 +30,6 @@ describe('calculateGameStatistics', () => {
 
 		expect(stats.playerSeries.rows).toEqual([{ round: 1, Alice: 10, Bob: -10 }]);
 		expect(stats.playerSeries.series).toHaveLength(2);
-		expect(stats.winLostShare).toEqual([
-			{ player: 'Alice', wonShare: 1, lostShare: 0, color: expect.any(String) },
-			{ player: 'Bob', wonShare: 0, lostShare: 1, color: expect.any(String) }
-		]);
 		expect(stats.reKontraShare).toEqual([
 			{ player: 'Alice', reShare: 1, kontraShare: 0, color: expect.any(String) },
 			{ player: 'Bob', reShare: 0, kontraShare: 1, color: expect.any(String) }
