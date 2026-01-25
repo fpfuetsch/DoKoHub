@@ -293,9 +293,12 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 			if (category === 'normal') increment(playerNormalCount, participant.playerId);
 			else if (category === 'hochzeit') increment(playerHochzeitCount, participant.playerId);
 			else {
-				increment(playerSoloCount, participant.playerId);
-				const soloTypeMap = playerSoloTypeCounts.get(participant.playerId);
-				if (soloTypeMap) increment(soloTypeMap, rType);
+				// Only count solos for the RE player
+				if (participant.team === Team.RE) {
+					increment(playerSoloCount, participant.playerId);
+					const soloTypeMap = playerSoloTypeCounts.get(participant.playerId);
+					if (soloTypeMap) increment(soloTypeMap, rType);
+				}
 			}
 
 			// re/kontra counts
@@ -371,9 +374,13 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 				} else if (category === 'hochzeit') {
 					increment(hochzeitWins, rp.playerId);
 				} else {
-					increment(soloWins, rp.playerId);
-					const soloTypeWinMap = playerSoloTypeWins.get(rp.playerId);
-					if (soloTypeWinMap) increment(soloTypeWinMap, rType);
+					// Only count solo wins for RE player
+					const team = teamMap.get(rp.playerId);
+					if (team === Team.RE) {
+						increment(soloWins, rp.playerId);
+						const soloTypeWinMap = playerSoloTypeWins.get(rp.playerId);
+						if (soloTypeWinMap) increment(soloTypeWinMap, rType);
+					}
 				}
 
 				// Track team win rates
@@ -398,8 +405,12 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 				increment(soloTotal, rp.playerId);
 				increment(soloTotals, rp.playerId, rp.points);
 				increment(soloCounts, rp.playerId);
-				const soloTypePointMap = playerSoloTypePoints.get(rp.playerId);
-				if (soloTypePointMap) increment(soloTypePointMap, rType, rp.points);
+				// Only track solo type points for RE player
+				const team = teamMap.get(rp.playerId);
+				if (team === Team.RE) {
+					const soloTypePointMap = playerSoloTypePoints.get(rp.playerId);
+					if (soloTypePointMap) increment(soloTypePointMap, rType, rp.points);
+				}
 			}
 
 			// avg re/kontra totals
@@ -634,38 +645,31 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 
 	// Solo type share by player
 	const soloTypeShareByPlayer = playerList.map((pl) => {
-		const result: Record<string, any> = {
-			player: pl.name,
-			color: playerColorMap.get(pl.id)
-		};
 		const soloTypeMap = playerSoloTypeCounts.get(pl.id);
-		const playerTotalSolos = playerSoloCount.get(pl.id) || 0;
-		if (soloTypeMap) {
-			soloTypeOrder.forEach((rType) => {
-				const key = soloTypeLabels[rType] + 'Share';
-				const count = soloTypeMap.get(rType) || 0;
-				result[key] = playerTotalSolos > 0 ? count / playerTotalSolos : 0;
-			});
-		}
+		if (!soloTypeMap) return { player: pl.name, color: playerColorMap.get(pl.id) };
+		const totalSolos = Array.from(soloTypeMap.values()).reduce((a, b) => a + b, 0);
+		const result: Record<string, any> = { player: pl.name, color: playerColorMap.get(pl.id) };
+		soloTypeOrder.forEach((rType) => {
+			const count = soloTypeMap.get(rType) || 0;
+			const label = soloTypeLabels[rType] || '';
+			result[label] = totalSolos ? count / totalSolos : 0;
+		});
 		return result;
 	});
 
 	// Solo type win rate by player
 	const soloTypeWinRateByPlayer = playerList.map((pl) => {
-		const result: Record<string, any> = {
-			player: pl.name,
-			color: playerColorMap.get(pl.id)
-		};
 		const soloTypeCountMap = playerSoloTypeCounts.get(pl.id);
 		const soloTypeWinMap = playerSoloTypeWins.get(pl.id);
-		if (soloTypeCountMap && soloTypeWinMap) {
-			soloTypeOrder.forEach((rType) => {
-				const key = soloTypeLabels[rType] + 'WinRate';
-				const count = soloTypeCountMap.get(rType) || 0;
-				const wins = soloTypeWinMap.get(rType) || 0;
-				result[key] = count > 0 ? wins / count : 0;
-			});
-		}
+		if (!soloTypeCountMap || !soloTypeWinMap)
+			return { player: pl.name, color: playerColorMap.get(pl.id) };
+		const result: Record<string, any> = { player: pl.name, color: playerColorMap.get(pl.id) };
+		soloTypeOrder.forEach((rType) => {
+			const count = soloTypeCountMap.get(rType) || 0;
+			const wins = soloTypeWinMap.get(rType) || 0;
+			const label = soloTypeLabels[rType] || '';
+			result[label] = count ? wins / count : 0;
+		});
 		return result;
 	});
 
@@ -722,11 +726,13 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 		{ key: 'solo', label: 'Solo', color: roundTypeColorPalette[2] }
 	];
 
-	const soloTypeSeries = soloTypeOrder.map((rType) => ({
-		key: soloTypeLabels[rType] || rType,
-		label: soloTypeLabels[rType] || rType,
-		color: soloTypeColors[rType]
-	}));
+	const soloTypeSeries = soloTypeOrder
+		.filter((rType) => (soloTypeCounts.get(rType) || 0) > 0)
+		.map((rType) => ({
+			key: soloTypeLabels[rType] || rType,
+			label: soloTypeLabels[rType] || rType,
+			color: soloTypeColors[rType]
+		}));
 
 	return {
 		playerSeries: {
