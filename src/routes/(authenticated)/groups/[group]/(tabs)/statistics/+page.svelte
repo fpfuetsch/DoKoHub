@@ -353,6 +353,7 @@
 						data={stats?.bonusGrouped ?? []}
 						x="player"
 						series={stats?.bonusSeries ?? []}
+						seriesLayout="group"
 						props={{ bars: { motion: 'tween' }, yAxis: { format: 'integer' } }}
 						legend
 					/>

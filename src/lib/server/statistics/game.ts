@@ -478,15 +478,17 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 		color: playerColorMap.get(pl.id)
 	}));
 
-	const avgPairs = Array.from(pairTotals.entries()).map(([key, total]) => ({
-		key,
-		value: total / (pairCounts.get(key) || 1),
-		color: (() => {
-			const firstName = key.split(' & ')[0];
-			const pl = playerList.find((p) => p.name === firstName);
-			return pl ? playerColorMap.get(pl.id) : palette[0];
-		})()
-	}));
+	const avgPairs = Array.from(pairTotals.entries())
+		.map(([key, total]) => ({
+			key,
+			value: total / (pairCounts.get(key) || 1),
+			color: (() => {
+				const firstName = key.split(' & ')[0];
+				const pl = playerList.find((p) => p.name === firstName);
+				return pl ? playerColorMap.get(pl.id) : palette[0];
+			})()
+		}))
+		.sort((a, b) => b.value - a.value);
 
 	const bonusGrouped = playerList.map((pl) => ({
 		player: pl.name,
