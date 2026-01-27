@@ -1,18 +1,70 @@
-import { describe, expect, it, vi } from 'vitest';
-import { BonusType, CallType, Team } from '$lib/domain/enums';
-import { calculateGameStatistics, getGameStatistics } from './game';
+import { describe, expect, it } from 'vitest';
+import { BonusType, CallType, Team, RoundType } from '$lib/domain/enums';
+import { calculateGameStatistics, aggregateGameRounds } from './game';
 
-describe('calculateGameStatistics', () => {
-	it('calculates basic stats for single round game', () => {
-		const game = {
-			id: 'game-1',
-			participants: [
-				{ player: { id: 'p1', getTruncatedDisplayName: () => 'Alice' } },
-				{ player: { id: 'p2', getTruncatedDisplayName: () => 'Bob' } }
-			],
+// ============================================================================
+// HELPER: Mock game builder for cleaner test setup
+// ============================================================================
+
+interface MockRound {
+	roundNumber: number;
+	type?: RoundType;
+	isSolo?: () => boolean;
+	participants: Array<{
+		playerId: string;
+		team: Team;
+		bonuses?: Array<{ bonusType: BonusType; count: number }>;
+		calls?: Array<{ callType: CallType }>;
+	}>;
+	eyesRe: number;
+	calculatePoints: () => Array<{ playerId: string; points: number }>;
+}
+
+interface MockGame {
+	id: string;
+	participants: Array<{
+		player: { id: string; getTruncatedDisplayName: () => string };
+	}>;
+	rounds: MockRound[];
+}
+
+function createMockGame(overrides?: Partial<MockGame>): MockGame {
+	return {
+		id: 'game-1',
+		participants: [
+			{ player: { id: 'p1', getTruncatedDisplayName: () => 'Alice' } },
+			{ player: { id: 'p2', getTruncatedDisplayName: () => 'Bob' } }
+		],
+		rounds: [
+			{
+				roundNumber: 1,
+				type: RoundType.Normal,
+				participants: [
+					{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+					{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+				],
+				eyesRe: 120,
+				calculatePoints: () => [
+					{ playerId: 'p1', points: 10 },
+					{ playerId: 'p2', points: -10 }
+				]
+			}
+		],
+		...overrides
+	};
+}
+
+// ============================================================================
+// AGGREGATION TESTS
+// ============================================================================
+
+describe('aggregateGameRounds', () => {
+	it('aggregates basic player participation', () => {
+		const game = createMockGame({
 			rounds: [
 				{
 					roundNumber: 1,
+					type: RoundType.Normal,
 					participants: [
 						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
 						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
@@ -24,25 +76,22 @@ describe('calculateGameStatistics', () => {
 					]
 				}
 			]
-		};
+		});
 
-		const stats = calculateGameStatistics(game as any);
+		const agg = aggregateGameRounds(game as any);
 
-		expect(stats.playerSeries.rows).toEqual([{ round: 1, Alice: 10, Bob: -10 }]);
-		expect(stats.playerSeries.series).toHaveLength(2);
-		expect(stats.reKontraShare).toEqual([
-			{ player: 'Alice', reShare: 1, kontraShare: 0, color: expect.any(String) },
-			{ player: 'Bob', reShare: 0, kontraShare: 1, color: expect.any(String) }
-		]);
+		expect(agg.reCounts.get('p1')).toBe(1);
+		expect(agg.kontraCounts.get('p2')).toBe(1);
+		expect(agg.totalNormalRounds).toBe(1);
+		expect(agg.totalSoloRounds).toBe(0);
 	});
 
-	it('handles bonuses correctly', () => {
-		const game = {
-			id: 'game-1',
-			participants: [{ player: { id: 'p1', getTruncatedDisplayName: () => 'Alice' } }],
+	it('aggregates bonuses correctly', () => {
+		const game = createMockGame({
 			rounds: [
 				{
 					roundNumber: 1,
+					type: RoundType.Normal,
 					participants: [
 						{
 							playerId: 'p1',
@@ -53,28 +102,31 @@ describe('calculateGameStatistics', () => {
 								{ bonusType: BonusType.Karlchen, count: 1 }
 							],
 							calls: []
-						}
+						},
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
 					],
 					eyesRe: 240,
-					calculatePoints: () => [{ playerId: 'p1', points: 10 }]
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: -10 }
+					]
 				}
 			]
-		};
+		});
 
-		const stats = calculateGameStatistics(game as any);
+		const agg = aggregateGameRounds(game as any);
 
-		expect(stats.bonusGrouped).toEqual([
-			{ player: 'Alice', doko: 2, fuchs: 1, karlchen: 1, color: expect.any(String) }
-		]);
+		expect(agg.dokoCounts.get('p1')).toBe(2);
+		expect(agg.fuchsCounts.get('p1')).toBe(1);
+		expect(agg.karlchenCounts.get('p1')).toBe(1);
 	});
 
-	it('aggregates calls correctly', () => {
-		const game = {
-			id: 'game-1',
-			participants: [{ player: { id: 'p1', getTruncatedDisplayName: () => 'Alice' } }],
+	it('tracks calls per player', () => {
+		const game = createMockGame({
 			rounds: [
 				{
 					roundNumber: 1,
+					type: RoundType.Normal,
 					participants: [
 						{
 							playerId: 'p1',
@@ -85,13 +137,520 @@ describe('calculateGameStatistics', () => {
 								{ callType: CallType.Keine90 },
 								{ callType: CallType.Keine60 }
 							]
-						}
+						},
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
 					],
 					eyesRe: 240,
-					calculatePoints: () => [{ playerId: 'p1', points: 10 }]
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: -10 }
+					]
 				}
 			]
-		};
+		});
+
+		const agg = aggregateGameRounds(game as any);
+
+		expect(agg.callCountsMap['p1'].get(CallType.RE)).toBe(1);
+		expect(agg.callCountsMap['p1'].get(CallType.Keine90)).toBe(1);
+		expect(agg.callCountsMap['p1'].get(CallType.Keine60)).toBe(1);
+	});
+
+	it('tracks eyes correctly for RE and KONTRA', () => {
+		const game = createMockGame({
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 150,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 0 },
+						{ playerId: 'p2', points: 0 }
+					]
+				}
+			]
+		});
+
+		const agg = aggregateGameRounds(game as any);
+
+		// p1 is RE, so gets 150 eyes
+		expect(agg.eyesTotals.get('p1')).toBe(150);
+		// p2 is KONTRA, so gets 240 - 150 = 90 eyes
+		expect(agg.eyesTotals.get('p2')).toBe(90);
+	});
+
+	it('distinguishes normal vs solo rounds', () => {
+		const game = createMockGame({
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: -10 }
+					]
+				},
+				{
+					roundNumber: 2,
+					type: RoundType.SoloBuben,
+					isSolo: () => true,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 20 },
+						{ playerId: 'p2', points: -20 }
+					]
+				}
+			]
+		});
+
+		const agg = aggregateGameRounds(game as any);
+
+		expect(agg.totalNormalRounds).toBe(1);
+		expect(agg.totalSoloRounds).toBe(1);
+		// p1 participates in both round types
+		expect(agg.normalTotal.get('p1')).toBe(1);
+		expect(agg.soloTotal.get('p1')).toBe(1);
+	});
+
+	it('tracks solo types only for RE player', () => {
+		const game = createMockGame({
+			participants: [
+				{ player: { id: 'p1', getTruncatedDisplayName: () => 'Alice' } },
+				{ player: { id: 'p2', getTruncatedDisplayName: () => 'Bob' } },
+				{ player: { id: 'p3', getTruncatedDisplayName: () => 'Charlie' } }
+			],
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.SoloBuben,
+					isSolo: () => true,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] },
+						{ playerId: 'p3', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: -5 },
+						{ playerId: 'p3', points: -5 }
+					]
+				}
+			]
+		});
+
+		const agg = aggregateGameRounds(game as any);
+
+		// Only p1 (RE) gets the solo type tracked
+		const p1SoloMap = agg.playerSoloTypeCounts.get('p1');
+		expect(p1SoloMap?.get(RoundType.SoloBuben)).toBe(1);
+
+		// p2 and p3 (KONTRA) don't get solo type tracked
+		const p2SoloMap = agg.playerSoloTypeCounts.get('p2');
+		expect(p2SoloMap?.get(RoundType.SoloBuben)).toBe(0);
+	});
+
+	it('tracks call success correctly', () => {
+		const game = createMockGame({
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{
+							playerId: 'p1',
+							team: Team.RE,
+							bonuses: [],
+							calls: [{ callType: CallType.RE }]
+						},
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 240,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: -10 }
+					]
+				}
+			]
+		});
+
+		const agg = aggregateGameRounds(game as any);
+
+		// p1 called RE and won
+		expect(agg.callCountsMap['p1'].get(CallType.RE)).toBe(1);
+		expect(agg.callWinsMap['p1'].get(CallType.RE)).toBe(1);
+	});
+
+	it('tracks wins per round type', () => {
+		const game = createMockGame({
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: -10 }
+					]
+				},
+				{
+					roundNumber: 2,
+					type: RoundType.SoloBuben,
+					isSolo: () => true,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 20 },
+						{ playerId: 'p2', points: -20 }
+					]
+				}
+			]
+		});
+
+		const agg = aggregateGameRounds(game as any);
+
+		expect(agg.normalWins.get('p1')).toBe(1);
+		expect(agg.soloWins.get('p1')).toBe(1);
+		expect(agg.normalWins.get('p2')).toBe(0);
+		expect(agg.soloWins.get('p2')).toBe(0);
+	});
+
+	it('tracks pair team counts', () => {
+		const game = createMockGame({
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.RE, bonuses: [], calls: [] }
+					],
+					eyesRe: 240,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: 10 }
+					]
+				}
+			]
+		});
+
+		const agg = aggregateGameRounds(game as any);
+
+		expect(agg.pairTeamRoundCounts.get('Alice & Bob')).toBe(1);
+	});
+});
+
+// ============================================================================
+// CALCULATION FUNCTION TESTS
+// ============================================================================
+
+describe('calculatePlayerSeries', () => {
+	it('calculates cumulative points correctly', () => {
+		const game = createMockGame({
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: -10 }
+					]
+				},
+				{
+					roundNumber: 2,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.KONTRA, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.RE, bonuses: [], calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: -20 },
+						{ playerId: 'p2', points: 20 }
+					]
+				}
+			]
+		});
+
+		const stats = calculateGameStatistics(game as any);
+
+		expect(stats.playerSeries.rows).toHaveLength(2);
+		expect(stats.playerSeries.rows[0]).toEqual({ round: 1, Alice: 10, Bob: -10 });
+		expect(stats.playerSeries.rows[1]).toEqual({ round: 2, Alice: -10, Bob: 10 });
+	});
+
+	it('handles missing participants in round (5-player game)', () => {
+		const game = createMockGame({
+			participants: [
+				{ player: { id: 'p1', getTruncatedDisplayName: () => 'Alice' } },
+				{ player: { id: 'p2', getTruncatedDisplayName: () => 'Bob' } },
+				{ player: { id: 'p3', getTruncatedDisplayName: () => 'Charlie' } }
+			],
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+						// p3 is dealer and doesn't participate
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: -10 }
+					]
+				},
+				{
+					roundNumber: 2,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p2', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p3', team: Team.KONTRA, bonuses: [], calls: [] }
+						// p1 is dealer and doesn't participate
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p2', points: 10 },
+						{ playerId: 'p3', points: -10 }
+					]
+				}
+			]
+		});
+
+		const stats = calculateGameStatistics(game as any);
+
+		// Round 1: p1 gets 10, p2 gets -10, p3 not participating gets 0
+		expect(stats.playerSeries.rows[0].Alice).toBe(10);
+		expect(stats.playerSeries.rows[0].Bob).toBe(-10);
+		expect(stats.playerSeries.rows[0].Charlie).toBe(0);
+
+		// Round 2: p1 carries forward 10, p2 gets 10 more (total 0), p3 gets -10 (total -10)
+		expect(stats.playerSeries.rows[1].Alice).toBe(10);
+		expect(stats.playerSeries.rows[1].Bob).toBe(0);
+		expect(stats.playerSeries.rows[1].Charlie).toBe(-10);
+	});
+});
+
+describe('calculateReKontraShare', () => {
+	it('calculates RE vs KONTRA participation share', () => {
+		const game = createMockGame({
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: -10 }
+					]
+				},
+				{
+					roundNumber: 2,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.KONTRA, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.RE, bonuses: [], calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: -10 },
+						{ playerId: 'p2', points: 10 }
+					]
+				}
+			]
+		});
+
+		const stats = calculateGameStatistics(game as any);
+
+		expect(stats.reKontraShare).toEqual([
+			{ player: 'Alice', reShare: 0.5, kontraShare: 0.5, color: expect.any(String) },
+			{ player: 'Bob', reShare: 0.5, kontraShare: 0.5, color: expect.any(String) }
+		]);
+	});
+});
+
+describe('calculateAvgReKontra', () => {
+	it('calculates average points when playing RE vs KONTRA', () => {
+		const game = createMockGame({
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 240,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 20 },
+						{ playerId: 'p2', points: -20 }
+					]
+				},
+				{
+					roundNumber: 2,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.KONTRA, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.RE, bonuses: [], calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: -10 }
+					]
+				}
+			]
+		});
+
+		const stats = calculateGameStatistics(game as any);
+
+		expect(stats.avgReKontra).toEqual([
+			{ key: 'Alice', reAvg: 20, kontraAvg: 10, color: expect.any(String) },
+			{ key: 'Bob', reAvg: -10, kontraAvg: -20, color: expect.any(String) }
+		]);
+	});
+});
+
+describe('calculateBonusGrouped', () => {
+	it('aggregates bonuses correctly', () => {
+		const game = createMockGame({
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{
+							playerId: 'p1',
+							team: Team.RE,
+							bonuses: [
+								{ bonusType: BonusType.Doko, count: 2 },
+								{ bonusType: BonusType.Fuchs, count: 1 },
+								{ bonusType: BonusType.Karlchen, count: 1 }
+							],
+							calls: []
+						},
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 240,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: -10 }
+					]
+				}
+			]
+		});
+
+		const stats = calculateGameStatistics(game as any);
+
+		expect(stats.bonusGrouped).toEqual([
+			{ player: 'Alice', doko: 2, fuchs: 1, karlchen: 1, color: expect.any(String) },
+			{ player: 'Bob', doko: 0, fuchs: 0, karlchen: 0, color: expect.any(String) }
+		]);
+	});
+});
+
+describe('calculateAvgEyes', () => {
+	it('calculates average eyes correctly', () => {
+		const game = createMockGame({
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 150,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 0 },
+						{ playerId: 'p2', points: 0 }
+					]
+				},
+				{
+					roundNumber: 2,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.KONTRA, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.RE, bonuses: [], calls: [] }
+					],
+					eyesRe: 90,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 0 },
+						{ playerId: 'p2', points: 0 }
+					]
+				}
+			]
+		});
+
+		const stats = calculateGameStatistics(game as any);
+
+		// p1: RE in round 1 gets 150, KONTRA in round 2 gets (240 - 90) = 150 -> avg = 150
+		// p2: KONTRA in round 1 gets (240 - 150) = 90, RE in round 2 gets 90 -> avg = 90
+		expect(stats.avgEyes).toEqual([
+			{ player: 'Alice', avgEyes: 150, color: expect.any(String) },
+			{ player: 'Bob', avgEyes: 90, color: expect.any(String) }
+		]);
+	});
+});
+
+describe('calculateCallGrouped', () => {
+	it('aggregates calls correctly', () => {
+		const game = createMockGame({
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{
+							playerId: 'p1',
+							team: Team.RE,
+							bonuses: [],
+							calls: [
+								{ callType: CallType.RE },
+								{ callType: CallType.Keine90 },
+								{ callType: CallType.Keine60 }
+							]
+						},
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 240,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: -10 }
+					]
+				}
+			]
+		});
 
 		const stats = calculateGameStatistics(game as any);
 
@@ -105,276 +664,509 @@ describe('calculateGameStatistics', () => {
 				Keine30: 0,
 				Schwarz: 0,
 				color: expect.any(String)
+			},
+			{
+				player: 'Bob',
+				RE: 0,
+				KONTRA: 0,
+				Keine90: 0,
+				Keine60: 0,
+				Keine30: 0,
+				Schwarz: 0,
+				color: expect.any(String)
 			}
 		]);
 	});
+});
 
-	it('calculates average Re/Kontra correctly', () => {
-		const game = {
-			id: 'game-1',
-			participants: [{ player: { id: 'p1', getTruncatedDisplayName: () => 'Alice' } }],
+describe('calculateCallSuccessRate', () => {
+	it('calculates call success rate correctly', () => {
+		const game = createMockGame({
 			rounds: [
 				{
 					roundNumber: 1,
-					participants: [{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] }],
+					type: RoundType.Normal,
+					participants: [
+						{
+							playerId: 'p1',
+							team: Team.RE,
+							bonuses: [],
+							calls: [{ callType: CallType.RE }]
+						},
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
 					eyesRe: 240,
-					calculatePoints: () => [{ playerId: 'p1', points: 20 }]
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: -10 }
+					]
 				},
 				{
 					roundNumber: 2,
-					participants: [{ playerId: 'p1', team: Team.KONTRA, bonuses: [], calls: [] }],
+					type: RoundType.Normal,
+					participants: [
+						{
+							playerId: 'p1',
+							team: Team.RE,
+							bonuses: [],
+							calls: [{ callType: CallType.RE }]
+						},
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
 					eyesRe: 120,
-					calculatePoints: () => [{ playerId: 'p1', points: 10 }]
+					calculatePoints: () => [
+						{ playerId: 'p1', points: -10 },
+						{ playerId: 'p2', points: 10 }
+					]
 				}
 			]
-		};
+		});
 
 		const stats = calculateGameStatistics(game as any);
 
-		expect(stats.avgReKontra).toEqual([
-			{ key: 'Alice', reAvg: 20, kontraAvg: 10, color: expect.any(String) }
-		]);
+		// p1 called RE twice: won round 1, lost round 2 -> 50% success
+		const p1CallRate = stats.callSuccessRate.find((c) => c.player === 'Alice');
+		expect(p1CallRate?.RE).toBe(0.5);
 	});
+});
 
-	it('calculates pair averages correctly', () => {
-		const game = {
-			id: 'game-1',
-			participants: [
-				{ player: { id: 'p1', getTruncatedDisplayName: () => 'Alice' } },
-				{ player: { id: 'p2', getTruncatedDisplayName: () => 'Bob' } }
-			],
+describe('calculateRoundsWon', () => {
+	it('calculates rounds won with percentage', () => {
+		const game = createMockGame({
 			rounds: [
 				{
 					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 240,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: -10 }
+					]
+				},
+				{
+					roundNumber: 2,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.KONTRA, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.RE, bonuses: [], calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: -10 },
+						{ playerId: 'p2', points: 10 }
+					]
+				}
+			]
+		});
+
+		const stats = calculateGameStatistics(game as any);
+
+		expect(stats.roundsWon).toEqual([
+			{ player: 'Alice', value: 1, percent: 0.5, color: expect.any(String) },
+			{ player: 'Bob', value: 1, percent: 0.5, color: expect.any(String) }
+		]);
+	});
+});
+
+describe('calculateRoundsByType', () => {
+	it('calculates distribution of normal vs solo rounds', () => {
+		const game = createMockGame({
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: -10 }
+					]
+				},
+				{
+					roundNumber: 2,
+					type: RoundType.SoloBuben,
+					isSolo: () => true,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: -10 }
+					]
+				}
+			]
+		});
+
+		const stats = calculateGameStatistics(game as any);
+
+		expect(stats.roundsByType).toEqual([
+			{ type: 'Normal', value: 1, percent: 0.5, color: expect.any(String) },
+			{ type: 'Solo', value: 1, percent: 0.5, color: expect.any(String) }
+		]);
+	});
+});
+
+describe('calculateSoloRoundsByType', () => {
+	it('calculates distribution of solo types', () => {
+		const game = createMockGame({
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.SoloBuben,
+					isSolo: () => true,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: -10 }
+					]
+				},
+				{
+					roundNumber: 2,
+					type: RoundType.SoloDamen,
+					isSolo: () => true,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: -10 }
+					]
+				}
+			]
+		});
+
+		const stats = calculateGameStatistics(game as any);
+
+		expect(stats.soloRoundsByType).toHaveLength(2);
+		expect(stats.soloRoundsByType[0].type).toBe('Bube');
+		expect(stats.soloRoundsByType[0].value).toBe(1);
+		expect(stats.soloRoundsByType[1].type).toBe('Dame');
+		expect(stats.soloRoundsByType[1].value).toBe(1);
+	});
+});
+
+describe('calculateWinLostShareByType', () => {
+	it('calculates win/loss share by round type', () => {
+		const game = createMockGame({
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 240,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: -10 }
+					]
+				},
+				{
+					roundNumber: 2,
+					type: RoundType.SoloBuben,
+					isSolo: () => true,
+					participants: [
+						{ playerId: 'p1', team: Team.KONTRA, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.RE, bonuses: [], calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: -10 },
+						{ playerId: 'p2', points: 10 }
+					]
+				}
+			]
+		});
+
+		const stats = calculateGameStatistics(game as any);
+
+		// p1: won normal (1/1 = 100%), lost solo (0/1 = 0%)
+		// p2: lost normal (0/1 = 0%), won solo (1/1 = 100%)
+		expect(stats.winLostShareByType).toEqual([
+			{ player: 'Alice', normalWinShare: 1, soloWinShare: 0, color: expect.any(String) },
+			{ player: 'Bob', normalWinShare: 0, soloWinShare: 1, color: expect.any(String) }
+		]);
+	});
+});
+
+describe('calculateAvgPointsByGameType', () => {
+	it('calculates average points in normal vs solo rounds', () => {
+		const game = createMockGame({
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 240,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 20 },
+						{ playerId: 'p2', points: -20 }
+					]
+				},
+				{
+					roundNumber: 2,
+					type: RoundType.SoloBuben,
+					isSolo: () => true,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 30 },
+						{ playerId: 'p2', points: -30 }
+					]
+				}
+			]
+		});
+
+		const stats = calculateGameStatistics(game as any);
+
+		// p1: normal avg = 20, solo avg = 30
+		expect(stats.avgPointsByGameType).toEqual([
+			{ player: 'Alice', normal: 20, solo: 30, color: expect.any(String) },
+			{ player: 'Bob', normal: -20, solo: -30, color: expect.any(String) }
+		]);
+	});
+});
+
+describe('calculateSoloTypeShareByPlayer', () => {
+	it('calculates solo type distribution per player (only RE)', () => {
+		const game = createMockGame({
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.SoloBuben,
+					isSolo: () => true,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: -10 }
+					]
+				},
+				{
+					roundNumber: 2,
+					type: RoundType.SoloDamen,
+					isSolo: () => true,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: -10 }
+					]
+				}
+			]
+		});
+
+		const stats = calculateGameStatistics(game as any);
+
+		const p1Share = stats.soloTypeShareByPlayer.find((s) => s.player === 'Alice');
+		expect(p1Share?.['Bube']).toBe(0.5);
+		expect(p1Share?.['Dame']).toBe(0.5);
+
+		// p2 is KONTRA, so has no solo type data (all values are 0, not undefined)
+		const p2Share = stats.soloTypeShareByPlayer.find((s) => s.player === 'Bob');
+		expect(p2Share?.['Bube']).toBe(0);
+		expect(p2Share?.['Dame']).toBe(0);
+	});
+});
+
+describe('calculateSoloTypeWinRateByPlayer', () => {
+	it('calculates win rates per solo type per player (only RE)', () => {
+		const game = createMockGame({
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.SoloBuben,
+					isSolo: () => true,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 240,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: -10 }
+					]
+				},
+				{
+					roundNumber: 2,
+					type: RoundType.SoloBuben,
+					isSolo: () => true,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: -10 },
+						{ playerId: 'p2', points: 10 }
+					]
+				}
+			]
+		});
+
+		const stats = calculateGameStatistics(game as any);
+
+		const p1WinRate = stats.soloTypeWinRateByPlayer.find((w) => w.player === 'Alice');
+		expect(p1WinRate?.['Bube']).toBe(0.5); // 1 win out of 2 SoloBuben
+	});
+});
+
+describe('calculateAvgPointsBySoloType', () => {
+	it('calculates average points by solo type per player (only RE)', () => {
+		const game = createMockGame({
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.SoloBuben,
+					isSolo: () => true,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 240,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 20 },
+						{ playerId: 'p2', points: -20 }
+					]
+				},
+				{
+					roundNumber: 2,
+					type: RoundType.SoloDamen,
+					isSolo: () => true,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 30 },
+						{ playerId: 'p2', points: -30 }
+					]
+				}
+			]
+		});
+
+		const stats = calculateGameStatistics(game as any);
+
+		const p1Avg = stats.avgPointsBySoloType.find((a) => a.player === 'Alice');
+		expect(p1Avg?.['Bube']).toBe(20);
+		expect(p1Avg?.['Dame']).toBe(30);
+	});
+});
+
+describe('calculateTeamWinRates', () => {
+	it('calculates team win rates for RE vs KONTRA', () => {
+		const game = createMockGame({
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 240,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: -10 }
+					]
+				},
+				{
+					roundNumber: 2,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.KONTRA, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.RE, bonuses: [], calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: -10 },
+						{ playerId: 'p2', points: 10 }
+					]
+				}
+			]
+		});
+
+		const stats = calculateGameStatistics(game as any);
+
+		// p1: RE in round 1 (win), KONTRA in round 2 (loss) -> RE: 100%, KONTRA: 0%
+		// p2: KONTRA in round 1 (loss), RE in round 2 (win) -> KONTRA: 0%, RE: 100%
+		const p1Rates = stats.teamWinRates.find((r) => r.player === 'Alice');
+		expect(p1Rates?.reRate).toBe(1);
+		expect(p1Rates?.kontraRate).toBe(0);
+
+		const p2Rates = stats.teamWinRates.find((r) => r.player === 'Bob');
+		expect(p2Rates?.reRate).toBe(1);
+		expect(p2Rates?.kontraRate).toBe(0);
+	});
+});
+
+describe('calculatePairTeamCounts', () => {
+	it('calculates rounds played together as team', () => {
+		const game = createMockGame({
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
 					participants: [
 						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
 						{ playerId: 'p2', team: Team.RE, bonuses: [], calls: [] }
 					],
 					eyesRe: 240,
 					calculatePoints: () => [
-						{ playerId: 'p1', points: 30 },
-						{ playerId: 'p2', points: 30 }
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: 10 }
 					]
 				},
 				{
 					roundNumber: 2,
+					type: RoundType.Normal,
 					participants: [
 						{ playerId: 'p1', team: Team.KONTRA, bonuses: [], calls: [] },
-						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+						{ playerId: 'p2', team: Team.RE, bonuses: [], calls: [] }
 					],
 					eyesRe: 120,
 					calculatePoints: () => [
-						{ playerId: 'p1', points: -20 },
-						{ playerId: 'p2', points: -20 }
+						{ playerId: 'p1', points: -10 },
+						{ playerId: 'p2', points: 10 }
 					]
 				}
 			]
-		};
+		});
 
 		const stats = calculateGameStatistics(game as any);
 
-		expect(stats.avgPairs).toEqual([
-			{ key: 'Alice & Bob', value: 10, color: expect.any(String) } // Round 1: (30+30)/2=30, Round 2: (-20-20)/2=-20, avg=(30-20)/2=5, total=(30+30-20-20)/2=10
+		// Pair played together only in round 1
+		expect(stats.pairTeamCounts).toEqual([
+			{ key: 'Alice & Bob', value: 1, color: expect.any(String) }
 		]);
-	});
-
-	it('calculates average eyes correctly', () => {
-		const game = {
-			id: 'game-1',
-			participants: [{ player: { id: 'p1', getTruncatedDisplayName: () => 'Alice' } }],
-			rounds: [
-				{
-					roundNumber: 1,
-					participants: [{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] }],
-					eyesRe: 150,
-					calculatePoints: () => [{ playerId: 'p1', points: 0 }]
-				},
-				{
-					roundNumber: 2,
-					participants: [{ playerId: 'p1', team: Team.KONTRA, bonuses: [], calls: [] }],
-					eyesRe: 90,
-					calculatePoints: () => [{ playerId: 'p1', points: 0 }]
-				}
-			]
-		};
-
-		const stats = calculateGameStatistics(game as any);
-
-		// Round 1: Alice in RE team, so eyes = 150
-		// Round 2: Alice in KONTRA team, so eyes = 240 - 90 = 150
-		// Average = (150 + 150) / 2 = 150
-		expect(stats.avgEyes).toEqual([{ player: 'Alice', avgEyes: 150, color: expect.any(String) }]);
-	});
-
-	it('handles 5-player games with dealer (missing rounds)', () => {
-		const game = {
-			id: 'game-1',
-			participants: [
-				{ player: { id: 'p1', getTruncatedDisplayName: () => 'Alice' } },
-				{ player: { id: 'p2', getTruncatedDisplayName: () => 'Bob' } },
-				{ player: { id: 'p3', getTruncatedDisplayName: () => 'Cara' } },
-				{ player: { id: 'p4', getTruncatedDisplayName: () => 'Dave' } },
-				{ player: { id: 'p5', getTruncatedDisplayName: () => 'Eve' } }
-			],
-			rounds: [
-				{
-					roundNumber: 1,
-					participants: [
-						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
-						{ playerId: 'p2', team: Team.RE, bonuses: [], calls: [] },
-						{ playerId: 'p3', team: Team.KONTRA, bonuses: [], calls: [] },
-						{ playerId: 'p4', team: Team.KONTRA, bonuses: [], calls: [] }
-						// p5 (Eve) doesn't participate - is dealer
-					],
-					eyesRe: 200,
-					calculatePoints: () => [
-						{ playerId: 'p1', points: 10 },
-						{ playerId: 'p2', points: 10 },
-						{ playerId: 'p3', points: -10 },
-						{ playerId: 'p4', points: -10 }
-					]
-				},
-				{
-					roundNumber: 2,
-					participants: [
-						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
-						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] },
-						{ playerId: 'p3', team: Team.KONTRA, bonuses: [], calls: [] },
-						{ playerId: 'p5', team: Team.RE, bonuses: [], calls: [] }
-						// p4 (Dave) doesn't participate - is dealer
-					],
-					eyesRe: 150,
-					calculatePoints: () => [
-						{ playerId: 'p1', points: 5 },
-						{ playerId: 'p2', points: -5 },
-						{ playerId: 'p3', points: -5 },
-						{ playerId: 'p5', points: 5 }
-					]
-				}
-			]
-		};
-
-		const stats = calculateGameStatistics(game as any);
-
-		// Alice: participated in both rounds: 10, 15
-		// Bob: participated in both rounds: 10, 5
-		// Cara: participated in both rounds: -10, -15
-		// Dave: participated in round 1, skipped round 2, carries -10 forward
-		// Eve: skipped round 1 (carries 0), participated in round 2: 5
-		expect(stats.playerSeries.rows).toEqual([
-			{ round: 1, Alice: 10, Bob: 10, Cara: -10, Dave: -10, Eve: 0 },
-			{ round: 2, Alice: 15, Bob: 5, Cara: -15, Dave: -10, Eve: 5 }
-		]);
-
-		// Verify all 5 players are in the series
-		expect(stats.playerSeries.series).toHaveLength(5);
-	});
-});
-
-describe('getGameStatistics', () => {
-	it('throws when game not found', async () => {
-		const mockGameRepo = {
-			getById: vi.fn().mockResolvedValue({
-				ok: false,
-				status: 404,
-				error: 'Game not found'
-			})
-		};
-
-		const promise = getGameStatistics({
-			principalId: 'user-1',
-			gameId: 'game-1',
-			groupId: 'group-1',
-			gameRepo: mockGameRepo as any
-		});
-
-		await expect(promise).rejects.toMatchObject({
-			status: 404,
-			body: { message: 'Game not found' }
-		});
-	});
-
-	it('throws when game has no rounds', async () => {
-		const mockGameRepo = {
-			getById: vi.fn().mockResolvedValue({
-				ok: true,
-				value: { id: 'game-1', participants: [], rounds: null }
-			})
-		};
-
-		const promise = getGameStatistics({
-			principalId: 'user-1',
-			gameId: 'game-1',
-			groupId: 'group-1',
-			gameRepo: mockGameRepo as any
-		});
-
-		await expect(promise).rejects.toMatchObject({
-			status: 404,
-			body: { message: 'Spiel nicht gefunden.' }
-		});
-	});
-
-	it('calls getById with correct parameters', async () => {
-		const mockGame = {
-			id: 'game-1',
-			participants: [{ player: { id: 'p1', getTruncatedDisplayName: () => 'Alice' } }],
-			rounds: [
-				{
-					roundNumber: 1,
-					participants: [{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] }],
-					eyesRe: 240,
-					calculatePoints: () => [{ playerId: 'p1', points: 10 }]
-				}
-			]
-		};
-
-		const mockGameRepo = {
-			getById: vi.fn().mockResolvedValue({
-				ok: true,
-				value: mockGame
-			})
-		};
-
-		await getGameStatistics({
-			principalId: 'user-1',
-			gameId: 'game-1',
-			groupId: 'group-1',
-			gameRepo: mockGameRepo as any
-		});
-
-		expect(mockGameRepo.getById).toHaveBeenCalledWith('game-1', 'group-1');
-	});
-
-	it('returns calculated statistics from pure function', async () => {
-		const mockGame = {
-			id: 'game-1',
-			participants: [{ player: { id: 'p1', getTruncatedDisplayName: () => 'Alice' } }],
-			rounds: [
-				{
-					roundNumber: 1,
-					participants: [{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] }],
-					eyesRe: 240,
-					calculatePoints: () => [{ playerId: 'p1', points: 10 }]
-				}
-			]
-		};
-
-		const mockGameRepo = {
-			getById: vi.fn().mockResolvedValue({
-				ok: true,
-				value: mockGame
-			})
-		};
-
-		const stats = await getGameStatistics({
-			principalId: 'user-1',
-			gameId: 'game-1',
-			groupId: 'group-1',
-			gameRepo: mockGameRepo as any
-		});
-
-		expect(stats.playerSeries.rows).toEqual([{ round: 1, Alice: 10 }]);
-		expect(stats.playerSeries.series).toHaveLength(1);
 	});
 });

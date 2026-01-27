@@ -1,163 +1,180 @@
-import { Team, BonusType, CallType, RoundType } from '$lib/domain/enums';
-import type { Game } from '$lib/domain/game';
-import { GameRepository } from '$lib/server/repositories/game';
 import { error } from '@sveltejs/kit';
+import { CallType, RoundType } from '$lib/domain/enums';
+import type { Game } from '$lib/domain/game';
 import { generateDistinctColorPalette } from '$lib/utils/colors';
+import { increment, soloTypeOrder } from './shared';
 import {
-	bonusSeries,
-	callSeries,
-	increment,
-	roundTypeColorPalette,
-	soloTypeColors,
-	soloTypeLabels,
-	soloTypeOrder
-} from './shared';
+	aggregateGameRounds,
+	type GameAggregates,
+	type GameStatistics,
+	calculatePlayerSeries,
+	calculateReKontraShare,
+	calculateAvgReKontra,
+	calculateAvgPairs,
+	calculateBonusGrouped,
+	calculateAvgEyes,
+	calculateAvgEyesGrouped,
+	calculateCallGrouped,
+	calculateCallSuccessRate,
+	calculateRoundsWon,
+	calculateRoundsByType,
+	calculateSoloRoundsByType,
+	calculateWinLostShareByType,
+	calculateAvgPointsByGameType,
+	calculateSoloTypeShareByPlayer,
+	calculateSoloTypeWinRateByPlayer,
+	calculateAvgPointsBySoloType,
+	calculateTeamWinRates,
+	calculatePairTeamCounts,
+	getSoloTypeSeries,
+	getRoundTypeSeries,
+	getCallSeries,
+	getBonusSeries,
+	getReKontraSeries,
+	getReKontraRateSeries,
+	getReKontraAvgSeries
+} from './game';
 
-export interface GroupStatistics {
-	// Reused structures
-	playerSeries: {
-		rows: Record<string, number | null>[];
-		series: Array<{ key: string; label: string; color?: string }>;
-	};
-	reKontraShare: Array<{ player: string; reShare: number; kontraShare: number; color?: string }>;
-	winLostShareByType: Array<{
-		player: string;
-		normalWinShare: number;
-		soloWinShare: number;
-		color?: string;
-	}>;
-	avgReKontra: Array<{ key: string; reAvg: number; kontraAvg: number; color?: string }>;
-	avgPairs: Array<{ key: string; value: number; color?: string }>;
-	pairTeamCounts: Array<{ key: string; value: number; color?: string }>;
-	bonusGrouped: Array<{
-		player: string;
-		doko: number;
-		fuchs: number;
-		karlchen: number;
-		color?: string;
-	}>;
-	avgEyesGrouped: Array<Record<string, any>>;
-	avgEyes: Array<{ player: string; avgEyes: number; color?: string }>;
-	callGrouped: Array<{
-		player: string;
-		RE: number;
-		KONTRA: number;
-		Keine90: number;
-		Keine60: number;
-		Keine30: number;
-		Schwarz: number;
-		color?: string;
-	}>;
-	callSuccessRate: Array<{
-		player: string;
-		RE: number;
-		KONTRA: number;
-		Keine90: number;
-		Keine60: number;
-		Keine30: number;
-		Schwarz: number;
-		color?: string;
-	}>;
-
-	// Group-only structures
-	gamesPlayed: Array<Record<string, any>>;
+export interface GroupStatistics extends GameStatistics {
+	// Group-only additions
 	gamesWon: Array<{ player: string; value: number; percent: number; color?: string }>;
-	roundsPlayed: Array<Record<string, any>>;
-	roundsWon: Array<{ player: string; value: number; percent: number; color?: string }>;
-	roundsCount: number;
 	avgTotalPointsPerGame: Array<Record<string, any>>;
 	gamesCount: number;
-	consistency: Array<{ player: string; stdev: number; color?: string }>;
-	teamWinRates: Array<{ player: string; reRate: number; kontraRate: number; color?: string }>;
-	avgPointsByGameType: Array<{
-		player: string;
-		normal: number;
-		solo: number;
-		color?: string;
-	}>;
-	roundsByType: Array<{ type: string; value: number; percent: number }>;
-	soloRoundsByType: Array<{ type: string; value: number; percent: number; color?: string }>;
-	soloTypeShareByPlayer: Array<Record<string, any>>;
-	soloTypeWinRateByPlayer: Array<Record<string, any>>;
-	avgPointsBySoloType: Array<Record<string, any>>;
-	soloTypeSeries: Array<{ key: string; label: string; color?: string }>;
-	roundTypeSeries: Array<{ key: string; label: string; color?: string }>;
-	callSeries: Array<{ key: string; label: string; color?: string }>;
-	bonusSeries: Array<{ key: string; label: string; color?: string }>;
+	roundsCount: number;
 }
 
-// Shared statistics constants/helpers imported from statistics/shared
+/**
+ * Merged aggregates from multiple games.
+ * Combines per-game aggregates into group-level aggregates by:
+ * - Summing all raw counts and totals
+ * - Preserving player list from all games
+ * - Combining pair statistics across games
+ */
+export function mergeGameAggregates(gameAggregates: GameAggregates[]): GameAggregates {
+	if (gameAggregates.length === 0) {
+		// Return empty aggregates
+		return {
+			playerList: [],
+			playerColorMap: new Map(),
+			reCounts: new Map(),
+			kontraCounts: new Map(),
+			reTotals: new Map(),
+			kontraTotals: new Map(),
+			reCountsMap: new Map(),
+			kontraCountsMap: new Map(),
+			eyesTotals: new Map(),
+			eyesCounts: new Map(),
+			dokoCounts: new Map(),
+			fuchsCounts: new Map(),
+			karlchenCounts: new Map(),
+			roundsWonCount: new Map(),
+			reRoundsPlayed: new Map(),
+			reRoundsWon: new Map(),
+			kontraRoundsPlayed: new Map(),
+			kontraRoundsWon: new Map(),
+			normalWins: new Map(),
+			normalTotal: new Map(),
+			soloWins: new Map(),
+			soloTotal: new Map(),
+			normalTotals: new Map(),
+			normalCounts: new Map(),
+			soloTotals: new Map(),
+			soloCounts: new Map(),
+			playerSoloTypeCounts: new Map(),
+			playerSoloTypeWins: new Map(),
+			playerSoloTypePoints: new Map(),
+			soloTypeCounts: new Map(),
+			callCountsMap: {},
+			callWinsMap: {},
+			pairs: [],
+			pairTotals: new Map(),
+			pairCounts: new Map(),
+			pairTeamRoundCounts: new Map(),
+			playerPointsMap: new Map(),
+			totalNormalRounds: 0,
+			totalSoloRounds: 0,
+			rounds: []
+		};
+	}
 
-export function calculateGroupStatistics(games: Game[]): GroupStatistics {
-	// Only count finished games
-	const finishedGames = games.filter((g) => g.isFinished());
-
-	// Build player list and color map across all finished games
+	// Merge player lists - collect all unique players
 	const playerMap = new Map<string, { id: string; name: string }>();
-	for (const g of finishedGames) {
-		for (const p of g.participants || []) {
-			if (!p.player) continue;
-			playerMap.set(p.player.id, {
-				id: p.player.id,
-				name: p.player.getTruncatedDisplayName() || 'Unknown'
-			});
+	for (const agg of gameAggregates) {
+		for (const player of agg.playerList) {
+			if (!playerMap.has(player.id)) {
+				playerMap.set(player.id, player);
+			}
 		}
 	}
-	const players = Array.from(playerMap.values()); // Preserve insertion order from game.participants
+	const playerList = Array.from(playerMap.values());
 
-	// Generate color palette based on actual number of players
-	const playerColorPalette = generateDistinctColorPalette(players.length);
-
+	// Generate new color map for merged aggregates
+	const palette = generateDistinctColorPalette(playerList.length);
 	const playerColorMap = new Map<string, string>();
-	players.forEach((pl, idx) =>
-		playerColorMap.set(pl.id, playerColorPalette[idx % playerColorPalette.length])
-	);
+	playerList.forEach((pl, idx) => playerColorMap.set(pl.id, palette[idx % palette.length]));
 
-	// Aggregates
+	// Initialize merged maps
 	const reCounts = new Map<string, number>();
 	const kontraCounts = new Map<string, number>();
-	const normalWins = new Map<string, number>();
-	const normalTotal = new Map<string, number>();
-	const soloWins = new Map<string, number>();
-	const soloTotal = new Map<string, number>();
 	const reTotals = new Map<string, number>();
-	const reCountsMap = new Map<string, number>();
 	const kontraTotals = new Map<string, number>();
+	const reCountsMap = new Map<string, number>();
 	const kontraCountsMap = new Map<string, number>();
 	const eyesTotals = new Map<string, number>();
 	const eyesCounts = new Map<string, number>();
 	const dokoCounts = new Map<string, number>();
 	const fuchsCounts = new Map<string, number>();
 	const karlchenCounts = new Map<string, number>();
-	const gamesPlayed = new Map<string, number>();
-	const gamesWonCount = new Map<string, number>();
 	const roundsWonCount = new Map<string, number>();
-	const perGameTotals = new Map<string, number[]>();
 	const reRoundsPlayed = new Map<string, number>();
 	const reRoundsWon = new Map<string, number>();
 	const kontraRoundsPlayed = new Map<string, number>();
 	const kontraRoundsWon = new Map<string, number>();
-	const roundsPlayed = new Map<string, number>();
-
+	const normalWins = new Map<string, number>();
+	const normalTotal = new Map<string, number>();
+	const soloWins = new Map<string, number>();
+	const soloTotal = new Map<string, number>();
 	const normalTotals = new Map<string, number>();
 	const normalCounts = new Map<string, number>();
 	const soloTotals = new Map<string, number>();
 	const soloCounts = new Map<string, number>();
-
 	const soloTypeCounts = new Map<RoundType, number>();
 	soloTypeOrder.forEach((t) => soloTypeCounts.set(t, 0));
 
-	// Per-player tracking for new statistics
-	const playerNormalCount = new Map<string, number>();
-	const playerSoloParticipationCount = new Map<string, number>(); // counts solo rounds participation for round-share
-	const playerSoloCount = new Map<string, number>();
 	const playerSoloTypeCounts = new Map<string, Map<RoundType, number>>();
 	const playerSoloTypeWins = new Map<string, Map<RoundType, number>>();
 	const playerSoloTypePoints = new Map<string, Map<RoundType, number>>();
-	for (const pl of players) {
-		playerNormalCount.set(pl.id, 0);
-		playerSoloParticipationCount.set(pl.id, 0);
-		playerSoloCount.set(pl.id, 0);
+
+	const callCountsMap: Record<string, Map<string, number>> = {};
+	const callWinsMap: Record<string, Map<string, number>> = {};
+
+	// Initialize for all players
+	for (const player of playerList) {
+		reCounts.set(player.id, 0);
+		kontraCounts.set(player.id, 0);
+		reTotals.set(player.id, 0);
+		kontraTotals.set(player.id, 0);
+		reCountsMap.set(player.id, 0);
+		kontraCountsMap.set(player.id, 0);
+		eyesTotals.set(player.id, 0);
+		eyesCounts.set(player.id, 0);
+		dokoCounts.set(player.id, 0);
+		fuchsCounts.set(player.id, 0);
+		karlchenCounts.set(player.id, 0);
+		roundsWonCount.set(player.id, 0);
+		reRoundsPlayed.set(player.id, 0);
+		reRoundsWon.set(player.id, 0);
+		kontraRoundsPlayed.set(player.id, 0);
+		kontraRoundsWon.set(player.id, 0);
+		normalWins.set(player.id, 0);
+		normalTotal.set(player.id, 0);
+		soloWins.set(player.id, 0);
+		soloTotal.set(player.id, 0);
+		normalTotals.set(player.id, 0);
+		normalCounts.set(player.id, 0);
+		soloTotals.set(player.id, 0);
+		soloCounts.set(player.id, 0);
+
 		const soloTypeCountMap = new Map<RoundType, number>();
 		const soloTypeWinMap = new Map<RoundType, number>();
 		const soloTypePointMap = new Map<RoundType, number>();
@@ -166,33 +183,43 @@ export function calculateGroupStatistics(games: Game[]): GroupStatistics {
 			soloTypeWinMap.set(t, 0);
 			soloTypePointMap.set(t, 0);
 		});
-		playerSoloTypeCounts.set(pl.id, soloTypeCountMap);
-		playerSoloTypeWins.set(pl.id, soloTypeWinMap);
-		playerSoloTypePoints.set(pl.id, soloTypePointMap);
+		playerSoloTypeCounts.set(player.id, soloTypeCountMap);
+		playerSoloTypeWins.set(player.id, soloTypeWinMap);
+		playerSoloTypePoints.set(player.id, soloTypePointMap);
+
+		const callMap = new Map<string, number>();
+		const callWinMap = new Map<string, number>();
+		const callTypes = [
+			CallType.RE,
+			CallType.KONTRA,
+			CallType.Keine90,
+			CallType.Keine60,
+			CallType.Keine30,
+			CallType.Schwarz
+		];
+		callTypes.forEach((ct) => {
+			callMap.set(ct, 0);
+			callWinMap.set(ct, 0);
+		});
+		callCountsMap[player.id] = callMap;
+		callWinsMap[player.id] = callWinMap;
 	}
 
-	// Track total rounds by type
-	let totalNormalRounds = 0;
-	let totalSoloRounds = 0;
-
-	const callTypes = [
-		CallType.RE,
-		CallType.KONTRA,
-		CallType.Keine90,
-		CallType.Keine60,
-		CallType.Keine30,
-		CallType.Schwarz
-	];
-	const callCountsMap: Record<string, Map<string, number>> = {};
-	const callWinsMap: Record<string, Map<string, number>> = {};
-
-	// Player pairs for avg points per pair
-	const pairs: { a: { id: string; name: string }; b: { id: string; name: string } }[] = [];
-	for (let i = 0; i < players.length; i++) {
-		for (let j = i + 1; j < players.length; j++) {
-			pairs.push({ a: players[i], b: players[j] });
+	// Merge pairs
+	const pairKeyToPlayers = new Map<
+		string,
+		{ a: { id: string; name: string }; b: { id: string; name: string } }
+	>();
+	for (const agg of gameAggregates) {
+		for (const pair of agg.pairs) {
+			const key = `${pair.a.name} & ${pair.b.name}`;
+			if (!pairKeyToPlayers.has(key)) {
+				pairKeyToPlayers.set(key, pair);
+			}
 		}
 	}
+	const pairs = Array.from(pairKeyToPlayers.values());
+
 	const pairTotals = new Map<string, number>();
 	const pairCounts = new Map<string, number>();
 	const pairTeamRoundCounts = new Map<string, number>();
@@ -203,645 +230,399 @@ export function calculateGroupStatistics(games: Game[]): GroupStatistics {
 		pairTeamRoundCounts.set(key, 0);
 	}
 
-	// Group-level aggregate round count (across all finished games)
-	let totalGroupRounds = 0;
+	let totalNormalRounds = 0;
+	let totalSoloRounds = 0;
 
-	for (const pl of players) {
-		reCounts.set(pl.id, 0);
-		kontraCounts.set(pl.id, 0);
-		normalWins.set(pl.id, 0);
-		normalTotal.set(pl.id, 0);
-		soloWins.set(pl.id, 0);
-		soloTotal.set(pl.id, 0);
-		reTotals.set(pl.id, 0);
-		reCountsMap.set(pl.id, 0);
-		kontraTotals.set(pl.id, 0);
-		kontraCountsMap.set(pl.id, 0);
-		eyesTotals.set(pl.id, 0);
-		eyesCounts.set(pl.id, 0);
-		dokoCounts.set(pl.id, 0);
-		fuchsCounts.set(pl.id, 0);
-		karlchenCounts.set(pl.id, 0);
-		gamesPlayed.set(pl.id, 0);
-		gamesWonCount.set(pl.id, 0);
-		roundsWonCount.set(pl.id, 0);
-		perGameTotals.set(pl.id, []);
-		reRoundsPlayed.set(pl.id, 0);
-		reRoundsWon.set(pl.id, 0);
-		kontraRoundsPlayed.set(pl.id, 0);
-		kontraRoundsWon.set(pl.id, 0);
-		roundsPlayed.set(pl.id, 0);
-		normalTotals.set(pl.id, 0);
-		normalCounts.set(pl.id, 0);
-		soloTotals.set(pl.id, 0);
-		soloCounts.set(pl.id, 0);
-		const m = new Map<string, number>();
-		const wm = new Map<string, number>();
-		callTypes.forEach((ct) => {
-			m.set(ct, 0);
-			wm.set(ct, 0);
-		});
-		callCountsMap[pl.id] = m;
-		callWinsMap[pl.id] = wm;
+	// Merge all aggregates
+	for (const agg of gameAggregates) {
+		// Basic RE/KONTRA counts
+		for (const [playerId, count] of agg.reCounts.entries()) {
+			increment(reCounts, playerId, count);
+		}
+		for (const [playerId, count] of agg.kontraCounts.entries()) {
+			increment(kontraCounts, playerId, count);
+		}
+
+		// Points totals
+		for (const [playerId, total] of agg.reTotals.entries()) {
+			increment(reTotals, playerId, total);
+		}
+		for (const [playerId, count] of agg.reCountsMap.entries()) {
+			increment(reCountsMap, playerId, count);
+		}
+		for (const [playerId, total] of agg.kontraTotals.entries()) {
+			increment(kontraTotals, playerId, total);
+		}
+		for (const [playerId, count] of agg.kontraCountsMap.entries()) {
+			increment(kontraCountsMap, playerId, count);
+		}
+
+		// Eyes
+		for (const [playerId, total] of agg.eyesTotals.entries()) {
+			increment(eyesTotals, playerId, total);
+		}
+		for (const [playerId, count] of agg.eyesCounts.entries()) {
+			increment(eyesCounts, playerId, count);
+		}
+
+		// Bonuses
+		for (const [playerId, count] of agg.dokoCounts.entries()) {
+			increment(dokoCounts, playerId, count);
+		}
+		for (const [playerId, count] of agg.fuchsCounts.entries()) {
+			increment(fuchsCounts, playerId, count);
+		}
+		for (const [playerId, count] of agg.karlchenCounts.entries()) {
+			increment(karlchenCounts, playerId, count);
+		}
+
+		// Wins
+		for (const [playerId, count] of agg.roundsWonCount.entries()) {
+			increment(roundsWonCount, playerId, count);
+		}
+
+		// Team rounds
+		for (const [playerId, count] of agg.reRoundsPlayed.entries()) {
+			increment(reRoundsPlayed, playerId, count);
+		}
+		for (const [playerId, count] of agg.reRoundsWon.entries()) {
+			increment(reRoundsWon, playerId, count);
+		}
+		for (const [playerId, count] of agg.kontraRoundsPlayed.entries()) {
+			increment(kontraRoundsPlayed, playerId, count);
+		}
+		for (const [playerId, count] of agg.kontraRoundsWon.entries()) {
+			increment(kontraRoundsWon, playerId, count);
+		}
+
+		// Round type wins
+		for (const [playerId, count] of agg.normalWins.entries()) {
+			increment(normalWins, playerId, count);
+		}
+		for (const [playerId, count] of agg.normalTotal.entries()) {
+			increment(normalTotal, playerId, count);
+		}
+		for (const [playerId, count] of agg.soloWins.entries()) {
+			increment(soloWins, playerId, count);
+		}
+		for (const [playerId, count] of agg.soloTotal.entries()) {
+			increment(soloTotal, playerId, count);
+		}
+
+		// Round type points
+		for (const [playerId, total] of agg.normalTotals.entries()) {
+			increment(normalTotals, playerId, total);
+		}
+		for (const [playerId, count] of agg.normalCounts.entries()) {
+			increment(normalCounts, playerId, count);
+		}
+		for (const [playerId, total] of agg.soloTotals.entries()) {
+			increment(soloTotals, playerId, total);
+		}
+		for (const [playerId, count] of agg.soloCounts.entries()) {
+			increment(soloCounts, playerId, count);
+		}
+
+		// Solo types
+		for (const [rType, count] of agg.soloTypeCounts.entries()) {
+			increment(soloTypeCounts, rType, count);
+		}
+		for (const [playerId, soloTypeMap] of agg.playerSoloTypeCounts.entries()) {
+			const mergedMap = playerSoloTypeCounts.get(playerId);
+			if (mergedMap) {
+				for (const [rType, count] of soloTypeMap.entries()) {
+					increment(mergedMap, rType, count);
+				}
+			}
+		}
+		for (const [playerId, soloTypeWinMap] of agg.playerSoloTypeWins.entries()) {
+			const mergedMap = playerSoloTypeWins.get(playerId);
+			if (mergedMap) {
+				for (const [rType, count] of soloTypeWinMap.entries()) {
+					increment(mergedMap, rType, count);
+				}
+			}
+		}
+		for (const [playerId, soloTypePointMap] of agg.playerSoloTypePoints.entries()) {
+			const mergedMap = playerSoloTypePoints.get(playerId);
+			if (mergedMap) {
+				for (const [rType, total] of soloTypePointMap.entries()) {
+					increment(mergedMap, rType, total);
+				}
+			}
+		}
+
+		// Calls
+		for (const [playerId, callMap] of Object.entries(agg.callCountsMap)) {
+			const mergedCallMap = callCountsMap[playerId];
+			if (mergedCallMap) {
+				for (const [callType, count] of callMap.entries()) {
+					increment(mergedCallMap, callType, count);
+				}
+			}
+		}
+		for (const [playerId, callWinMap] of Object.entries(agg.callWinsMap)) {
+			const mergedWinMap = callWinsMap[playerId];
+			if (mergedWinMap) {
+				for (const [callType, count] of callWinMap.entries()) {
+					increment(mergedWinMap, callType, count);
+				}
+			}
+		}
+
+		// Pair statistics
+		for (const [key, total] of agg.pairTotals.entries()) {
+			pairTotals.set(key, (pairTotals.get(key) || 0) + total);
+		}
+		for (const [key, count] of agg.pairCounts.entries()) {
+			pairCounts.set(key, (pairCounts.get(key) || 0) + count);
+		}
+		for (const [key, count] of agg.pairTeamRoundCounts.entries()) {
+			pairTeamRoundCounts.set(key, (pairTeamRoundCounts.get(key) || 0) + count);
+		}
+
+		// Round totals
+		totalNormalRounds += agg.totalNormalRounds;
+		totalSoloRounds += agg.totalSoloRounds;
 	}
 
-	for (const game of finishedGames) {
-		// Count a game for each participant present
-		const participantIds = new Set<string>();
-		for (const p of game.participants || []) {
-			if (!p.player) continue;
-			participantIds.add(p.player.id);
-		}
-		for (const pid of participantIds) {
-			increment(gamesPlayed, pid);
-		}
-
-		// Track total rounds across all finished games (per group)
-		const roundCount = game.rounds?.length ?? 0;
-		totalGroupRounds += roundCount;
-
-		// Aggregate per game totals
-		const gameTotals = new Map<string, number>(); // per-player total points this game
-
-		for (const round of game.rounds || []) {
-			const roundPoints = round.calculatePoints();
-			const eyesRe = round.eyesRe ?? 0;
-			const rType = (round as any).type as RoundType;
-			const isSolo =
-				typeof (round as any).isSolo === 'function'
-					? (round as any).isSolo()
-					: rType !== RoundType.Normal && rType !== RoundType.HochzeitNormal;
-			const category: 'normal' | 'solo' = isSolo ? 'solo' : 'normal';
-
-			// Count total rounds by type
-			if (category === 'normal') totalNormalRounds++;
-			else {
-				totalSoloRounds++;
-				increment(soloTypeCounts, rType);
-			}
-
-			// Track per-player round type counts
-			for (const participant of round.participants) {
-				if (category === 'normal') {
-					increment(playerNormalCount, participant.playerId);
-					increment(normalTotal, participant.playerId);
-				} else {
-					// Count solo participation for round-type share regardless of team
-					increment(playerSoloParticipationCount, participant.playerId);
-					increment(soloTotal, participant.playerId); // Count all solo participants
-					// Only count solo-type stats for the RE player
-					if (participant.team === Team.RE) {
-						increment(playerSoloCount, participant.playerId);
-						const soloTypeMap = playerSoloTypeCounts.get(participant.playerId);
-						if (soloTypeMap) increment(soloTypeMap, rType);
-					}
-				}
-			}
-
-			// Team map for this round
-			const teamMap = new Map<string, string>();
-			for (const participant of round.participants) {
-				teamMap.set(participant.playerId, participant.team);
-
-				// Team counts
-				if (participant.team === Team.RE) {
-					increment(reCounts, participant.playerId);
-				} else if (participant.team === Team.KONTRA) {
-					increment(kontraCounts, participant.playerId);
-				}
-
-				// Bonuses
-				(participant.bonuses || []).forEach((b: any) => {
-					if (b.bonusType === BonusType.Doko) {
-						increment(dokoCounts, participant.playerId, b.count || 0);
-					} else if (b.bonusType === BonusType.Fuchs) {
-						increment(fuchsCounts, participant.playerId, b.count || 0);
-					} else if (b.bonusType === BonusType.Karlchen) {
-						increment(karlchenCounts, participant.playerId, b.count || 0);
-					}
-				});
-
-				// Calls
-				(participant.calls || []).forEach((c: any) => {
-					const m = callCountsMap[participant.playerId];
-					if (!m) return;
-					increment(m, c.callType);
-				});
-
-				// Eyes
-				const achievedEyes = participant.team === Team.RE ? eyesRe : 240 - eyesRe;
-				increment(eyesTotals, participant.playerId, achievedEyes);
-				increment(eyesCounts, participant.playerId);
-				increment(roundsPlayed, participant.playerId);
-			}
-
-			// Track pair team rounds (for each pair, count rounds where both are on same team)
-			for (const pair of pairs) {
-				const teamA = teamMap.get(pair.a.id);
-				const teamB = teamMap.get(pair.b.id);
-				if (teamA && teamB && teamA === teamB) {
-					const pairKey = `${pair.a.name} & ${pair.b.name}`;
-					increment(pairTeamRoundCounts, pairKey);
-				}
-			}
-
-			// Round points and per-team averages, win/loss
-			for (const rp of roundPoints) {
-				// per-game totals
-				increment(gameTotals, rp.playerId, rp.points);
-
-				// Track call success (if player won the round)
-				if (rp.points > 0) {
-					const roundParticipant = round.participants.find((p) => p.playerId === rp.playerId);
-					if (roundParticipant) {
-						(roundParticipant.calls || []).forEach((c: any) => {
-							const wm = callWinsMap[rp.playerId];
-							if (wm) increment(wm, c.callType);
-						});
-					}
-				}
-
-				if (rp.points > 0) {
-					increment(roundsWonCount, rp.playerId);
-					if (category === 'normal') {
-						increment(normalWins, rp.playerId);
-					} else {
-						// Count all solo wins for round-type stats
-						increment(soloWins, rp.playerId);
-						// Solo-type win tracking remains RE-only
-						const team = teamMap.get(rp.playerId);
-						if (team === Team.RE) {
-							const soloTypeWinMap = playerSoloTypeWins.get(rp.playerId);
-							if (soloTypeWinMap) increment(soloTypeWinMap, rType);
-						}
-					}
-				}
-
-				const team = teamMap.get(rp.playerId);
-				if (team === Team.RE) {
-					increment(reTotals, rp.playerId, rp.points);
-					increment(reCountsMap, rp.playerId);
-					increment(reRoundsPlayed, rp.playerId);
-					if (rp.points > 0) increment(reRoundsWon, rp.playerId);
-				} else if (team === Team.KONTRA) {
-					increment(kontraTotals, rp.playerId, rp.points);
-					increment(kontraCountsMap, rp.playerId);
-					increment(kontraRoundsPlayed, rp.playerId);
-					if (rp.points > 0) increment(kontraRoundsWon, rp.playerId);
-				}
-
-				// Per game type totals
-				if (category === 'normal') {
-					increment(normalTotals, rp.playerId, rp.points);
-					increment(normalCounts, rp.playerId);
-				} else {
-					increment(soloTotals, rp.playerId, rp.points);
-					increment(soloCounts, rp.playerId);
-					// Track solo-type points for the RE player only (aligns with game stats)
-					const soloTypePointMap = playerSoloTypePoints.get(rp.playerId);
-					if (team === Team.RE && soloTypePointMap) {
-						increment(soloTypePointMap, rType, rp.points);
-					}
-				}
-			}
-
-			// Track pair totals per round (aligns with game-level calculation)
-			const rpMap = new Map(roundPoints.map((rp) => [rp.playerId, rp.points] as const));
-			for (const pair of pairs) {
-				const aPoints = rpMap.get(pair.a.id) ?? 0;
-				const bPoints = rpMap.get(pair.b.id) ?? 0;
-				const pairKey = `${pair.a.name} & ${pair.b.name}`;
-				increment(pairTotals, pairKey, aPoints + bPoints);
-				increment(pairCounts, pairKey);
-			}
-		}
-
-		// Store per-game totals for per-player arrays
-		for (const [pid, total] of gameTotals.entries()) {
-			const arr = perGameTotals.get(pid) || [];
-			arr.push(total);
-			perGameTotals.set(pid, arr);
-		}
-
-		// Determine game winner (player with highest total in this game)
-		let maxPoints = -Infinity;
-		let winnerIds: string[] = [];
-		for (const [pid, total] of gameTotals.entries()) {
-			if (total > maxPoints) {
-				maxPoints = total;
-				winnerIds = [pid];
-			} else if (total === maxPoints) {
-				winnerIds.push(pid);
-			}
-		}
-		// Award full win to all tied winners
-		for (const wid of winnerIds) {
-			increment(gamesWonCount, wid);
-		}
+	// For cumulative points, we don't carry over across games, so we skip playerPointsMap
+	const playerPointsMap = new Map<string, Array<{ round: number; cumulativePoints: number }>>();
+	for (const player of playerList) {
+		playerPointsMap.set(player.id, []);
 	}
 
-	const series = players.map((pl) => ({
-		key: pl.name,
-		label: pl.name,
-		color: playerColorMap.get(pl.id)
-	}));
-
-	const reKontraShare = players.map((pl) => {
-		const re = reCounts.get(pl.id) || 0;
-		const kontra = kontraCounts.get(pl.id) || 0;
-		const total = re + kontra;
-		return {
-			player: pl.name,
-			reShare: total ? re / total : 0,
-			kontraShare: total ? kontra / total : 0,
-			color: playerColorMap.get(pl.id)
-		};
-	});
-
-	const avgPairs = Array.from(pairCounts.entries())
-		.map(([key, count]) => ({
-			key,
-			value: count > 0 ? (pairTotals.get(key) || 0) / count : 0,
-			color: 'var(--color-teal-400)'
-		}))
-		.sort((a, b) => b.value - a.value);
-
-	const pairTeamCounts = Array.from(pairTeamRoundCounts.entries())
-		.map(([key, count]) => ({ key, value: count, color: 'var(--color-amber-500)' }))
-		.sort((a, b) => b.value - a.value);
-
-	const winLostShareByType = players.map((pl) => {
-		const nW = normalWins.get(pl.id) || 0;
-		const nT = normalTotal.get(pl.id) || 0;
-		const sW = soloWins.get(pl.id) || 0;
-		const sT = soloTotal.get(pl.id) || 0;
-
-		return {
-			player: pl.name,
-			normalWinShare: nT ? nW / nT : 0,
-			soloWinShare: sT ? sW / sT : 0,
-			color: playerColorMap.get(pl.id)
-		};
-	});
-
-	const avgReKontra = players.map((pl) => ({
-		key: pl.name,
-		reAvg: reCountsMap.get(pl.id) ? reTotals.get(pl.id)! / (reCountsMap.get(pl.id) || 1) : 0,
-		kontraAvg: kontraCountsMap.get(pl.id)
-			? kontraTotals.get(pl.id)! / (kontraCountsMap.get(pl.id) || 1)
-			: 0,
-		color: playerColorMap.get(pl.id)
-	}));
-
-	const bonusGrouped = players.map((pl) => ({
-		player: pl.name,
-		doko: dokoCounts.get(pl.id) || 0,
-		fuchs: fuchsCounts.get(pl.id) || 0,
-		karlchen: karlchenCounts.get(pl.id) || 0,
-		color: playerColorMap.get(pl.id)
-	}));
-
-	const avgEyes = players.map((pl) => ({
-		player: pl.name,
-		avgEyes: eyesCounts.get(pl.id) ? eyesTotals.get(pl.id)! / (eyesCounts.get(pl.id) || 1) : 0,
-		color: playerColorMap.get(pl.id)
-	}));
-
-	const avgEyesGrouped = players.map((pl) => {
-		const found = avgEyes.find((a) => a.player === pl.name);
-		return {
-			player: pl.name,
-			[pl.name]: found ? found.avgEyes : 0,
-			color: playerColorMap.get(pl.id)
-		} as Record<string, any>;
-	});
-
-	const callGrouped = players.map((pl) => ({
-		player: pl.name,
-		RE: callCountsMap[pl.id]?.get(CallType.RE) || 0,
-		KONTRA: callCountsMap[pl.id]?.get(CallType.KONTRA) || 0,
-		Keine90: callCountsMap[pl.id]?.get(CallType.Keine90) || 0,
-		Keine60: callCountsMap[pl.id]?.get(CallType.Keine60) || 0,
-		Keine30: callCountsMap[pl.id]?.get(CallType.Keine30) || 0,
-		Schwarz: callCountsMap[pl.id]?.get(CallType.Schwarz) || 0,
-		color: playerColorMap.get(pl.id)
-	}));
-
-	const callSuccessRate = players.map((pl) => {
-		const counts = callCountsMap[pl.id];
-		const wins = callWinsMap[pl.id];
-		if (!counts || !wins)
-			return {
-				player: pl.name,
-				RE: 0,
-				KONTRA: 0,
-				Keine90: 0,
-				Keine60: 0,
-				Keine30: 0,
-				Schwarz: 0,
-				color: playerColorMap.get(pl.id)
-			};
-		return {
-			player: pl.name,
-			RE: counts.get(CallType.RE)
-				? (wins.get(CallType.RE) || 0) / (counts.get(CallType.RE) || 1)
-				: 0,
-			KONTRA: counts.get(CallType.KONTRA)
-				? (wins.get(CallType.KONTRA) || 0) / (counts.get(CallType.KONTRA) || 1)
-				: 0,
-			Keine90: counts.get(CallType.Keine90)
-				? (wins.get(CallType.Keine90) || 0) / (counts.get(CallType.Keine90) || 1)
-				: 0,
-			Keine60: counts.get(CallType.Keine60)
-				? (wins.get(CallType.Keine60) || 0) / (counts.get(CallType.Keine60) || 1)
-				: 0,
-			Keine30: counts.get(CallType.Keine30)
-				? (wins.get(CallType.Keine30) || 0) / (counts.get(CallType.Keine30) || 1)
-				: 0,
-			Schwarz: counts.get(CallType.Schwarz)
-				? (wins.get(CallType.Schwarz) || 0) / (counts.get(CallType.Schwarz) || 1)
-				: 0,
-			color: playerColorMap.get(pl.id)
-		};
-	});
-
-	const gamesPlayedArr = players.map((pl) => {
-		const games = gamesPlayed.get(pl.id) || 0;
-		return {
-			player: pl.name,
-			games,
-			[pl.name]: games,
-			color: playerColorMap.get(pl.id)
-		} as Record<string, any>;
-	});
-
-	const totalGamesWon = Array.from(gamesWonCount.values()).reduce((a, b) => a + b, 0);
-	const gamesWon = players.map((pl) => {
-		const wins = gamesWonCount.get(pl.id) || 0;
-		const percent = totalGamesWon ? wins / totalGamesWon : 0;
-		return {
-			player: pl.name,
-			value: wins,
-			percent,
-			color: playerColorMap.get(pl.id)
-		};
-	});
-
-	const roundsPlayedArr = players.map((pl) => {
-		const rounds = roundsPlayed.get(pl.id) || 0;
-		return {
-			player: pl.name,
-			rounds,
-			[pl.name]: rounds,
-			color: playerColorMap.get(pl.id)
-		} as Record<string, any>;
-	});
-
-	const totalRoundsWon = Array.from(roundsWonCount.values()).reduce((a, b) => a + b, 0);
-	const roundsWon = players.map((pl) => {
-		const wins = roundsWonCount.get(pl.id) || 0;
-		const percent = totalRoundsWon ? wins / totalRoundsWon : 0;
-		return {
-			player: pl.name,
-			value: wins,
-			percent,
-			color: playerColorMap.get(pl.id)
-		};
-	});
-
-	const avgTotalPointsPerGame = players.map((pl) => {
-		const arr = perGameTotals.get(pl.id) || [];
-		const avg = arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
-		return {
-			player: pl.name,
-			value: avg,
-			[pl.name]: avg,
-			color: playerColorMap.get(pl.id)
-		} as Record<string, any>;
-	});
-
-	const consistency = players.map((pl) => {
-		const arr = perGameTotals.get(pl.id) || [];
-		if (arr.length === 0) return { player: pl.name, stdev: 0, color: playerColorMap.get(pl.id) };
-		const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
-		const variance = arr.reduce((acc, v) => acc + (v - mean) ** 2, 0) / arr.length;
-		const stdev = Math.sqrt(variance);
-		return { player: pl.name, stdev, color: playerColorMap.get(pl.id) };
-	});
-
-	const teamWinRates = players.map((pl) => {
-		const reP = reRoundsPlayed.get(pl.id) || 0;
-		const reW = reRoundsWon.get(pl.id) || 0;
-		const kontraP = kontraRoundsPlayed.get(pl.id) || 0;
-		const kontraW = kontraRoundsWon.get(pl.id) || 0;
-		return {
-			player: pl.name,
-			reRate: reP ? reW / reP : 0,
-			kontraRate: kontraP ? kontraW / kontraP : 0,
-			color: playerColorMap.get(pl.id)
-		};
-	});
-
-	const avgPointsByGameType = players.map((pl) => {
-		const nC = normalCounts.get(pl.id) || 0;
-		const sC = soloCounts.get(pl.id) || 0;
-		return {
-			player: pl.name,
-			normal: nC ? normalTotals.get(pl.id)! / nC : 0,
-			solo: sC ? soloTotals.get(pl.id)! / sC : 0,
-			color: playerColorMap.get(pl.id)
-		};
-	});
-
-	const totalRounds = totalNormalRounds + totalSoloRounds;
-	const roundsByType = [
-		{ type: 'Normal', value: totalNormalRounds, color: roundTypeColorPalette[0] },
-		{ type: 'Solo', value: totalSoloRounds, color: roundTypeColorPalette[1] }
-	].map((item) => {
-		const percent = totalRounds ? item.value / totalRounds : 0;
-		return {
-			...item,
-			percent
-		};
-	});
-
-	const totalSoloTypeRounds = Array.from(soloTypeCounts.values()).reduce((a, b) => a + b, 0);
-	const soloRoundsByType = soloTypeOrder
-		.map((type) => {
-			const value = soloTypeCounts.get(type) || 0;
-			const percent = totalSoloTypeRounds ? value / totalSoloTypeRounds : 0;
-			return {
-				type: soloTypeLabels[type] || '',
-				value,
-				percent,
-				color: soloTypeColors[type] || '#000000'
-			};
-		})
-		.filter((item) => item.value > 0);
-
-	// Solo type share by player
-	const soloTypeShareByPlayer = players.map((pl) => {
-		const soloTypeMap = playerSoloTypeCounts.get(pl.id);
-		if (!soloTypeMap) return { player: pl.name, color: playerColorMap.get(pl.id) };
-		const totalSolos = Array.from(soloTypeMap.values()).reduce((a, b) => a + b, 0);
-		const result: Record<string, any> = { player: pl.name, color: playerColorMap.get(pl.id) };
-		soloTypeOrder.forEach((type) => {
-			const count = soloTypeMap.get(type) || 0;
-			const label = soloTypeLabels[type] || '';
-			result[label] = totalSolos ? count / totalSolos : 0;
-		});
-		return result;
-	});
-
-	// Solo type win rate by player
-	const soloTypeWinRateByPlayer = players.map((pl) => {
-		const soloTypeCountMap = playerSoloTypeCounts.get(pl.id);
-		const soloTypeWinMap = playerSoloTypeWins.get(pl.id);
-		if (!soloTypeCountMap || !soloTypeWinMap)
-			return { player: pl.name, color: playerColorMap.get(pl.id) };
-		const result: Record<string, any> = { player: pl.name, color: playerColorMap.get(pl.id) };
-		soloTypeOrder.forEach((type) => {
-			const count = soloTypeCountMap.get(type) || 0;
-			const wins = soloTypeWinMap.get(type) || 0;
-			const label = soloTypeLabels[type] || '';
-			result[label] = count ? wins / count : 0;
-		});
-		return result;
-	});
-
-	// Average points per solo type by player
-	const avgPointsBySoloType = players.map((pl) => {
-		const soloTypeCountMap = playerSoloTypeCounts.get(pl.id);
-		const soloTypePointMap = playerSoloTypePoints.get(pl.id);
-		if (!soloTypeCountMap || !soloTypePointMap)
-			return { player: pl.name, color: playerColorMap.get(pl.id) };
-		const result: Record<string, any> = { player: pl.name, color: playerColorMap.get(pl.id) };
-		soloTypeOrder.forEach((type) => {
-			const count = soloTypeCountMap.get(type) || 0;
-			const points = soloTypePointMap.get(type) || 0;
-			const label = soloTypeLabels[type] || '';
-			result[label] = count ? points / count : 0;
-		});
-		return result;
-	});
-
-	// Solo type series for charts
-	const soloTypeSeries = soloTypeOrder
-		.filter((type) => (soloTypeCounts.get(type) || 0) > 0)
-		.map((type) => ({
-			key: soloTypeLabels[type] || '',
-			label: soloTypeLabels[type] || '',
-			color: soloTypeColors[type] || '#000000'
-		}));
-
-	// Round type series for charts
-	const roundTypeSeries = [
-		{ key: 'normal', label: 'Normal', color: roundTypeColorPalette[0] },
-		{ key: 'solo', label: 'Solo', color: roundTypeColorPalette[1] }
-	];
-
-	// Total rounds across all finished games (per group)
-	const roundsCount = totalGroupRounds;
+	// Rounds are also per-game, so we collect unique round numbers across all games
+	const roundSet = new Set<number>();
+	for (const agg of gameAggregates) {
+		for (const round of agg.rounds) {
+			roundSet.add(round);
+		}
+	}
+	const rounds = Array.from(roundSet).sort((a, b) => a - b);
 
 	return {
-		playerSeries: { rows: [], series },
-		reKontraShare,
-		winLostShareByType,
-		avgReKontra,
-		avgPairs,
-		bonusGrouped,
-		avgEyesGrouped,
-		avgEyes,
-		callGrouped,
-		callSuccessRate,
-		pairTeamCounts,
-		gamesPlayed: gamesPlayedArr,
-		gamesWon,
-		roundsPlayed: roundsPlayedArr,
-		roundsWon,
-		roundsCount,
-		avgTotalPointsPerGame,
-		gamesCount: finishedGames.length,
-		consistency,
-		teamWinRates,
-		avgPointsByGameType,
-		roundsByType,
-		soloRoundsByType,
-		soloTypeShareByPlayer,
-		soloTypeWinRateByPlayer,
-		avgPointsBySoloType,
-		soloTypeSeries,
-		roundTypeSeries,
-		callSeries,
-		bonusSeries
+		playerList,
+		playerColorMap,
+		reCounts,
+		kontraCounts,
+		reTotals,
+		kontraTotals,
+		reCountsMap,
+		kontraCountsMap,
+		eyesTotals,
+		eyesCounts,
+		dokoCounts,
+		fuchsCounts,
+		karlchenCounts,
+		roundsWonCount,
+		reRoundsPlayed,
+		reRoundsWon,
+		kontraRoundsPlayed,
+		kontraRoundsWon,
+		normalWins,
+		normalTotal,
+		soloWins,
+		soloTotal,
+		normalTotals,
+		normalCounts,
+		soloTotals,
+		soloCounts,
+		playerSoloTypeCounts,
+		playerSoloTypeWins,
+		playerSoloTypePoints,
+		soloTypeCounts,
+		callCountsMap,
+		callWinsMap,
+		pairs,
+		pairTotals,
+		pairCounts,
+		pairTeamRoundCounts,
+		playerPointsMap,
+		totalNormalRounds,
+		totalSoloRounds,
+		rounds
 	};
 }
 
-const emptyGroupStatistics = (): GroupStatistics => ({
-	playerSeries: { rows: [], series: [] },
-	reKontraShare: [],
-	winLostShareByType: [],
-	avgReKontra: [],
-	avgPairs: [],
-	pairTeamCounts: [],
-	bonusGrouped: [],
-	avgEyesGrouped: [],
-	avgEyes: [],
-	callGrouped: [],
-	callSuccessRate: [],
-	gamesPlayed: [],
-	gamesWon: [],
-	roundsPlayed: [],
-	roundsWon: [],
-	roundsCount: 0,
-	avgTotalPointsPerGame: [],
-	gamesCount: 0,
-	consistency: [],
-	teamWinRates: [],
-	avgPointsByGameType: [],
-	roundsByType: [],
-	soloRoundsByType: [],
-	soloTypeShareByPlayer: [],
-	soloTypeWinRateByPlayer: [],
-	avgPointsBySoloType: [],
-	soloTypeSeries: [],
-	roundTypeSeries: [],
-	callSeries: [],
-	bonusSeries: []
-});
+/**
+ * Calculate group-level statistics from multiple games.
+ * Reuses all game-level calculation functions on merged aggregates.
+ */
+export function calculateGroupStatistics(games: Game[]): GroupStatistics {
+	const finishedGames = games.filter((g) => g.isFinished());
 
-export async function getGroupStatistics(args: {
+	// Aggregate each game individually
+	const gameAggregates = finishedGames.map((g) => aggregateGameRounds(g));
+
+	// Merge all aggregates into group aggregates
+	const agg = mergeGameAggregates(gameAggregates);
+
+	// Reuse game calculation functions on merged aggregates
+	const baseStats = {
+		playerSeries: calculatePlayerSeries(agg),
+		reKontraShare: calculateReKontraShare(agg),
+		winLostShareByType: calculateWinLostShareByType(agg),
+		avgReKontra: calculateAvgReKontra(agg),
+		avgPairs: calculateAvgPairs(agg),
+		pairTeamCounts: calculatePairTeamCounts(agg),
+		bonusGrouped: calculateBonusGrouped(agg),
+		avgEyesGrouped: calculateAvgEyesGrouped(agg),
+		avgEyes: calculateAvgEyes(agg),
+		callGrouped: calculateCallGrouped(agg),
+		callSuccessRate: calculateCallSuccessRate(agg),
+		roundsWon: calculateRoundsWon(agg),
+		roundsByType: calculateRoundsByType(agg),
+		soloRoundsByType: calculateSoloRoundsByType(agg),
+		soloTypeShareByPlayer: calculateSoloTypeShareByPlayer(agg),
+		soloTypeWinRateByPlayer: calculateSoloTypeWinRateByPlayer(agg),
+		avgPointsByGameType: calculateAvgPointsByGameType(agg),
+		avgPointsBySoloType: calculateAvgPointsBySoloType(agg),
+		teamWinRates: calculateTeamWinRates(agg),
+		soloTypeSeries: getSoloTypeSeries(agg),
+		roundTypeSeries: getRoundTypeSeries(),
+		callSeries: getCallSeries(),
+		bonusSeries: getBonusSeries(),
+		reKontraSeries: getReKontraSeries(),
+		reKontraRateSeries: getReKontraRateSeries(),
+		reKontraAvgSeries: getReKontraAvgSeries()
+	};
+
+	// Calculate group-only statistics
+	const groupStats = calculateGroupOnlyStatistics(agg, finishedGames);
+
+	return {
+		...baseStats,
+		...groupStats
+	};
+}
+
+/**
+ * Calculate group-only statistics (games played, games won, consistency, etc.)
+ */
+function calculateGroupOnlyStatistics(
+	agg: GameAggregates,
+	games: Game[]
+): {
+	gamesWon: Array<{ player: string; value: number; percent: number; color?: string }>;
+	avgTotalPointsPerGame: Array<Record<string, any>>;
+	gamesCount: number;
+	roundsCount: number;
+} {
+	// Count games played per player
+	const gamesPlayedMap = new Map<string, number>();
+	const perPlayerPointsPerGame = new Map<string, number[]>();
+	let gamesWithRounds = 0; // Count games that actually have rounds
+
+	for (const player of agg.playerList) {
+		gamesPlayedMap.set(player.id, 0);
+		perPlayerPointsPerGame.set(player.id, []);
+	}
+
+	for (const game of games) {
+		// Skip games with no rounds
+		if (!game.rounds || game.rounds.length === 0) {
+			continue;
+		}
+
+		gamesWithRounds++;
+		const playerGamePoints = new Map<string, number>();
+		for (const participant of game.participants || []) {
+			if (!participant.player) continue;
+			playerGamePoints.set(participant.player.id, 0);
+		}
+
+		for (const round of game.rounds || []) {
+			const roundPoints = round.calculatePoints();
+			for (const rp of roundPoints) {
+				playerGamePoints.set(rp.playerId, (playerGamePoints.get(rp.playerId) || 0) + rp.points);
+			}
+		}
+
+		// Track games played and points per game
+		for (const [playerId, points] of playerGamePoints.entries()) {
+			increment(gamesPlayedMap, playerId);
+			const playerPoints = perPlayerPointsPerGame.get(playerId);
+			if (playerPoints) {
+				playerPoints.push(points);
+			}
+		}
+	}
+
+	// Games won (games where player had positive points)
+	const gamesWonMap = new Map<string, number>();
+	for (const player of agg.playerList) {
+		gamesWonMap.set(player.id, 0);
+		const playerPoints = perPlayerPointsPerGame.get(player.id) || [];
+		const wons = playerPoints.filter((p) => p > 0).length;
+		gamesWonMap.set(player.id, wons);
+	}
+
+	// Format results
+	const totalGamesWon = Array.from(gamesWonMap.values()).reduce((a, b) => a + b, 0);
+	const gamesWon = agg.playerList
+		.filter((pl) => (gamesPlayedMap.get(pl.id) || 0) > 0)
+		.map((pl) => {
+			const value = gamesWonMap.get(pl.id) || 0;
+			return {
+				player: pl.name,
+				value,
+				percent: games.length > 0 ? value / games.length : 0,
+				color: agg.playerColorMap.get(pl.id)
+			};
+		});
+
+	// Average total points per game
+	const avgTotalPointsPerGame = agg.playerList
+		.filter((pl) => (gamesPlayedMap.get(pl.id) || 0) > 0)
+		.map((pl) => {
+			const playerPoints = perPlayerPointsPerGame.get(pl.id) || [];
+			const avg =
+				playerPoints.length > 0 ? playerPoints.reduce((a, b) => a + b, 0) / playerPoints.length : 0;
+			return {
+				player: pl.name,
+				[pl.name]: avg,
+				color: agg.playerColorMap.get(pl.id)
+			} as Record<string, any>;
+		});
+
+	const totalRounds = agg.totalNormalRounds + agg.totalSoloRounds;
+
+	return {
+		gamesWon,
+		avgTotalPointsPerGame,
+		gamesCount: gamesWithRounds,
+		roundsCount: totalRounds
+	};
+}
+
+/**
+ * Fetch and calculate group statistics from repository
+ */
+export async function getGroupStatistics({
+	principalId,
+	groupId,
+	gameRepo
+}: {
 	principalId: string;
 	groupId: string;
-	gameRepo?: GameRepository;
+	gameRepo?: any;
 }): Promise<GroupStatistics> {
-	const { principalId, groupId } = args;
-	const gameRepo = args.gameRepo ?? new GameRepository(principalId);
+	const { GameRepository } = await import('$lib/server/repositories/game');
+	const repo = gameRepo || new GameRepository(principalId);
+	const gamesResult = await repo.listByGroup(groupId);
 
-	const listRes = await gameRepo.listByGroup(groupId);
-	if (!listRes.ok) {
-		throw error(listRes.status, listRes.error);
-	}
-	const gamesList = listRes.value || [];
-
-	if (gamesList.length === 0) {
-		return emptyGroupStatistics();
+	if (!gamesResult.ok) {
+		throw error(gamesResult.status, gamesResult.error);
 	}
 
-	// Load full games with rounds in parallel to reduce waiting time
-	const detailResults = await Promise.all(gamesList.map((g) => gameRepo.getById(g.id, groupId)));
-	const okResults = detailResults.filter(
-		(r): r is { ok: true; value: Game } => (r as any).ok === true
-	) as Array<{
-		ok: true;
-		value: Game;
-	}>;
-	const fullGames: Game[] = okResults
-		.map((r) => r.value)
-		.filter((game) => Array.isArray(game.rounds) && game.rounds.length > 0);
-
-	if (fullGames.length === 0) {
-		return emptyGroupStatistics();
+	// Fetch full game objects
+	const fullGames: Game[] = [];
+	for (const gameStub of gamesResult.value) {
+		const gameResult = await repo.getById(gameStub.id, groupId);
+		if (gameResult.ok) {
+			fullGames.push(gameResult.value);
+		}
 	}
 
 	return calculateGroupStatistics(fullGames);

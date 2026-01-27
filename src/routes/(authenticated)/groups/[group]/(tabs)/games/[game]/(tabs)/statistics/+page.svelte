@@ -219,10 +219,7 @@
 					<BarChart
 						data={stats?.reKontraShare ?? []}
 						x="player"
-						series={[
-							{ key: 'reShare', label: 'Re', color: 'var(--color-amber-500)' },
-							{ key: 'kontraShare', label: 'Kontra', color: 'var(--color-purple-500)' }
-						]}
+						series={stats?.reKontraSeries ?? []}
 						seriesLayout="group"
 						props={{ yAxis: { format: 'percentRound' }, bars: { motion: 'tween' } }}
 						legend
@@ -237,10 +234,7 @@
 					<BarChart
 						data={stats?.teamWinRates ?? []}
 						x="player"
-						series={[
-							{ key: 'reRate', label: 'Re', color: 'var(--color-amber-500)' },
-							{ key: 'kontraRate', label: 'Kontra', color: 'var(--color-purple-500)' }
-						]}
+						series={stats?.reKontraRateSeries ?? []}
 						seriesLayout="group"
 						props={{ yAxis: { format: 'percentRound' }, bars: { motion: 'tween' } }}
 						legend
@@ -251,10 +245,7 @@
 					<BarChart
 						data={stats?.avgReKontra ?? []}
 						x="key"
-						series={[
-							{ key: 'reAvg', label: 'Re', color: 'var(--color-amber-500)' },
-							{ key: 'kontraAvg', label: 'Kontra', color: 'var(--color-purple-500)' }
-						]}
+						series={stats?.reKontraAvgSeries ?? []}
 						seriesLayout="group"
 						props={{ bars: { motion: 'tween' } }}
 						legend

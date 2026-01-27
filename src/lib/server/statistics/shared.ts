@@ -36,6 +36,18 @@ soloTypeOrder.forEach((type, idx) => {
 	soloTypeColors[type] = soloTypePalette[idx];
 });
 
+// Shared Re/Kontra team colors - factory for different key variants
+function createReKontraSeries(reKey: string, kontraKey: string) {
+	return [
+		{ key: reKey, label: 'Re', color: 'var(--color-amber-500)' },
+		{ key: kontraKey, label: 'Kontra', color: 'var(--color-purple-500)' }
+	];
+}
+
+export const reKontraSeries = createReKontraSeries('reShare', 'kontraShare');
+export const reKontraRateSeries = createReKontraSeries('reRate', 'kontraRate');
+export const reKontraAvgSeries = createReKontraSeries('reAvg', 'kontraAvg');
+
 // Shared call/bonus series definitions
 export const callSeries = [
 	{ key: 'RE', label: 'Re', color: 'var(--color-amber-500)' },

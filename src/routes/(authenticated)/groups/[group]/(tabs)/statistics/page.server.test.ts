@@ -423,8 +423,7 @@ describe('group statistics calculation edge cases', () => {
 		const stats = calculateGroupStatistics(games as any);
 
 		// Only 1 finished game should be counted
-		const aliceStats = stats.gamesPlayed.find((g) => g.player === 'Alice');
-		expect(aliceStats?.games).toBe(1);
+		expect(stats.gamesCount).toBe(1);
 	});
 
 	it('returns empty statistics for empty games list', async () => {
@@ -433,9 +432,7 @@ describe('group statistics calculation edge cases', () => {
 		const games: any[] = [];
 		const stats = calculateGroupStatistics(games);
 
-		expect(stats.gamesPlayed).toEqual([]);
 		expect(stats.gamesWon).toEqual([]);
-		expect(stats.roundsPlayed).toEqual([]);
 		expect(stats.pairTeamCounts).toEqual([]);
 		// soloRoundsByType now filters out solo types with 0 occurrences
 		expect(stats.soloRoundsByType).toEqual([]);
