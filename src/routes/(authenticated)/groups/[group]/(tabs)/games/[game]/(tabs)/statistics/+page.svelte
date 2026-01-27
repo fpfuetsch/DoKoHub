@@ -42,7 +42,7 @@
 						data={stats?.playerSeries?.rows ?? []}
 						x="round"
 						series={stats?.playerSeries?.series ?? []}
-						props={{ spline: { draw: true, strokeWidth: 3 } }}
+						props={{ spline: { strokeWidth: 3 } }}
 						legend={{ classes: { items: 'gap-1', item: 'text-sm', swatch: 'size-3' } }}
 					/>
 				</StatsCard>
