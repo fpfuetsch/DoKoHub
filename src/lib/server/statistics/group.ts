@@ -512,11 +512,13 @@ function calculateGroupOnlyStatistics(
 	// Count games played per player
 	const gamesPlayedMap = new Map<string, number>();
 	const perPlayerPointsPerGame = new Map<string, number[]>();
+	const gamesWonMap = new Map<string, number>(); // only players with top score in a game get a win
 	let gamesWithRounds = 0; // Count games that actually have rounds
 
 	for (const player of agg.playerList) {
 		gamesPlayedMap.set(player.id, 0);
 		perPlayerPointsPerGame.set(player.id, []);
+		gamesWonMap.set(player.id, 0);
 	}
 
 	for (const game of games) {
@@ -547,19 +549,20 @@ function calculateGroupOnlyStatistics(
 				playerPoints.push(points);
 			}
 		}
-	}
 
-	// Games won (games where player had positive points)
-	const gamesWonMap = new Map<string, number>();
-	for (const player of agg.playerList) {
-		gamesWonMap.set(player.id, 0);
-		const playerPoints = perPlayerPointsPerGame.get(player.id) || [];
-		const wons = playerPoints.filter((p) => p > 0).length;
-		gamesWonMap.set(player.id, wons);
+		// Determine game winners: players with the highest total points in this game
+		const scores = Array.from(playerGamePoints.values());
+		if (scores.length > 0) {
+			const maxScore = Math.max(...scores);
+			for (const [playerId, points] of playerGamePoints.entries()) {
+				if (points === maxScore) {
+					increment(gamesWonMap, playerId);
+				}
+			}
+		}
 	}
 
 	// Format results
-	const totalGamesWon = Array.from(gamesWonMap.values()).reduce((a, b) => a + b, 0);
 	const gamesWon = agg.playerList
 		.filter((pl) => (gamesPlayedMap.get(pl.id) || 0) > 0)
 		.map((pl) => {

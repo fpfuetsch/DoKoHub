@@ -424,6 +424,47 @@ describe('calculateGroupStatistics', () => {
 		expect(bobWins?.percent).toBe(0.5);
 	});
 
+	it('counts all top scorers as game winners', () => {
+		const game = createMockGame({
+			id: 'g1',
+			participants: [
+				{ player: { id: 'p1', getTruncatedDisplayName: () => 'Alice' } },
+				{ player: { id: 'p2', getTruncatedDisplayName: () => 'Bob' } },
+				{ player: { id: 'p3', getTruncatedDisplayName: () => 'Charlie' } }
+			],
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] },
+						{ playerId: 'p3', team: Team.RE, bonuses: [], calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 20 },
+						{ playerId: 'p2', points: 20 },
+						{ playerId: 'p3', points: -5 }
+					]
+				}
+			]
+		});
+
+		const stats = calculateGroupStatistics([game] as any);
+
+		const aliceWins = stats.gamesWon.find((g) => g.player === 'Alice');
+		const bobWins = stats.gamesWon.find((g) => g.player === 'Bob');
+		const charlieWins = stats.gamesWon.find((g) => g.player === 'Charlie');
+
+		expect(aliceWins?.value).toBe(1);
+		expect(bobWins?.value).toBe(1);
+		expect(charlieWins?.value).toBe(0);
+		expect(aliceWins?.percent).toBe(1);
+		expect(bobWins?.percent).toBe(1);
+		expect(charlieWins?.percent).toBe(0);
+	});
+
 	it('calculates avgTotalPointsPerGame correctly', () => {
 		const game1 = createMockGame({
 			id: 'g1',
