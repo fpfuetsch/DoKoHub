@@ -27,7 +27,6 @@ export interface GameStatistics {
 	winLostShareByType: Array<{
 		player: string;
 		normalWinShare: number;
-		hochzeitWinShare: number;
 		soloWinShare: number;
 		color?: string;
 	}>;
@@ -83,19 +82,11 @@ export interface GameStatistics {
 	roundsWon: Array<{ player: string; value: number; percent: number; color?: string }>;
 	roundsByType: Array<{ type: string; value: number; percent: number }>;
 	soloRoundsByType: Array<{ type: string; value: number; percent: number; color?: string }>;
-	roundTypeShareByPlayer: Array<{
-		player: string;
-		normalShare: number;
-		hochzeitShare: number;
-		soloShare: number;
-		color?: string;
-	}>;
 	soloTypeShareByPlayer: Array<Record<string, any>>;
 	soloTypeWinRateByPlayer: Array<Record<string, any>>;
 	avgPointsByGameType: Array<{
 		player: string;
 		normal: number;
-		hochzeit: number;
 		solo: number;
 		color?: string;
 	}>;
@@ -122,8 +113,7 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 		.map((p) => ({
 			id: p.player!.id,
 			name: p.player!.getTruncatedDisplayName() || 'Unknown'
-		}))
-		.sort((a, b) => a.name.localeCompare(b.name)); // Sort by name for consistent color assignment
+		})); // Preserve seat order from game.participants
 
 	// Generate color palette based on actual number of players
 	const palette = generateDistinctColorPalette(playerList.length);
@@ -153,18 +143,13 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 	// Round type tracking
 	const normalWins = new Map<string, number>();
 	const normalTotal = new Map<string, number>();
-	const hochzeitWins = new Map<string, number>();
-	const hochzeitTotal = new Map<string, number>();
 	const soloWins = new Map<string, number>();
 	const soloTotal = new Map<string, number>();
 	const normalTotals = new Map<string, number>();
 	const normalCounts = new Map<string, number>();
-	const hochzeitTotals = new Map<string, number>();
-	const hochzeitCounts = new Map<string, number>();
 	const soloTotals = new Map<string, number>();
 	const soloCounts = new Map<string, number>();
 	const playerNormalCount = new Map<string, number>();
-	const playerHochzeitCount = new Map<string, number>();
 	const playerSoloParticipationCount = new Map<string, number>(); // counts solo rounds participation for round-share
 	const playerSoloCount = new Map<string, number>();
 
@@ -206,18 +191,13 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 		kontraRoundsWon.set(pl.id, 0);
 		normalWins.set(pl.id, 0);
 		normalTotal.set(pl.id, 0);
-		hochzeitWins.set(pl.id, 0);
-		hochzeitTotal.set(pl.id, 0);
 		soloWins.set(pl.id, 0);
 		soloTotal.set(pl.id, 0);
 		normalTotals.set(pl.id, 0);
 		normalCounts.set(pl.id, 0);
-		hochzeitTotals.set(pl.id, 0);
-		hochzeitCounts.set(pl.id, 0);
 		soloTotals.set(pl.id, 0);
 		soloCounts.set(pl.id, 0);
 		playerNormalCount.set(pl.id, 0);
-		playerHochzeitCount.set(pl.id, 0);
 		playerSoloParticipationCount.set(pl.id, 0);
 		playerSoloCount.set(pl.id, 0);
 
@@ -263,7 +243,6 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 
 	// Track round type totals
 	let totalNormalRounds = 0;
-	let totalHochzeitRounds = 0;
 	let totalSoloRounds = 0;
 
 	// Single pass over rounds to compute all aggregates
@@ -271,16 +250,14 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 		const roundPoints = round.calculatePoints();
 		const eyesRe = round.eyesRe ?? 0;
 		const rType = (round as any).type as RoundType;
-		const category: 'normal' | 'hochzeit' | 'solo' =
-			rType === RoundType.Normal
-				? 'normal'
-				: rType === RoundType.HochzeitNormal
-					? 'hochzeit'
-					: 'solo';
+		const isSolo =
+			typeof (round as any).isSolo === 'function'
+				? (round as any).isSolo()
+				: rType !== RoundType.Normal && rType !== RoundType.HochzeitNormal;
+		const category: 'normal' | 'solo' = isSolo ? 'solo' : 'normal';
 
 		// Count total rounds by type
 		if (category === 'normal') totalNormalRounds++;
-		else if (category === 'hochzeit') totalHochzeitRounds++;
 		else {
 			totalSoloRounds++;
 			increment(soloTypeCounts, rType);
@@ -291,12 +268,14 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 		for (const participant of round.participants) {
 			teamMap.set(participant.playerId, participant.team);
 
-			// Track per-player round type counts
-			if (category === 'normal') increment(playerNormalCount, participant.playerId);
-			else if (category === 'hochzeit') increment(playerHochzeitCount, participant.playerId);
-			else {
+			// Track per-player round type counts and participation
+			if (category === 'normal') {
+				increment(playerNormalCount, participant.playerId);
+				increment(normalTotal, participant.playerId);
+			} else {
 				// Count solo participation for round-type share regardless of team
 				increment(playerSoloParticipationCount, participant.playerId);
+				increment(soloTotal, participant.playerId); // Count all solo participants
 				// Only count solo-type stats for the RE player
 				if (participant.team === Team.RE) {
 					increment(playerSoloCount, participant.playerId);
@@ -375,38 +354,31 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 				// Track wins by round type
 				if (category === 'normal') {
 					increment(normalWins, rp.playerId);
-				} else if (category === 'hochzeit') {
-					increment(hochzeitWins, rp.playerId);
 				} else {
-					// Only count solo wins for RE player
+					// Count all solo wins (round type stats)
+					increment(soloWins, rp.playerId);
+					// Only track solo type wins for RE player
 					const team = teamMap.get(rp.playerId);
 					if (team === Team.RE) {
-						increment(soloWins, rp.playerId);
 						const soloTypeWinMap = playerSoloTypeWins.get(rp.playerId);
 						if (soloTypeWinMap) increment(soloTypeWinMap, rType);
 					}
 				}
 
 				// Track team win rates
-				const team = teamMap.get(rp.playerId);
-				if (team === Team.RE) {
+				const teamForWinRate = teamMap.get(rp.playerId);
+				if (teamForWinRate === Team.RE) {
 					increment(reRoundsWon, rp.playerId);
-				} else if (team === Team.KONTRA) {
+				} else if (teamForWinRate === Team.KONTRA) {
 					increment(kontraRoundsWon, rp.playerId);
 				}
 			}
 
-			// Track participation in round types
+			// Track points by round type (for average calculations)
 			if (category === 'normal') {
-				increment(normalTotal, rp.playerId);
 				increment(normalTotals, rp.playerId, rp.points);
 				increment(normalCounts, rp.playerId);
-			} else if (category === 'hochzeit') {
-				increment(hochzeitTotal, rp.playerId);
-				increment(hochzeitTotals, rp.playerId, rp.points);
-				increment(hochzeitCounts, rp.playerId);
 			} else {
-				increment(soloTotal, rp.playerId);
 				increment(soloTotals, rp.playerId, rp.points);
 				increment(soloCounts, rp.playerId);
 				// Only track solo type points for RE player
@@ -571,7 +543,7 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 	});
 
 	// Rounds by type pie chart
-	const totalRounds = totalNormalRounds + totalHochzeitRounds + totalSoloRounds;
+	const totalRounds = totalNormalRounds + totalSoloRounds;
 	const roundsByType = [
 		{
 			type: 'Normal',
@@ -580,16 +552,10 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 			color: roundTypeColorPalette[0]
 		},
 		{
-			type: 'Hochzeit',
-			value: totalHochzeitRounds,
-			percent: totalRounds > 0 ? totalHochzeitRounds / totalRounds : 0,
-			color: roundTypeColorPalette[1]
-		},
-		{
 			type: 'Solo',
 			value: totalSoloRounds,
 			percent: totalRounds > 0 ? totalSoloRounds / totalRounds : 0,
-			color: roundTypeColorPalette[2]
+			color: roundTypeColorPalette[1]
 		}
 	];
 
@@ -606,31 +572,13 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 		})
 		.filter((item) => item.value > 0);
 
-	// Round type share by player
-	const roundTypeShareByPlayer = playerList.map((pl) => {
-		const normal = playerNormalCount.get(pl.id) || 0;
-		const hochzeit = playerHochzeitCount.get(pl.id) || 0;
-		const solo = playerSoloParticipationCount.get(pl.id) || 0;
-		const total = normal + hochzeit + solo;
-		return {
-			player: pl.name,
-			normalShare: total > 0 ? normal / total : 0,
-			hochzeitShare: total > 0 ? hochzeit / total : 0,
-			soloShare: total > 0 ? solo / total : 0,
-			color: playerColorMap.get(pl.id)
-		};
-	});
-
 	// Win/lost share by type
 	const winLostShareByType = playerList.map((pl) => {
 		const normalTotalRounds = normalTotal.get(pl.id) || 0;
-		const hochzeitTotalRounds = hochzeitTotal.get(pl.id) || 0;
 		const soloTotalRounds = soloTotal.get(pl.id) || 0;
 		return {
 			player: pl.name,
 			normalWinShare: normalTotalRounds > 0 ? (normalWins.get(pl.id) || 0) / normalTotalRounds : 0,
-			hochzeitWinShare:
-				hochzeitTotalRounds > 0 ? (hochzeitWins.get(pl.id) || 0) / hochzeitTotalRounds : 0,
 			soloWinShare: soloTotalRounds > 0 ? (soloWins.get(pl.id) || 0) / soloTotalRounds : 0,
 			color: playerColorMap.get(pl.id)
 		};
@@ -640,9 +588,6 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 	const avgPointsByGameType = playerList.map((pl) => ({
 		player: pl.name,
 		normal: normalCounts.get(pl.id) ? (normalTotals.get(pl.id) || 0) / normalCounts.get(pl.id)! : 0,
-		hochzeit: hochzeitCounts.get(pl.id)
-			? (hochzeitTotals.get(pl.id) || 0) / hochzeitCounts.get(pl.id)!
-			: 0,
 		solo: soloCounts.get(pl.id) ? (soloTotals.get(pl.id) || 0) / soloCounts.get(pl.id)! : 0,
 		color: playerColorMap.get(pl.id)
 	}));
@@ -726,8 +671,7 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 	// Series definitions
 	const roundTypeSeries = [
 		{ key: 'normal', label: 'Normal', color: roundTypeColorPalette[0] },
-		{ key: 'hochzeit', label: 'Hochzeit', color: roundTypeColorPalette[1] },
-		{ key: 'solo', label: 'Solo', color: roundTypeColorPalette[2] }
+		{ key: 'solo', label: 'Solo', color: roundTypeColorPalette[1] }
 	];
 
 	const soloTypeSeries = soloTypeOrder
@@ -756,7 +700,6 @@ export function calculateGameStatistics(game: Game): GameStatistics {
 		roundsWon,
 		roundsByType,
 		soloRoundsByType,
-		roundTypeShareByPlayer,
 		soloTypeShareByPlayer,
 		soloTypeWinRateByPlayer,
 		avgPointsByGameType,

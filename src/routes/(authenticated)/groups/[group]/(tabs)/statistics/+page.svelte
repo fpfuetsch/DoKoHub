@@ -47,12 +47,12 @@
 			<div class="mx-auto flex flex-wrap justify-center gap-1">
 				<StatsCard
 					title="Spiele gespielt"
-					loading={!stats?.gamesTimeline || stats.gamesTimeline.length === 0}
+					loading={stats?.gamesCount == null}
 					bodyClass="flex h-full flex-col items-center justify-center"
 				>
-					{#if stats?.gamesTimeline && stats.gamesTimeline.length > 0}
+					{#if stats?.gamesCount != null}
 						<p class="text-[8rem] font-bold text-secondary-600 dark:text-secondary-400">
-							{stats.gamesTimeline[stats.gamesTimeline.length - 1].games}
+							{stats.gamesCount}
 						</p>
 					{/if}
 				</StatsCard>
@@ -97,12 +97,12 @@
 			<div class="mx-auto flex flex-wrap justify-center gap-1">
 				<StatsCard
 					title="Runden gespielt"
-					loading={!stats?.roundsTimeline || stats.roundsTimeline.length === 0}
+					loading={stats?.roundsCount == null}
 					bodyClass="flex h-full flex-col items-center justify-center"
 				>
-					{#if stats?.roundsTimeline && stats.roundsTimeline.length > 0}
+					{#if stats?.roundsCount != null}
 						<p class="text-[8rem] font-bold text-secondary-600 dark:text-secondary-400">
-							{stats.roundsTimeline[stats.roundsTimeline.length - 1].rounds}
+							{stats.roundsCount}
 						</p>
 					{/if}
 				</StatsCard>
@@ -165,22 +165,7 @@
 					/>
 				</StatsCard>
 
-				<StatsCard title="Anteil je Rundentyp" loading={!stats?.roundTypeShareByPlayer}>
-					<BarChart
-						data={stats?.roundTypeShareByPlayer ?? []}
-						x="player"
-						series={stats?.roundTypeSeries?.map((s: any) => ({
-							key: s.key + 'Share',
-							label: s.label,
-							color: s.color
-						})) ?? []}
-						seriesLayout="group"
-						props={{ yAxis: { format: 'percentRound' }, bars: { motion: 'tween' } }}
-						legend
-					/>
-				</StatsCard>
-
-				<StatsCard title="Siegrate je Rundentyp" loading={!stats?.winLostShareByType}>
+				<StatsCard title="Siegesgrate je Rundentyp" loading={!stats?.winLostShareByType}>
 					<BarChart
 						data={stats?.winLostShareByType ?? []}
 						x="player"
@@ -225,7 +210,7 @@
 					/>
 				</StatsCard>
 
-				<StatsCard title="Siegrate je Solotyp" loading={!stats?.soloTypeWinRateByPlayer}>
+				<StatsCard title="Siegesgrate je Solotyp" loading={!stats?.soloTypeWinRateByPlayer}>
 					<BarChart
 						data={stats?.soloTypeWinRateByPlayer ?? []}
 						x="player"
@@ -277,7 +262,7 @@
 					/>
 				</StatsCard>
 
-				<StatsCard title="Siegrate Re / Kontra" loading={!stats?.teamWinRates}>
+				<StatsCard title="Siegesgrate Re / Kontra" loading={!stats?.teamWinRates}>
 					<BarChart
 						data={stats?.teamWinRates ?? []}
 						x="player"

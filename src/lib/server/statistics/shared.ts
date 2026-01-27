@@ -1,8 +1,8 @@
 import { RoundType } from '$lib/domain/enums';
 import { generateDistinctColorPalette } from '$lib/utils/colors';
 
-// Shared round type palette
-export const roundTypeColorPalette = ['#3b82f6', '#10b981', '#f59e0b'];
+// Shared round type palette (normal vs. solo)
+export const roundTypeColorPalette = ['var(--color-secondary)', 'var(--color-primary)'];
 
 // Shared solo type order and labels
 export const soloTypeOrder = [

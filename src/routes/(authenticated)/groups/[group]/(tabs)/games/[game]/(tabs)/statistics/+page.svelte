@@ -109,26 +109,7 @@
 				</StatsCard>
 
 				<StatsCard
-					title="Anteil je Rundentyp"
-					loading={!stats}
-					hide={stats && !stats?.roundTypeShareByPlayer}
-				>
-					<BarChart
-						data={stats?.roundTypeShareByPlayer ?? []}
-						x="player"
-						series={stats?.roundTypeSeries?.map((s: any) => ({
-							key: s.key + 'Share',
-							label: s.label,
-							color: s.color
-						})) ?? []}
-						seriesLayout="group"
-						props={{ yAxis: { format: 'percentRound' }, bars: { motion: 'tween' } }}
-						legend
-					/>
-				</StatsCard>
-
-				<StatsCard
-					title="Siegrate je Rundentyp"
+					title="Siegesgrate je Rundentyp"
 					loading={!stats}
 					hide={stats && !stats?.winLostShareByType}
 				>
@@ -185,7 +166,7 @@
 				</StatsCard>
 
 				<StatsCard
-					title="Siegrate je Solotyp"
+					title="Siegesgrate je Solotyp"
 					loading={!stats}
 					hide={stats && !stats?.soloTypeWinRateByPlayer}
 				>
@@ -249,7 +230,7 @@
 				</StatsCard>
 
 				<StatsCard
-					title="Siegrate Re / Kontra"
+					title="Siegesgrate Re / Kontra"
 					loading={!stats}
 					hide={stats && !stats?.teamWinRates}
 				>

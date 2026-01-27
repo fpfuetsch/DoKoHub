@@ -202,7 +202,7 @@ describe('getGroupStatistics (group)', () => {
 		listByGroupMock.mockResolvedValue({ ok: true, value: [] });
 		const stats = await getGroupStatistics({ principalId: 'u', groupId: 'g' });
 		expect(stats.gamesPlayed).toEqual([]);
-		expect(stats.gamesTimeline).toEqual([]);
+		expect(stats.gamesCount).toBe(0);
 	});
 
 	it('returns empty stats when games have no rounds', async () => {
@@ -223,7 +223,7 @@ describe('getGroupStatistics (group)', () => {
 		});
 		const stats = await getGroupStatistics({ principalId: 'u', groupId: 'g' });
 		expect(stats.gamesPlayed).toEqual([]);
-		expect(stats.gamesTimeline).toEqual([]);
+		expect(stats.gamesCount).toBe(0);
 	});
 
 	it('returns aggregated statistics when games exist', async () => {
