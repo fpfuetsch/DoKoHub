@@ -214,8 +214,8 @@ function filterAggregatesForPlayer(agg: GameAggregates, playerId: string): GameA
 		pairCounts: new Map(),
 		pairTeamRoundCounts: new Map(),
 		playerPointsMap: filterMap(agg.playerPointsMap),
-		totalNormalRounds: agg.totalNormalRounds,
-		totalSoloRounds: agg.totalSoloRounds,
+		totalNormalRounds: agg.normalTotal.get(playerId) ?? 0,
+		totalSoloRounds: agg.soloTotal.get(playerId) ?? 0,
 		rounds: agg.rounds
 	};
 }
