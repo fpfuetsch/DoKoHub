@@ -1,8 +1,8 @@
-# DoKoHub
-
 <p align="center">
   <img src="src/lib/assets/dokohub.png" alt="DoKoHub Logo" width="50%">
 </p>
+
+# DoKoHub
 
 A web-based scorecard and game management application for tracking **Doppelkopf** card game sessions with groups of players.
 
@@ -37,11 +37,12 @@ Developed based on the official "Tunierspielregeln" (tournament rules) of the "G
   - Customizable number of rounds
   - Mandatory solo rounds (Pflicht-Solo) mode
   - Support for both 4-player and 5-player games (dealer sits out in 5-player format)
+  - Configure seating order
 - **Track rounds** with full details:
-  - Round types: Normal, Hochzeit (wedding), Stille Hochzeit (silent wedding)
+  - Round types: Normal, Hochzeit, Stille Hochzeit
   - Solo variants (Kreuz, Pik, Herz, Karo)
   - Team assignments (Re vs. Kontra)
-  - Player calls and announcements (Re, Kontra, various Absagen)
+  - Player calls and announcements (Re, Kontra, K90, K60, ...)
   - Bonuses: Fuchs, Doppelkopf, Karlchen
   - Point calculations with automatic result determination
 

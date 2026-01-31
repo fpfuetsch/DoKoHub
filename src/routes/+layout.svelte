@@ -1,6 +1,9 @@
 <script lang="ts">
 	import './layout.css';
 	import logo from '$lib/assets/dokohub.png';
+	import { pwaInfo } from 'virtual:pwa-info';
+
+	const webManifestLink = pwaInfo ? pwaInfo.webManifest.linkTag : '';
 
 	const { data, children } = $props();
 	const baseUrl = $derived(data.origin);
@@ -31,6 +34,9 @@
 	<meta name="twitter:title" content={siteTitle} />
 	<meta name="twitter:description" content={siteDescription} />
 	<meta name="twitter:image" content={logo} />
+
+	<!-- PWA -->
+	{@html webManifestLink}
 </svelte:head>
 
 {@render children()}
