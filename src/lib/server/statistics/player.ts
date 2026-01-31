@@ -105,7 +105,9 @@ export function calculatePlayerStatistics(
 	const { gamesWon, gamesPlayed, totalPoints } = calculatePlayerGameStats(playerId, playerGames);
 
 	// Calculate overview metrics
-	const totalRounds = playerOnlyAgg.totalNormalRounds + playerOnlyAgg.totalSoloRounds;
+	const normalRoundsPlayed = playerOnlyAgg.normalCounts.get(playerId) ?? 0;
+	const soloRoundsPlayed = playerOnlyAgg.soloCounts.get(playerId) ?? 0;
+	const totalRounds = normalRoundsPlayed + soloRoundsPlayed;
 	const avgPointsPerGame = gamesPlayed > 0 ? totalPoints / gamesPlayed : 0;
 
 	// Calculate all statistics using the filtered aggregates
