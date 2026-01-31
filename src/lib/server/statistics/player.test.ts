@@ -72,8 +72,6 @@ describe('calculatePlayerStatistics', () => {
 		expect(stats.gamesPlayed).toBe(0);
 		expect(stats.avgPointsPerGame).toBe(0);
 		expect(stats.roundsWon).toEqual([]);
-		expect(stats.roundsByType).toEqual([]);
-		expect(stats.soloRoundsByType).toEqual([]);
 	});
 
 	it('returns empty statistics when player has not participated in any finished games', () => {
@@ -287,53 +285,6 @@ describe('calculatePlayerStatistics', () => {
 		expect(stats.roundsWon).toHaveLength(1);
 		expect(stats.roundsWon[0].value).toBe(1); // Won 1 out of 2 rounds
 		expect(stats.roundsWon[0].percent).toBe(1); // 1/1 = 100% (only one player tracked)
-	});
-
-	it('calculates rounds by type correctly', () => {
-		const game = createMockGame({
-			id: 'g1',
-			rounds: [
-				{
-					roundNumber: 1,
-					type: RoundType.Normal,
-					participants: [
-						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
-						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
-					],
-					eyesRe: 120,
-					calculatePoints: () => [
-						{ playerId: 'p1', points: 10 },
-						{ playerId: 'p2', points: -10 }
-					]
-				},
-				{
-					roundNumber: 2,
-					type: RoundType.SoloAss,
-					isSolo: () => true,
-					participants: [
-						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
-						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
-					],
-					eyesRe: 130,
-					calculatePoints: () => [
-						{ playerId: 'p1', points: 15 },
-						{ playerId: 'p2', points: -15 }
-					]
-				}
-			]
-		});
-
-		const stats = calculatePlayerStatistics('p1', 'Alice', [game as any], []);
-
-		expect(stats.roundsByType).toHaveLength(2);
-		// Should have both Normal and Solo categories
-		const normalRound = stats.roundsByType.find((r) => r.type === 'Normal');
-		const soloRound = stats.roundsByType.find((r) => r.type === 'Solo');
-
-		expect(normalRound).toBeDefined();
-		expect(normalRound?.value).toBe(1);
-		expect(soloRound).toBeDefined();
-		expect(soloRound?.value).toBe(1);
 	});
 
 	it('filters aggregates to only include player data', () => {

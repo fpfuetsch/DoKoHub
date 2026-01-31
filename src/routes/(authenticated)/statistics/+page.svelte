@@ -134,42 +134,6 @@
 					{/if}
 				</StatsCard>
 
-				<StatsCard
-					title="Runden nach Typ"
-					loading={!stats?.roundsByType || stats.roundsByType.length === 0}
-				>
-					<PieChart
-						data={stats?.roundsByType ?? []}
-						key="type"
-						value="value"
-						props={{ pie: { motion: 'tween', sort: null } }}
-						c="color"
-						legend
-					/>
-				</StatsCard>
-
-				<StatsCard
-					title="Solorunden nach Typ"
-					loading={!stats?.soloRoundsByType || stats.soloRoundsByType.length === 0}
-				>
-					<PieChart
-						data={stats?.soloRoundsByType ?? []}
-						key="type"
-						value="value"
-						props={{ pie: { motion: 'tween', sort: null } }}
-						padding={{ bottom: 50 }}
-						c="color"
-						legend={{
-							classes: {
-								root: 'w-full',
-								items: 'gap-2 flex-wrap justify-center',
-								item: 'text-xs',
-								swatch: 'size-2'
-							}
-						}}
-					/>
-				</StatsCard>
-
 				<StatsCard title="Siegesrate je Rundentyp" loading={!stats?.winLostShareByType}>
 					<BarChart
 						data={stats?.winLostShareByType ?? []}

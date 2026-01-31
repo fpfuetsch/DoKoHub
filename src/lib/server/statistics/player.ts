@@ -10,8 +10,6 @@ import {
 	calculateCallGrouped,
 	calculateCallSuccessRate,
 	calculateRoundsWon,
-	calculateRoundsByType,
-	calculateSoloRoundsByType,
 	calculateWinLostShareByType,
 	calculateAvgPointsByGameType,
 	calculateSoloTypeShareByPlayer,
@@ -42,8 +40,6 @@ export interface PlayerStatistics {
 
 	// Round statistics
 	roundsWon: Array<{ player: string; value: number; percent: number; color?: string }>;
-	roundsByType: Array<{ type: string; value: number; percent: number; color?: string }>;
-	soloRoundsByType: Array<{ type: string; value: number; percent: number; color?: string }>;
 
 	// Round type performance
 	winLostShareByType: Array<Record<string, any>>;
@@ -120,8 +116,6 @@ export function calculatePlayerStatistics(
 
 		// Round statistics
 		roundsWon: calculateRoundsWon(playerOnlyAgg),
-		roundsByType: calculateRoundsByType(playerOnlyAgg),
-		soloRoundsByType: calculateSoloRoundsByType(playerOnlyAgg),
 
 		// Performance by type
 		winLostShareByType: calculateWinLostShareByType(playerOnlyAgg),
@@ -288,8 +282,6 @@ function createEmptyStatistics(): PlayerStatistics {
 		gamesPlayed: 0,
 		avgPointsPerGame: 0,
 		roundsWon: [],
-		roundsByType: [],
-		soloRoundsByType: [],
 		winLostShareByType: [],
 		avgPointsByGameType: [],
 		soloTypeShareByPlayer: [],
