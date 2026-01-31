@@ -6,13 +6,25 @@
 
 A web-based scorecard and game management application for tracking **Doppelkopf** card game sessions with groups of players.
 
-## Use Case
+<p align="center">
+  <img src="screens/screenshot-1.png" alt="Screenshot 1" width="32%" />
+  <img src="screens/screenshot-2.png" alt="Screenshot 2" width="32%" />
+  <img src="screens/screenshot-3.png" alt="Screenshot 3" width="32%" />
+</p>
 
-DoKoHub is designed for groups of friends or regular card game players who want to:
+<p align="center">
+  <img src="screens/screenshot-4.png" alt="Screenshot 4" width="32%" />
+  <img src="screens/screenshot-5.png" alt="Screenshot 5" width="32%" />
+  <img src="screens/screenshot-6.png" alt="Screenshot 6" width="32%" />
+</p>
+
+## Use cases
+
+DoKoHub is designed for groups of regular card game players who want to:
 
 - **Track games** across multiple sessions with consistent groups
 - **Manage players** and their memberships in different groups
-- **Record game statistics** including rounds, scores, team assignments, and special events (calls, bonuses)
+- **Record statistics** including rounds, scores, team assignments, and special events (calls, bonuses)
 - **Analyze performance** with visual statistics and cumulative scoring charts
 - **Invite players** to join groups and participate in games
 
@@ -48,6 +60,7 @@ Developed based on the official "Tunierspielregeln" (tournament rules) of the "G
 
 ### Statistics & Analytics
 
+- View stats per game, per group or personal stats
 - Point accumulation charts showing cumulative scores per player across rounds
 - Team distribution (Re vs. Kontra participation)
 - Win/loss records per player
