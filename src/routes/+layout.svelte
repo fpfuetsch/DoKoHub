@@ -14,6 +14,8 @@
 
 <svelte:head>
 	<link rel="icon" href={logo} />
+	<meta name="theme-color" content="#ef562f" />
+
 	<link rel="canonical" href={baseUrl} />
 
 	<title>{siteTitle}</title>
