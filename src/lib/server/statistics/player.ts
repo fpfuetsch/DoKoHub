@@ -206,7 +206,7 @@ function filterAggregatesForPlayer(agg: GameAggregates, playerId: string): GameA
 		playerSoloTypeCounts: filterMap(agg.playerSoloTypeCounts),
 		playerSoloTypeWins: filterMap(agg.playerSoloTypeWins),
 		playerSoloTypePoints: filterMap(agg.playerSoloTypePoints),
-		soloTypeCounts: agg.soloTypeCounts,
+		soloTypeCounts: agg.playerSoloTypeCounts.get(playerId) || new Map(),
 		callCountsMap: { [playerId]: agg.callCountsMap[playerId] || new Map() },
 		callWinsMap: { [playerId]: agg.callWinsMap[playerId] || new Map() },
 		pairs: [],
