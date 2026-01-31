@@ -97,6 +97,43 @@
 		sortedPlayers = shuffled;
 	};
 
+	const getSeatOrderIdsFromPlayers = (players: Player[], count: number) => {
+		const ids = players
+			.slice(0, count)
+			.map((player) => player?.id)
+			.filter(Boolean) as string[];
+		if (ids.length < count) return null;
+		return ids;
+	};
+
+	const findLatestGameForSeatOrder = (
+		seatOrder: string[],
+		seatCount: number
+	): { game: Game; index: number } | null => {
+		let latest: Game | null = null;
+		let latestIndex = -1;
+		games.forEach((game, index) => {
+			if (game.participants.length !== seatCount) return;
+			const ordered = [...game.participants].sort((a, b) => a.seatPosition - b.seatPosition);
+			const matches = ordered.every((participant, i) => participant.playerId === seatOrder[i]);
+			if (!matches) return;
+			if (!latest || game.createdAt > latest.createdAt) {
+				latest = game;
+				latestIndex = index;
+			}
+		});
+		return latest ? { game: latest, index: latestIndex } : null;
+	};
+
+	const seatOrderStatus = $derived.by(() => {
+		if (!gameModal) return null;
+		const seatCount = isFivePlayer ? 5 : 4;
+		const seatOrder = getSeatOrderIdsFromPlayers(sortedPlayers, seatCount);
+		if (!seatOrder) return null;
+		const match = findLatestGameForSeatOrder(seatOrder, seatCount);
+		return match?.game?.createdAt ? { date: match.game.createdAt, gamesAgo: match.index } : null;
+	});
+
 	const reorderPlayers = (fromIndex: number, toIndex: number) => {
 		if (fromIndex === toIndex) return;
 		const newList = [...sortedPlayers];
@@ -340,6 +377,19 @@
 				<p class="text-xs text-gray-500 dark:text-gray-400">
 					Verschiebe die Spieler, um deren Sitzposition <strong>im Uhrzeigersinn</strong> auszuwählen.
 				</p>
+				{#if seatOrderStatus}
+					<p class="flex items-center gap-1 text-xs text-secondary-600 dark:text-secondary-400">
+						<InfoCircleSolid class="h-4 w-4" />
+						In dieser Sitzordnung wurde zuletzt
+						{#if seatOrderStatus.gamesAgo === 0}
+							im letzten Spiel
+						{:else}
+							vor {seatOrderStatus.gamesAgo}
+							{seatOrderStatus.gamesAgo === 1 ? ' Spiel' : ' Spielen'}
+						{/if}
+						am {formatDateTime(seatOrderStatus.date)} gespielt.
+					</p>
+				{/if}
 
 				{#each [0, 1, 2, 3] as position}
 					<input type="hidden" name="player_{position}" value={sortedPlayers[position]?.id ?? ''} />
