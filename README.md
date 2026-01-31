@@ -11,7 +11,6 @@ A web-based scorecard and game management application for tracking **Doppelkopf*
   <img src="screens/screenshot-2.png" alt="Screenshot 2" width="32%" />
   <img src="screens/screenshot-3.png" alt="Screenshot 3" width="32%" />
 </p>
-
 <p align="center">
   <img src="screens/screenshot-4.png" alt="Screenshot 4" width="32%" />
   <img src="screens/screenshot-5.png" alt="Screenshot 5" width="32%" />
@@ -66,6 +65,7 @@ Developed based on the official "Tunierspielregeln" (tournament rules) of the "G
 - Win/loss records per player
 - Performance metrics across multiple games
 
-## Development Setup
+## Getting Started
 
-See [DEVELOPMENT.md](DEVELOPMENT.md) for detailed setup instructions, available commands, and development guidelines.
+- **Development Setup**: See [DEVELOPMENT.md](DEVELOPMENT.md) for detailed setup instructions, available commands, and development guidelines.
+- **Production Deployment**: See [DEPLOYMENT.md](DEPLOYMENT.md) for production deployment instructions using Docker Compose or manual setup.

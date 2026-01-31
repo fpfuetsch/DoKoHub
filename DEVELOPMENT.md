@@ -11,20 +11,21 @@ This document contains setup instructions and development guidelines for DoKoHub
 
 ### 1. Create environment file
 
+Copy the example environment file:
+
 ```bash
 cp .env.example .env.local
 ```
 
-Edit `.env.local` with your configuration:
+Edit `.env.local` with your configuration. See `.env.example` for all available options and documentation for each variable.
 
-```
-DATABASE_URL="postgresql://user:password@localhost:5432/dokohub"
-INVITATION_JWT_SECRET="your-secret-key"
-AUTH_JWT_SECRET="your-secret-key"
-GOOGLE_OAUTH_ID="your-google-oauth-id"
-GOOGLE_OAUTH_SECRET="your-google-oauth-secret"
-...
-```
+**Required variables:**
+
+- `DATABASE_URL` - PostgreSQL connection string
+- `AUTH_JWT_SECRET` - Secret for authentication tokens
+- `INVITATION_JWT_SECRET` - Secret for invitation tokens
+- `GOOGLE_CLIENT_ID` - Google OAuth Client ID
+- `GOOGLE_CLIENT_SECRET` - Google OAuth Client Secret
 
 ### 2. Start the development Postgres
 
