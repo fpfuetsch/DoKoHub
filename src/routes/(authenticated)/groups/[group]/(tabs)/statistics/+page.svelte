@@ -51,7 +51,9 @@
 					bodyClass="flex h-full flex-col items-center justify-center"
 				>
 					{#if stats?.gamesCount != null}
-						<p class="text-[8rem] font-bold text-secondary-600 dark:text-secondary-400">
+						<p
+							class="animate-scale-in text-[8rem] font-bold text-secondary-600 dark:text-secondary-400"
+						>
 							{stats.gamesCount}
 						</p>
 					{/if}
@@ -101,7 +103,9 @@
 					bodyClass="flex h-full flex-col items-center justify-center"
 				>
 					{#if stats?.roundsCount != null}
-						<p class="text-[8rem] font-bold text-secondary-600 dark:text-secondary-400">
+						<p
+							class="animate-scale-in text-[8rem] font-bold text-secondary-600 dark:text-secondary-400"
+						>
 							{stats.roundsCount}
 						</p>
 					{/if}

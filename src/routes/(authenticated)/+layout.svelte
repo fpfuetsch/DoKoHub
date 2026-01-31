@@ -19,11 +19,11 @@
 				</div>
 			</div>
 		</header>
-		<div class="flex-1 overflow-auto p-4 pb-24">
+		<div class="flex-1 overflow-auto p-4 pb-14">
 			{@render children()}
 		</div>
 	</div>
-	<div class="sticky bottom-0 w-full">
+	<div class="sticky bottom-0 z-1 w-full">
 		<BottomNav {activeUrl} position="absolute" classes={{ inner: 'grid-cols-3' }}>
 			<BottomNavItem btnName="Gruppen" href="/groups">
 				<UsersGroupSolid
