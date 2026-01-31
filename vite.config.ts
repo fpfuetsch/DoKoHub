@@ -18,7 +18,7 @@ const viteConfig = defineConfig({
 				display: 'standalone',
 				icons: [
 					{
-						src: '/src/lib/assets/dokohub.png',
+						src: '/dokohub.png',
 						sizes: '512x512',
 						type: 'image/png',
 						purpose: 'any maskable'
