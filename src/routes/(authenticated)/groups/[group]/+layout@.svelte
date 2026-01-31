@@ -26,6 +26,7 @@
 	import { page } from '$app/stores';
 	import { enhance, applyAction } from '$app/forms';
 	import type { SubmitFunction } from '@sveltejs/kit';
+	import { swipe } from '$lib/utils/swipe';
 
 	let { data, children } = $props();
 
@@ -46,6 +47,27 @@
 	const pathParts = $page.url.pathname.split('/');
 	const initialTab = pathParts[pathParts.length - 1] || 'games';
 	let selected = $state(initialTab);
+
+	const goToTabIndex = (index: number) => {
+		if (index < 0 || index >= tabs.length) return;
+		const tab = tabs[index];
+		selected = tab.name;
+		goto(`/groups/${groupId}/${tab.name}`);
+	};
+
+	const onSwipeLeft = () => {
+		const currentIndex = tabs.findIndex((tab) => tab.name === selected);
+		if (currentIndex < tabs.length - 1) {
+			goToTabIndex(currentIndex + 1);
+		}
+	};
+
+	const onSwipeRight = () => {
+		const currentIndex = tabs.findIndex((tab) => tab.name === selected);
+		if (currentIndex > 0) {
+			goToTabIndex(currentIndex - 1);
+		}
+	};
 
 	const handleRenameSubmit: SubmitFunction = () => {
 		return async ({ result }) => {
@@ -72,73 +94,76 @@
 	};
 </script>
 
-<header class="bg-white shadow-sm">
-	<div class="top-0 z-30 flex h-14 items-center px-2">
-		<Button
-			color="light"
-			size="sm"
-			class="flex h-10 w-10 items-center justify-center "
-			pill={true}
-			onclick={() => goto('/groups')}
-			aria-label="Zurück"
-		>
-			<ArrowLeftOutline class="h-6 w-6" />
-		</Button>
-		<h1 class="flex-1 truncate text-center text-2xl font-semibold text-primary">
-			{group ? group.name : ''}
-		</h1>
-		<Button
-			color="light"
-			size="sm"
-			class="flex h-10 w-10 items-center justify-center"
-			pill={true}
-			aria-label="Gruppenmenü"
-			id="group-menu"
-		>
-			<DotsVerticalOutline class="h-6 w-6" />
-		</Button>
-		<Dropdown simple triggeredBy="#group-menu">
-			<DropdownItem onclick={openRenameModal}>
-				<div class="flex items-center gap-2">
-					<EditOutline class="h-4 w-4" />
-					<span>Umbenennen</span>
-				</div>
-			</DropdownItem>
-			<DropdownItem onclick={() => (deleteModal = true)}>
-				<div class="flex items-center gap-2">
-					<TrashBinSolid class="h-4 w-4" />
-					<span>Löschen</span>
-				</div>
-			</DropdownItem>
-		</Dropdown>
-	</div>
+<div class="min-h-full" use:swipe={{ onSwipeLeft, onSwipeRight }}>
+	<header class="bg-white shadow-sm">
+		<div class="top-0 z-30 flex h-14 items-center px-2">
+			<Button
+				color="light"
+				size="sm"
+				class="flex h-10 w-10 items-center justify-center "
+				pill={true}
+				onclick={() => goto('/groups')}
+				aria-label="Zurück"
+			>
+				<ArrowLeftOutline class="h-6 w-6" />
+			</Button>
+			<h1 class="flex-1 truncate text-center text-2xl font-semibold text-primary">
+				{group ? group.name : ''}
+			</h1>
+			<Button
+				color="light"
+				size="sm"
+				class="flex h-10 w-10 items-center justify-center"
+				pill={true}
+				aria-label="Gruppenmenü"
+				id="group-menu"
+			>
+				<DotsVerticalOutline class="h-6 w-6" />
+			</Button>
+			<Dropdown simple triggeredBy="#group-menu">
+				<DropdownItem onclick={openRenameModal}>
+					<div class="flex items-center gap-2">
+						<EditOutline class="h-4 w-4" />
+						<span>Umbenennen</span>
+					</div>
+				</DropdownItem>
+				<DropdownItem onclick={() => (deleteModal = true)}>
+					<div class="flex items-center gap-2">
+						<TrashBinSolid class="h-4 w-4" />
+						<span>Löschen</span>
+					</div>
+				</DropdownItem>
+			</Dropdown>
+		</div>
 
-	<!-- Tab Navigation -->
-	<div class="top-14 z-20">
-		<Tabs
-			tabStyle="underline"
-			classes={{ content: 'hidden' }}
-			divider={false}
-			bind:selected
-			class="flex justify-center"
-		>
-			{#each tabs as tab}
-				<TabItem key={tab.name} onclick={() => goto(`/groups/${groupId}/${tab.name}`)}>
-					{#snippet titleSlot()}
-						<div class="flex items-center gap-2">
-							<tab.icon size="md" />
-							{tab.label}
-						</div>
-					{/snippet}
-				</TabItem>
-			{/each}
-		</Tabs>
-	</div>
-</header>
+		<!-- Tab Navigation -->
+		<div class="top-14 z-20">
+			<Tabs
+				tabStyle="underline"
+				classes={{ content: 'hidden' }}
+				divider={false}
+				bind:selected
+				class="flex justify-center"
+			>
+				{#each tabs as tab}
+					<TabItem key={tab.name} onclick={() => goto(`/groups/${groupId}/${tab.name}`)}>
+						{#snippet titleSlot()}
+							<div class="flex items-center gap-2">
+								<tab.icon size="md" />
+								{tab.label}
+							</div>
+						{/snippet}
+					</TabItem>
+				{/each}
+			</Tabs>
+		</div>
+	</header>
 
-<div class="w-full p-4">
-	{@render children()}
+	<div class="w-full p-4">
+		{@render children()}
+	</div>
 </div>
+
 <Modal bind:open={renameModal} size="xs" autoclose={false}>
 	<form method="POST" action="/groups/{groupId}?/rename" use:enhance={handleRenameSubmit}>
 		<div class="flex flex-col space-y-4">

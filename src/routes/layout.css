@@ -34,6 +34,15 @@
 @source '../node_modules/layerchart/dist';
 
 @layer base {
+	html,
+	body {
+		height: 100%;
+	}
+
+	body {
+		min-height: 100%;
+	}
+
 	button,
 	[type='button'],
 	[type='submit'],
