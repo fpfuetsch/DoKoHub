@@ -1,5 +1,7 @@
-# Build stage
+#### BUILDER STAGE ####
 FROM node:24-alpine AS builder
+
+# Set working directory
 WORKDIR /app
 
 # Install dependencies
@@ -12,10 +14,14 @@ COPY . .
 # Build the SvelteKit app
 RUN npm run build
 
-# Production image
+#### RUNNER STAGE ####
 FROM node:24-alpine AS runner
-ENV NODE_ENV=production
+
+# Set working directory
 WORKDIR /app
+
+# Set environment to production
+ENV NODE_ENV=production
 
 # Install only production dependencies
 COPY package*.json ./
@@ -25,6 +31,6 @@ RUN npm ci --omit=dev --ignore-scripts
 COPY --from=builder /app/build ./build
 
 # Default port used by SvelteKit adapter-node output
-EXPOSE 4173
+EXPOSE 5173
 
 CMD ["node", "build"]
