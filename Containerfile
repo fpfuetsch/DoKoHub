@@ -30,7 +30,15 @@ RUN npm ci --omit=dev --ignore-scripts
 # Copy built output from builder
 COPY --from=builder /app/build ./build
 
+# Copy drizzle configuration and migrations
+COPY drizzle ./drizzle
+COPY drizzle.config.ts ./drizzle.config.ts
+
+# Copy entrypoint script with execute permissions
+COPY entrypoint.sh ./entrypoint.sh
+
 # Default port used by SvelteKit adapter-node output
+ENV PORT=5173
 EXPOSE 5173
 
-CMD ["node", "build"]
+ENTRYPOINT ["/app/entrypoint.sh"]

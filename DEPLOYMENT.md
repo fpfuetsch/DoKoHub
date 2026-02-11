@@ -5,91 +5,102 @@ This document provides instructions for deploying DoKoHub to production using Do
 ## Prerequisites
 
 - Docker and Docker Compose
-- Domain name (optional, but recommended for OAuth)
+- Domain name + TLS Certificates
+- Reverse Proxy to expose the app
 - Google OAuth credentials (for authentication)
 
-## Deployment Steps
+## Deployment Options
 
-### 1. Clone the repository
+### Option 1: Use Prebuilt Image from GitHub Registry
 
-```bash
-git clone https://github.com/fpfuetsch/dokohub.git
-cd dokohub
-```
+1. Download the example compose.yaml and .env file:
 
-### 2. Create environment file
+   ```bash
+   curl -o compose.yaml https://raw.githubusercontent.com/fpfuetsch/dokohub/main/example.compose.yaml && \
+   curl -o .env https://raw.githubusercontent.com/fpfuetsch/dokohub/main/.env.example
+   ```
 
-Copy the example environment file and edit it with your configuration:
+1. Fill `.env` file (see [Prepare Environment File](#prepare-environment-file) below)
 
-```bash
-cp .env.example .env
-```
+1. Optional: Edit `compose.yaml` to use the desired image tag:
 
-Edit `.env` and configure the following variables:
+   ```yaml
+   services:
+     app:
+   	 image: ghcr.io/fpfuetsch/dokohub:<tag>
+   ```
 
-```bash
-# Database Configuration
-POSTGRES_USER=dokohub
-POSTGRES_PASSWORD=<generate-secure-password>
-POSTGRES_DB=dokohub
-DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+1. Deploy:
+   ```bash
+   docker compose up -d
+   ```
 
-# Application Configuration
-APP_PORT=5173
-APP_ORIGIN=https://example.net  # Your production URL
+### Option 2: Build from Source
 
-# Authentication Secrets (generate secure random strings)
-AUTH_JWT_SECRET=<generate-random-secrets>
-INVITATION_JWT_SECRET=<generate-random-secrets>
+1. Clone the repository:
 
-# Google OAuth Configuration
-GOOGLE_CLIENT_ID=<your-google-client-id>
-GOOGLE_CLIENT_SECRET=<your-google-client-secret>
-```
+   ```bash
+   git clone https://github.com/fpfuetsch/dokohub.git
+   cd dokohub
+   ```
 
-**Important Security Notes:**
+2. Copy .env.example
 
-- Generate strong random secrets for `AUTH_JWT_SECRET` and `INVITATION_JWT_SECRET`
-- Use a strong password for `POSTGRES_PASSWORD`
+   ```bash
+   cp .env.example .env
+   ```
 
-### 3. Generate secrets
+3. Fill `.env` file (see [Prepare Environment File](#prepare-environment-file) below)
 
-You can generate secure secrets using:
+4. Build and deploy:
+   ```bash
+   docker compose build
+   docker compose up -d
+   ```
 
-```bash
-# For AUTH_JWT_SECRET, INVITATION_JWT_SECRET and POSTGRES_PASSWORD
-openssl rand -base64 48
-```
+## Expose deployment
 
-### 4. Set up Google OAuth
+For production, set up a reverse proxy like NGINX for HTTPS to expose the local app port.
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select an existing one
-3. Enable the Google+ API
-4. Go to "Credentials" → "Create Credentials" → "OAuth 2.0 Client ID"
-5. Set application type to "Web application"
-6. Add authorized redirect URI: `https://example.net/auth/google/callback`
-7. Copy the Client ID and Client Secret to your `.env` file
+## Setup Database Backups
 
-### 5. Deploy with Docker Compose
+Regularly back up the Postgres DB to prevent data loss.
 
-```bash
-docker compose up -d
-```
+## Prepare Environment File
 
-This will:
+1. Generate secrets for authentication and database:
 
-- Start a PostgreSQL database
-- Run database migrations
-- Build and start the DoKoHub application
-- Expose the app on `http://127.0.0.1:5173`
+   ```bash
+   openssl rand -base64 48
+   ```
 
-**Note:** For production, you should set up a reverse proxy (like Nginx or Caddy) to handle HTTPS and expose the application securely.
+   Use these for `AUTH_JWT_SECRET`, `INVITATION_JWT_SECRET`, and `POSTGRES_PASSWORD` in your `.env` file.
 
-### 6. Verify deployment
+1. Set up Google OAuth credentials:
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a project or select an existing one
+   - Enable Google+ API
+   - Create OAuth 2.0 Client ID
+   - Add authorized redirect URI: `https://example.net/auth/google/callback`
+   - Copy Client ID and Secret to `.env` as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
 
-Visit `http://127.0.0.1:5173` (or your domain if you've set up a reverse proxy) and verify that:
+1. Edit `.env` and configure:
 
-- The application loads correctly
-- Google OAuth login works
-- You can create groups and games
+   ```bash
+   # Application Configuration
+   ORIGIN=https://example.net # Your production URL
+
+   # Database Configuration
+   POSTGRES_USER=dokohub
+   POSTGRES_PASSWORD=<generate-secure-password>
+   POSTGRES_DB=dokohub
+   DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+
+   # Authentication Secrets
+   AUTH_JWT_SECRET=<generate-random-secrets>
+   INVITATION_JWT_SECRET=<generate-random-secrets>
+
+   # Google OAuth Configuration
+   GOOGLE_CLIENT_ID=<your-google-client-id>
+   GOOGLE_CLIENT_SECRET=<your-google-client-secret>
+   ```
