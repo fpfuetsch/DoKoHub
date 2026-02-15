@@ -9,14 +9,15 @@
 		RocketOutline,
 		EyeOutline,
 		EyeSlashOutline,
-		AwardOutline
+		AwardOutline,
+		LightbulbOutline
 	} from 'flowbite-svelte-icons';
 	import { enhance, applyAction } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import type { PageProps } from './$types';
 	import { Game } from '$lib/domain/game';
-	import { Round, type GameRoundParticipant } from '$lib/domain/round';
+	import { Round, type GameRoundParticipant, type RoundPointsExplanation } from '$lib/domain/round';
 	import {
 		RoundType as RoundTypeEnum,
 		SoloType as SoloTypeEnum,
@@ -38,6 +39,13 @@
 	type MandatorySoloSlot = {
 		participant: (typeof sortedParticipants)[number];
 		entry?: RoundWithPoints;
+	};
+	type PointDetail = { label: string; points: number };
+	type ExplanationScoreRow = {
+		label: string;
+		re: number;
+		kontra: number;
+		details?: string[];
 	};
 
 	const allRoundsWithPoints: RoundWithPoints[] = $derived(
@@ -223,8 +231,93 @@
 	let showSum = $state(false);
 	let editingRoundId = $state<string | null>(null);
 	let editingMandatorySolo = $state(false);
+	let pointsExplanationModal = $state(false);
 	const bonusesAllowed = $derived(
 		roundType === RoundTypeEnum.Normal || roundType === RoundTypeEnum.HochzeitNormal
+	);
+
+	const activeRoundEntry = $derived(
+		editingRoundId
+			? (allRoundsWithPoints.find((entry) => entry.round.id === editingRoundId) ?? null)
+			: null
+	);
+
+	const activeRoundExplanation = $derived(
+		activeRoundEntry ? activeRoundEntry.round.calculatePointsExplanation() : null
+	);
+
+	const formatScoreDetailLines = (
+		reDetails: PointDetail[],
+		kontraDetails: PointDetail[]
+	): string[] => [
+		...reDetails.map((detail) => `Re: ${detail.label} ${formatSigned(detail.points)}`),
+		...kontraDetails.map((detail) => `Kontra: ${detail.label} ${formatSigned(detail.points)}`)
+	];
+
+	const buildExplanationScoreRows = (
+		explanation: RoundPointsExplanation
+	): ExplanationScoreRow[] => {
+		const soloMultiplierDelta = explanation.soloRePoints - explanation.re.totalPoints;
+
+		const scoreRows: Array<ExplanationScoreRow & { hasPoints: boolean }> = [
+			{
+				label: 'Basispunkte',
+				re: explanation.re.baseDelta,
+				kontra: explanation.kontra.baseDelta,
+				hasPoints: explanation.re.basePoints > 0 || explanation.kontra.basePoints > 0,
+				details: formatScoreDetailLines(explanation.re.baseDetails, explanation.kontra.baseDetails)
+			},
+			{
+				label: 'An-/Absagen',
+				re: explanation.re.callDelta,
+				kontra: explanation.kontra.callDelta,
+				hasPoints: explanation.callPoints > 0,
+				details: formatScoreDetailLines(explanation.re.callDetails, explanation.kontra.callDetails)
+			},
+			{
+				label: 'Gegenansagen erfüllt',
+				re: explanation.re.overcomplianceDelta,
+				kontra: explanation.kontra.overcomplianceDelta,
+				hasPoints:
+					explanation.re.overcompliancePoints > 0 || explanation.kontra.overcompliancePoints > 0,
+				details: formatScoreDetailLines(
+					explanation.re.overcomplianceDetails,
+					explanation.kontra.overcomplianceDetails
+				)
+			},
+			{
+				label: 'Bonuspunkte',
+				re: explanation.re.bonusDelta,
+				kontra: explanation.kontra.bonusDelta,
+				hasPoints: explanation.re.bonusPoints > 0 || explanation.kontra.bonusPoints > 0,
+				details: formatScoreDetailLines(
+					explanation.re.bonusDetails,
+					explanation.kontra.bonusDetails
+				)
+			},
+			{
+				label: 'Solo-Multiplikator',
+				re: soloMultiplierDelta,
+				kontra: 0,
+				hasPoints: soloMultiplierDelta !== 0
+			}
+		];
+
+		return scoreRows.filter((row) => row.hasPoints);
+	};
+
+	const activeRoundScoreRows = $derived(
+		activeRoundExplanation ? buildExplanationScoreRows(activeRoundExplanation) : []
+	);
+
+	const activeRoundResultLabel = $derived(
+		activeRoundExplanation
+			? activeRoundExplanation.reWon
+				? 'Re gewinnt'
+				: activeRoundExplanation.kontraWon
+					? 'Kontra gewinnt'
+					: 'Unentschieden'
+			: ''
 	);
 
 	$effect(() => {
@@ -242,6 +335,12 @@
 	$effect(() => {
 		if (!hasUpcomingRound) {
 			showSum = true;
+		}
+	});
+
+	$effect(() => {
+		if (!roundModal) {
+			pointsExplanationModal = false;
 		}
 	});
 
@@ -388,6 +487,8 @@
 		}
 		return roundType;
 	};
+
+	const formatSigned = (value: number): string => (value > 0 ? `+${value}` : `${value}`);
 
 	const loadRoundIntoForm = (entry: RoundWithPoints) => {
 		actionForm = undefined;
@@ -1342,12 +1443,110 @@
 				</Alert>
 			{/if}
 
-			<div class="mt-2 flex justify-end gap-3">
-				<Button type="button" color="light" onclick={() => (roundModal = false)}>Abbrechen</Button>
-				<Button type="submit" disabled={!canEditRounds}>Speichern</Button>
+			<div class="mt-2 flex items-center justify-between gap-3">
+				<div class="ml-auto flex items-center gap-3">
+					{#if editingRoundId && activeRoundExplanation}
+						<Button
+							type="button"
+							pill
+							color="light"
+							onclick={() => (pointsExplanationModal = true)}
+							aria-label="Punkte erklären"
+							title="Punkte erklären"
+							class="h-10! w-10! min-w-0! rounded-full! p-0!"
+						>
+							<LightbulbOutline class="h-5 w-5 shrink-0 text-black" />
+						</Button>
+					{/if}
+					<Button type="submit" disabled={!canEditRounds}>Speichern</Button>
+				</div>
 			</div>
 		</div>
 	</form>
+</Modal>
+
+<Modal bind:open={pointsExplanationModal} size="xs" autoclose={false}>
+	{#if activeRoundEntry && activeRoundExplanation}
+		{@const explanation = activeRoundExplanation}
+		<div class="flex flex-col space-y-4">
+			<h3 class="text-xl font-medium text-gray-900 dark:text-white">
+				Punkteerklärung · Runde {activeRoundEntry.round.roundNumber}
+			</h3>
+
+			<div
+				class="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800/50"
+			>
+				<h4 class="text-sm font-semibold text-gray-900 dark:text-white">Gewinner</h4>
+				<p class="mt-1 text-xs text-gray-700 dark:text-gray-300">
+					Re: {activeRoundEntry.round.eyesRe} von {explanation.reThreshold} benötigten Punkten
+				</p>
+				<p class="mt-1 text-xs text-gray-700 dark:text-gray-300">
+					Kontra: {240 - activeRoundEntry.round.eyesRe} von {explanation.kontraThreshold}
+					benötigten Punkten
+				</p>
+				<p class="mt-1 text-xs font-medium text-gray-800 dark:text-gray-200">
+					Ergebnis:
+					{activeRoundResultLabel}
+				</p>
+			</div>
+
+			<div
+				class="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800/50"
+			>
+				<h4 class="text-sm font-semibold text-gray-900 dark:text-white">Punkte-Zusammensetzung</h4>
+				{#if activeRoundScoreRows.length > 0}
+					<div class="mt-2 overflow-x-auto">
+						<table class="min-w-full text-xs text-gray-700 dark:text-gray-300">
+							<thead>
+								<tr class="border-b border-gray-200 dark:border-gray-700">
+									<th class="px-2 py-2 text-left font-semibold">Typ</th>
+									<th class="px-2 py-2 text-right font-semibold">Re</th>
+									<th class="px-2 py-2 text-right font-semibold">Kontra</th>
+								</tr>
+							</thead>
+							<tbody>
+								{#each activeRoundScoreRows as row}
+									<tr class="border-b border-gray-100 last:border-0 dark:border-gray-800">
+										<td class="px-2 py-2">
+											<div>{row.label}</div>
+											{#if row.details && row.details.length > 0}
+												<div class="mt-1 space-y-0.5 text-[11px] text-gray-500 dark:text-gray-400">
+													{#each row.details as detail}
+														<div>{detail}</div>
+													{/each}
+												</div>
+											{/if}
+										</td>
+										<td class="px-2 py-2 text-right font-medium">{formatSigned(row.re)}</td>
+										<td class="px-2 py-2 text-right font-medium">{formatSigned(row.kontra)}</td>
+									</tr>
+								{/each}
+								<tr class="border-t-2 border-gray-300 dark:border-gray-600">
+									<td class="px-2 py-2 font-semibold">Summe</td>
+									<td class="px-2 py-2 text-right font-semibold"
+										>{formatSigned(explanation.soloRePoints)}</td
+									>
+									<td class="px-2 py-2 text-right font-semibold">
+										{formatSigned(explanation.kontra.totalPoints)}
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				{:else}
+					<p class="mt-1 text-xs text-gray-700 dark:text-gray-300">
+						Keine Punkte-Subpunkte in dieser Runde.
+					</p>
+				{/if}
+			</div>
+
+			<div class="flex justify-end">
+				<Button type="button" color="primary" onclick={() => (pointsExplanationModal = false)}>
+					Schließen
+				</Button>
+			</div>
+		</div>
+	{/if}
 </Modal>
 
 <Modal bind:open={callsEditModal} size="xs" autoclose={false}>

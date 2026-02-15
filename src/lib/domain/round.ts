@@ -43,6 +43,36 @@ export interface RoundPoints {
 	result: RoundResultEnumValue;
 }
 
+export interface TeamPointBreakdown {
+	basePoints: number;
+	baseDetails: { label: string; points: number }[];
+	opponentBasePoints: number;
+	baseDelta: number;
+	callDelta: number;
+	callDetails: { label: string; points: number }[];
+	overcompliancePoints: number;
+	overcomplianceDetails: { label: string; points: number }[];
+	opponentOvercompliancePoints: number;
+	overcomplianceDelta: number;
+	bonusPoints: number;
+	bonusDetails: { label: string; points: number }[];
+	opponentBonusPoints: number;
+	bonusDelta: number;
+	totalPoints: number;
+}
+
+export interface RoundPointsExplanation {
+	reThreshold: number;
+	kontraThreshold: number;
+	reWon: boolean;
+	kontraWon: boolean;
+	callPoints: number;
+	isSolo: boolean;
+	re: TeamPointBreakdown;
+	kontra: TeamPointBreakdown;
+	soloRePoints: number;
+}
+
 export class Round implements RoundData {
 	id: string;
 	roundNumber: number;
@@ -192,68 +222,107 @@ export class Round implements RoundData {
 	 * Returns RoundPoints array where winning team gets positive points and losing team gets negative
 	 */
 	calculatePoints(): RoundPoints[] {
-		// Calculate required points for each team to win
-		const { reThreshold, kontraThreshold } = this.calculateThresholds();
-
-		// Determine if RE or KONTRA won
-		const reWon = this.eyesRe >= reThreshold;
-		const kontraWon = 240 - this.eyesRe >= kontraThreshold;
-
-		let rePoints = 0;
-		let kontraPoints = 0;
-
-		// Calculate base points per team (always calculated)
-		const reBasePoints = this.calculateBasePointsForTeam(Team.RE, reWon);
-		const kontraBasePoints = this.calculateBasePointsForTeam(Team.KONTRA, kontraWon);
-		rePoints = reBasePoints - kontraBasePoints;
-		kontraPoints = kontraBasePoints - reBasePoints;
-
-		// Calculate call points (only if somebody won)
-		const callPoints = reWon || kontraWon ? this.calculateCallPoints() : 0;
-		if (reWon) {
-			rePoints += callPoints;
-			kontraPoints -= callPoints;
-		} else if (kontraWon) {
-			kontraPoints += callPoints;
-			rePoints -= callPoints;
-		}
-
-		// Calculate overcompliance points per team (always calculated)
-		const reOvercompliance = this.calculateOvercompliancePointsForTeam(Team.RE);
-		const kontraOvercompliance = this.calculateOvercompliancePointsForTeam(Team.KONTRA);
-		rePoints += reOvercompliance - kontraOvercompliance;
-		kontraPoints += kontraOvercompliance - reOvercompliance;
-
-		// Calculate bonus points per team (when available)
-		const reBonusPoints = this.calculateBonusPointsForTeam(Team.RE, reWon);
-		const kontraBonusPoints = this.calculateBonusPointsForTeam(Team.KONTRA, kontraWon);
-		rePoints += reBonusPoints - kontraBonusPoints;
-		kontraPoints += kontraBonusPoints - reBonusPoints;
-
-		// In solo games (including stille and ungeklärte hochzeit), the solo player (RE) gets 3x the points
-		const isSolo =
-			this.isSolo() ||
-			this.type === RoundType.HochzeitStill ||
-			this.type === RoundType.HochzeitUngeklaert;
-		const soloRePoints = isSolo ? rePoints * 3 : rePoints;
+		const explanation = this.calculatePointsExplanation();
 
 		// Distribute points to players
 		return this.participants.map((p) => ({
 			playerId: p.playerId,
-			points: p.team === Team.RE ? soloRePoints : kontraPoints,
+			points: p.team === Team.RE ? explanation.soloRePoints : explanation.kontra.totalPoints,
 			result:
 				p.team === Team.RE
-					? reWon
+					? explanation.reWon
 						? RoundResult.WON
-						: kontraWon
+						: explanation.kontraWon
 							? RoundResult.LOST
 							: RoundResult.DRAW
-					: kontraWon
+					: explanation.kontraWon
 						? RoundResult.WON
-						: reWon
+						: explanation.reWon
 							? RoundResult.LOST
 							: RoundResult.DRAW
 		}));
+	}
+
+	calculatePointsExplanation(): RoundPointsExplanation {
+		const { reThreshold, kontraThreshold } = this.calculateThresholds();
+
+		const reWon = this.eyesRe >= reThreshold;
+		const kontraWon = 240 - this.eyesRe >= kontraThreshold;
+
+		const reBasePoints = this.calculateBasePointsForTeam(Team.RE, reWon);
+		const kontraBasePoints = this.calculateBasePointsForTeam(Team.KONTRA, kontraWon);
+
+		const callPoints = reWon || kontraWon ? this.calculateCallPoints() : 0;
+		const reCallDelta = reWon ? callPoints : kontraWon ? -callPoints : 0;
+		const kontraCallDelta = kontraWon ? callPoints : reWon ? -callPoints : 0;
+
+		const reOvercompliance = this.calculateOvercompliancePointsForTeam(Team.RE);
+		const kontraOvercompliance = this.calculateOvercompliancePointsForTeam(Team.KONTRA);
+		const reOvercomplianceDelta = reOvercompliance - kontraOvercompliance;
+		const kontraOvercomplianceDelta = kontraOvercompliance - reOvercompliance;
+
+		const reBonusPoints = this.calculateBonusPointsForTeam(Team.RE, reWon);
+		const kontraBonusPoints = this.calculateBonusPointsForTeam(Team.KONTRA, kontraWon);
+		const reBonusDelta = reBonusPoints - kontraBonusPoints;
+		const kontraBonusDelta = kontraBonusPoints - reBonusPoints;
+
+		const reTotalPoints =
+			reBasePoints - kontraBasePoints + reCallDelta + reOvercomplianceDelta + reBonusDelta;
+		const kontraTotalPoints =
+			kontraBasePoints -
+			reBasePoints +
+			kontraCallDelta +
+			kontraOvercomplianceDelta +
+			kontraBonusDelta;
+
+		const isSolo =
+			this.isSolo() ||
+			this.type === RoundType.HochzeitStill ||
+			this.type === RoundType.HochzeitUngeklaert;
+
+		return {
+			reThreshold,
+			kontraThreshold,
+			reWon,
+			kontraWon,
+			callPoints,
+			isSolo,
+			re: {
+				basePoints: reBasePoints,
+				baseDetails: this.calculateBaseDetailsForTeam(Team.RE, reWon),
+				opponentBasePoints: kontraBasePoints,
+				baseDelta: reBasePoints - kontraBasePoints,
+				callDelta: reCallDelta,
+				callDetails: this.calculateCallDetailsForTeam(Team.RE),
+				overcompliancePoints: reOvercompliance,
+				overcomplianceDetails: this.calculateOvercomplianceDetailsForTeam(Team.RE),
+				opponentOvercompliancePoints: kontraOvercompliance,
+				overcomplianceDelta: reOvercomplianceDelta,
+				bonusPoints: reBonusPoints,
+				bonusDetails: this.calculateBonusDetailsForTeam(Team.RE, reWon),
+				opponentBonusPoints: kontraBonusPoints,
+				bonusDelta: reBonusDelta,
+				totalPoints: reTotalPoints
+			},
+			kontra: {
+				basePoints: kontraBasePoints,
+				baseDetails: this.calculateBaseDetailsForTeam(Team.KONTRA, kontraWon),
+				opponentBasePoints: reBasePoints,
+				baseDelta: kontraBasePoints - reBasePoints,
+				callDelta: kontraCallDelta,
+				callDetails: this.calculateCallDetailsForTeam(Team.KONTRA),
+				overcompliancePoints: kontraOvercompliance,
+				overcomplianceDetails: this.calculateOvercomplianceDetailsForTeam(Team.KONTRA),
+				opponentOvercompliancePoints: reOvercompliance,
+				overcomplianceDelta: kontraOvercomplianceDelta,
+				bonusPoints: kontraBonusPoints,
+				bonusDetails: this.calculateBonusDetailsForTeam(Team.KONTRA, kontraWon),
+				opponentBonusPoints: reBonusPoints,
+				bonusDelta: kontraBonusDelta,
+				totalPoints: kontraTotalPoints
+			},
+			soloRePoints: isSolo ? reTotalPoints * 3 : reTotalPoints
+		};
 	}
 
 	private calculateThresholds(): { reThreshold: number; kontraThreshold: number } {
@@ -344,89 +413,117 @@ export class Round implements RoundData {
 	}
 
 	private calculateBasePointsForTeam(team: TeamEnumValue, won: boolean): number {
-		let points = 0;
+		return this.calculateBaseDetailsForTeam(team, won).reduce(
+			(sum, detail) => sum + detail.points,
+			0
+		);
+	}
+
+	private calculateBaseDetailsForTeam(
+		team: TeamEnumValue,
+		won: boolean
+	): { label: string; points: number }[] {
+		const details: { label: string; points: number }[] = [];
 		const enemyEyes = team === Team.RE ? 240 - this.eyesRe : this.eyesRe;
 
-		// Win point
-		if (won) {
-			points += 1;
-		}
+		if (won) details.push({ label: 'Sieg', points: 1 });
+		if (enemyEyes < 90) details.push({ label: 'Gegner unter 90', points: 1 });
+		if (enemyEyes < 60) details.push({ label: 'Gegner unter 60', points: 1 });
+		if (enemyEyes < 30) details.push({ label: 'Gegner unter 30', points: 1 });
+		if (enemyEyes === 0) details.push({ label: 'Gegner schwarz', points: 1 });
 
-		// Points for high eye counts against enemy
-		if (enemyEyes < 90) points += 1;
-		if (enemyEyes < 60) points += 1;
-		if (enemyEyes < 30) points += 1;
-		if (enemyEyes === 0) points += 1;
-
-		return points;
+		return details;
 	}
 
 	private calculateCallPoints(): number {
-		let points = 0;
+		const reCallPoints = this.calculateCallDetailsForTeam(Team.RE).reduce(
+			(sum, detail) => sum + detail.points,
+			0
+		);
+		const kontraCallPoints = this.calculateCallDetailsForTeam(Team.KONTRA).reduce(
+			(sum, detail) => sum + detail.points,
+			0
+		);
 
-		// Points for fulfilled calls (Absagen) - combined for whoever won
-		const reCalls = this.getCallsForTeam(Team.RE);
-		const kontraCalls = this.getCallsForTeam(Team.KONTRA);
+		return reCallPoints + kontraCallPoints;
+	}
 
-		// Ansagen points
-		if (reCalls.RE) points += 2;
-		if (kontraCalls.KONTRA) points += 2;
+	private calculateCallDetailsForTeam(team: TeamEnumValue): { label: string; points: number }[] {
+		const teamCalls = this.getCallsForTeam(team);
+		const details: { label: string; points: number }[] = [];
 
-		// Absagen points - each absage type counts as 1 point
-		if (reCalls.KEINE90) points += 1;
-		if (reCalls.KEINE60) points += 1;
-		if (reCalls.KEINE30) points += 1;
-		if (reCalls.SCHWARZ) points += 1;
-		if (kontraCalls.KEINE90) points += 1;
-		if (kontraCalls.KEINE60) points += 1;
-		if (kontraCalls.KEINE30) points += 1;
-		if (kontraCalls.SCHWARZ) points += 1;
+		if (team === Team.RE && teamCalls.RE) details.push({ label: 'Re', points: 2 });
+		if (team === Team.KONTRA && teamCalls.KONTRA) details.push({ label: 'Kontra', points: 2 });
 
-		return points;
+		if (teamCalls.KEINE90) details.push({ label: 'K90', points: 1 });
+		if (teamCalls.KEINE60) details.push({ label: 'K60', points: 1 });
+		if (teamCalls.KEINE30) details.push({ label: 'Keine 30', points: 1 });
+		if (teamCalls.SCHWARZ) details.push({ label: 'Schwarz', points: 1 });
+
+		return details;
 	}
 
 	private calculateOvercompliancePointsForTeam(team: TeamEnumValue): number {
-		let points = 0;
+		return this.calculateOvercomplianceDetailsForTeam(team).reduce(
+			(sum, detail) => sum + detail.points,
+			0
+		);
+	}
+
+	private calculateOvercomplianceDetailsForTeam(
+		team: TeamEnumValue
+	): { label: string; points: number }[] {
+		const details: { label: string; points: number }[] = [];
 
 		const enemyTeam = team === Team.RE ? Team.KONTRA : Team.RE;
 		const enemyCalls = this.getCallsForTeam(enemyTeam);
 		const eyes = team === Team.RE ? this.eyesRe : 240 - this.eyesRe;
 
-		if (enemyCalls.KEINE90 && eyes >= 120) points += 1; // 120 eyes against "keine 90"
-		if (enemyCalls.KEINE60 && eyes >= 90) points += 1; // 90 eyes against "keine 60"
-		if (enemyCalls.KEINE30 && eyes >= 60) points += 1; // 60 eyes against "keine 30"
-		if (enemyCalls.SCHWARZ && eyes >= 30) points += 1; // 30 eyes against "schwarz"
+		if (enemyCalls.KEINE90 && eyes >= 120) details.push({ label: '120 gegen K90', points: 1 });
+		if (enemyCalls.KEINE60 && eyes >= 90) details.push({ label: '90 gegen K60', points: 1 });
+		if (enemyCalls.KEINE30 && eyes >= 60) details.push({ label: '60 gegen Keine 30', points: 1 });
+		if (enemyCalls.SCHWARZ && eyes >= 30) details.push({ label: '30 gegen Schwarz', points: 1 });
 
-		return points;
+		return details;
 	}
 
 	private calculateBonusPointsForTeam(team: TeamEnumValue, won: boolean): number {
-		let points = 0;
+		return this.calculateBonusDetailsForTeam(team, won).reduce(
+			(sum, detail) => sum + detail.points,
+			0
+		);
+	}
 
-		// Only award bonus points for normal rounds and normal hochzeit
+	private calculateBonusDetailsForTeam(
+		team: TeamEnumValue,
+		won: boolean
+	): { label: string; points: number }[] {
+		const details: { label: string; points: number }[] = [];
+
 		const bonusesAllowed = this.type === RoundType.Normal || this.type === RoundType.HochzeitNormal;
-		if (!bonusesAllowed) return 0;
+		if (!bonusesAllowed) return details;
 
-		// Kreuz damen: +1 wenn KONTRA gegen RE gewinnt
 		if (team === Team.KONTRA && won) {
-			points += 1;
+			details.push({ label: 'Sieg gegen Kreuz-Damen', points: 1 });
 		}
 
-		// Collect all bonuses for team members
+		let fuchs = 0;
+		let doko = 0;
+		let karlchen = 0;
+
 		for (const participant of this.participants) {
-			if (participant.team === team) {
-				for (const bonus of participant.bonuses) {
-					if (
-						bonus.bonusType === BonusType.Doko ||
-						bonus.bonusType === BonusType.Fuchs ||
-						bonus.bonusType === BonusType.Karlchen
-					) {
-						points += bonus.count;
-					}
-				}
+			if (participant.team !== team) continue;
+			for (const bonus of participant.bonuses) {
+				if (bonus.bonusType === BonusType.Fuchs) fuchs += bonus.count;
+				if (bonus.bonusType === BonusType.Doko) doko += bonus.count;
+				if (bonus.bonusType === BonusType.Karlchen) karlchen += bonus.count;
 			}
 		}
 
-		return points;
+		if (fuchs > 0) details.push({ label: 'Fuchs', points: fuchs });
+		if (doko > 0) details.push({ label: 'DoKo', points: doko });
+		if (karlchen > 0) details.push({ label: 'Karlchen', points: karlchen });
+
+		return details;
 	}
 }

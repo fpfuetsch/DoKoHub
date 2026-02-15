@@ -651,6 +651,57 @@ describe('Round.calculatePoints', () => {
 			expect(kontraResult).toBe(RoundResult.DRAW);
 		});
 	});
+
+	describe('calculatePointsExplanation', () => {
+		it('matches final points from calculatePoints in a normal round', () => {
+			const round = createRound(
+				[
+					createParticipant('p1', Team.RE, [{ callType: CallType.Keine90 }]),
+					createParticipant('p2', Team.RE),
+					createParticipant('p3', Team.KONTRA),
+					createParticipant('p4', Team.KONTRA)
+				],
+				151
+			);
+
+			const explanation = round.calculatePointsExplanation();
+			const points = round.calculatePoints();
+
+			expect(explanation.re.totalPoints).toStrictEqual(points[0].points);
+			expect(explanation.kontra.totalPoints).toStrictEqual(points[2].points);
+			expect(explanation.soloRePoints).toStrictEqual(explanation.re.totalPoints);
+			expect(explanation.isSolo).toBe(false);
+		});
+
+		it('applies solo multiplier only to RE in solo rounds', () => {
+			const roundData: RoundData = {
+				id: 'solo-1',
+				roundNumber: 1,
+				type: RoundType.SoloBuben,
+				soloType: SoloType.Lust,
+				eyesRe: 121,
+				participants: [
+					{ playerId: 'p1', team: Team.RE, calls: [], bonuses: [] },
+					{ playerId: 'p2', team: Team.KONTRA, calls: [], bonuses: [] },
+					{ playerId: 'p3', team: Team.KONTRA, calls: [], bonuses: [] },
+					{ playerId: 'p4', team: Team.KONTRA, calls: [], bonuses: [] }
+				]
+			};
+
+			const round = new Round(roundData);
+			const explanation = round.calculatePointsExplanation();
+			const points = round.calculatePoints();
+
+			expect(explanation.isSolo).toBe(true);
+			expect(explanation.soloRePoints).toStrictEqual(explanation.re.totalPoints * 3);
+			expect(points.find((p) => p.playerId === 'p1')?.points).toStrictEqual(
+				explanation.soloRePoints
+			);
+			expect(points.find((p) => p.playerId === 'p2')?.points).toStrictEqual(
+				explanation.kontra.totalPoints
+			);
+		});
+	});
 });
 
 describe('Round.validate', () => {
