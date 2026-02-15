@@ -13,14 +13,14 @@ describe('login load', () => {
 		expect(result).toEqual({ redirectTo: '/groups/group-1' });
 	});
 
-	it('returns null redirectTo when not provided', async () => {
+	it('returns safe redirectTo when not provided', async () => {
 		const url = new URL('http://localhost/login');
 		const result = await load({
 			locals: { user: null },
 			url
 		} as any);
 
-		expect(result).toEqual({ redirectTo: null });
+		expect(result).toEqual({ redirectTo: '/groups' });
 	});
 
 	it('throws redirect to /groups when user is already logged in', async () => {

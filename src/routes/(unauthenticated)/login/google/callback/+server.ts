@@ -18,6 +18,7 @@ import {
 } from '$lib/server/auth/onboarding';
 import { PlayerRepository } from '$lib/server/repositories/player';
 import { AuthProvider } from '$lib/server/enums';
+import { getSafeRedirectUrl } from '$lib/server/auth/redirect';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ cookies, url }) => {
@@ -53,6 +54,10 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 	);
 
 	if (!existing) {
+		// SECURITY: Validate redirect URL to prevent open redirects
+		const rawRedirectTo = redirectCookie ?? url.searchParams.get('redirectTo');
+		const safeRedirectTo = getSafeRedirectUrl(rawRedirectTo);
+
 		const onboardingToken = await createOnboardingToken({
 			provider: AuthProvider.Google,
 			providerId: idTokenDecoded.sub,
@@ -62,7 +67,7 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 				' ' +
 				((idTokenDecoded.family_name as string) || '')
 			).trim(),
-			redirectTo: redirectCookie ?? url.searchParams.get('redirectTo') ?? '/groups'
+			redirectTo: safeRedirectTo
 		});
 
 		cookies.set(ONBOARDING_COOKIE, onboardingToken, onboardingCookieAttributes);
@@ -74,6 +79,8 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 	cookies.set(SESSION_COOKIE_NAME, token, sessionCookieAttributes);
 	cookies.delete(ONBOARDING_COOKIE, { path: onboardingCookieAttributes.path });
 
-	const redirectTo = redirectCookie ?? url.searchParams.get('redirectTo') ?? '/groups';
-	throw redirect(302, redirectTo);
+	// SECURITY: Validate the redirect URL
+	const rawRedirectTo = redirectCookie ?? url.searchParams.get('redirectTo');
+	const safeRedirectTo = getSafeRedirectUrl(rawRedirectTo);
+	throw redirect(302, safeRedirectTo);
 };

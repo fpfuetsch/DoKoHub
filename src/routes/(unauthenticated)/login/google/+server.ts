@@ -8,6 +8,7 @@ import {
 	generateState
 } from '$lib/server/auth/google';
 import { sessionCookieAttributes } from '$lib/server/auth/session';
+import { getSafeRedirectUrl } from '$lib/server/auth/redirect';
 import type { RequestHandler } from './$types';
 
 const temporaryCookieOptions = {
@@ -24,13 +25,14 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 		scopes: ['openid', 'profile']
 	});
 
-	const redirectTo = url.searchParams.get('redirectTo');
+	// SECURITY: Validate redirect URL to prevent open redirects
+	const rawRedirectTo = url.searchParams.get('redirectTo');
+	const safeRedirectTo = getSafeRedirectUrl(rawRedirectTo);
 
 	cookies.set(GOOGLE_STATE_COOKIE, state, temporaryCookieOptions);
 	cookies.set(GOOGLE_VERIFIER_COOKIE, codeVerifier, temporaryCookieOptions);
-	if (redirectTo) {
-		cookies.set(GOOGLE_REDIRECT_COOKIE, redirectTo, temporaryCookieOptions);
+	if (safeRedirectTo !== '/groups') {
+		cookies.set(GOOGLE_REDIRECT_COOKIE, safeRedirectTo, temporaryCookieOptions);
 	}
-
 	throw redirect(302, authorizationUrl.toString());
 };
