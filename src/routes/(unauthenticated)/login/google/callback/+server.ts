@@ -40,11 +40,7 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 	const tokens = await provider.validateAuthorizationCode(code, codeVerifier);
 
 	// Decode ID token to extract user info (already signed and verified by Arctic)
-	if (!tokens.idToken) {
-		throw error(400, 'Missing ID token.');
-	}
-
-	const idTokenDecoded = decodeJwt(tokens.idToken);
+	const idTokenDecoded = decodeJwt(tokens.idToken());
 
 	if (!idTokenDecoded.sub) throw error(400, 'Missing Google user id.');
 	const playerRepo = new PlayerRepository();

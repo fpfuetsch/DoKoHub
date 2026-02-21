@@ -21,9 +21,10 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 	const codeVerifier = generateCodeVerifier();
 	const redirectUri = `${url.origin}/login/google/callback`;
 	const provider = createGoogleProvider(redirectUri);
-	const authorizationUrl = await provider.createAuthorizationURL(state, codeVerifier, {
-		scopes: ['openid', 'profile']
-	});
+	const authorizationUrl = await provider.createAuthorizationURL(state, codeVerifier, [
+		'openid',
+		'profile'
+	]);
 
 	// SECURITY: Validate redirect URL to prevent open redirects
 	const rawRedirectTo = url.searchParams.get('redirectTo');
