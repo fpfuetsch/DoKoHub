@@ -1,10 +1,16 @@
 import { db } from '$lib/server/db';
-import { GroupTable, GroupMemberTable, PlayerTable, GroupNameSchema } from '$lib/server/db/schema';
+import {
+	GroupTable,
+	GroupMemberTable,
+	PlayerTable,
+	GroupNameSchema,
+	GameTable
+} from '$lib/server/db/schema';
 import { Group } from '$lib/domain/group';
 import { Player } from '$lib/domain/player';
 import { BaseRepository } from '$lib/server/repositories/base';
 import type { GroupType, PlayerType } from '$lib/server/db/schema';
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { err, ok, type RepoResult, type RepoVoidResult } from './result';
 import { PlayerRepository } from '$lib/server/repositories/player';
 import { AuthProvider } from '$lib/server/enums';
@@ -39,7 +45,10 @@ export class GroupRepository extends BaseRepository {
 			.select({ group: GroupTable })
 			.from(GroupMemberTable)
 			.innerJoin(GroupTable, eq(GroupMemberTable.groupId, GroupTable.id))
-			.where(eq(GroupMemberTable.playerId, this.principalId));
+			.leftJoin(GameTable, eq(GameTable.groupId, GroupTable.id))
+			.where(eq(GroupMemberTable.playerId, this.principalId))
+			.groupBy(GroupTable.id)
+			.orderBy(sql`max(${GameTable.createdAt}) desc nulls last`, desc(GroupTable.createdAt));
 
 		const groups: Group[] = [];
 		for (const row of rows) {
