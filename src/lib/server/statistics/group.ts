@@ -16,6 +16,8 @@ import {
 	calculateAvgEyesGrouped,
 	calculateCallGrouped,
 	calculateCallSuccessRate,
+	calculateCallFScore,
+	calculateMissedCallRate,
 	calculateRoundsWon,
 	calculateRoundsByType,
 	calculateSoloRoundsByType,
@@ -39,6 +41,7 @@ export interface GroupStatistics extends GameStatistics {
 	// Group-only additions
 	gamesWon: Array<{ player: string; value: number; percent: number; color?: string }>;
 	avgTotalPointsPerGame: Array<Record<string, any>>;
+	playerSeriesByGame: GameStatistics['playerSeries'];
 	gamesCount: number;
 	roundsCount: number;
 }
@@ -86,6 +89,8 @@ export function mergeGameAggregates(gameAggregates: GameAggregates[]): GameAggre
 			soloTypeCounts: new Map(),
 			callCountsMap: {},
 			callWinsMap: {},
+			missedCallOpportunityMap: {},
+			missedCallMap: {},
 			pairs: [],
 			pairTotals: new Map(),
 			pairCounts: new Map(),
@@ -147,6 +152,8 @@ export function mergeGameAggregates(gameAggregates: GameAggregates[]): GameAggre
 
 	const callCountsMap: Record<string, Map<string, number>> = {};
 	const callWinsMap: Record<string, Map<string, number>> = {};
+	const missedCallOpportunityMap: Record<string, Map<string, number>> = {};
+	const missedCallMap: Record<string, Map<string, number>> = {};
 
 	// Initialize for all players
 	for (const player of playerList) {
@@ -203,6 +210,15 @@ export function mergeGameAggregates(gameAggregates: GameAggregates[]): GameAggre
 		});
 		callCountsMap[player.id] = callMap;
 		callWinsMap[player.id] = callWinMap;
+
+		const missedOpportunityMap = new Map<string, number>();
+		const missedMap = new Map<string, number>();
+		[CallType.Keine90, CallType.Keine60, CallType.Keine30, CallType.Schwarz].forEach((ct) => {
+			missedOpportunityMap.set(ct, 0);
+			missedMap.set(ct, 0);
+		});
+		missedCallOpportunityMap[player.id] = missedOpportunityMap;
+		missedCallMap[player.id] = missedMap;
 	}
 
 	// Merge pairs
@@ -370,6 +386,24 @@ export function mergeGameAggregates(gameAggregates: GameAggregates[]): GameAggre
 			}
 		}
 
+		for (const [playerId, opportunityMap] of Object.entries(agg.missedCallOpportunityMap)) {
+			const mergedOpportunityMap = missedCallOpportunityMap[playerId];
+			if (mergedOpportunityMap) {
+				for (const [callType, count] of opportunityMap.entries()) {
+					increment(mergedOpportunityMap, callType, count);
+				}
+			}
+		}
+
+		for (const [playerId, missedMap] of Object.entries(agg.missedCallMap)) {
+			const mergedMissedMap = missedCallMap[playerId];
+			if (mergedMissedMap) {
+				for (const [callType, count] of missedMap.entries()) {
+					increment(mergedMissedMap, callType, count);
+				}
+			}
+		}
+
 		// Pair statistics
 		for (const [key, total] of agg.pairTotals.entries()) {
 			pairTotals.set(key, (pairTotals.get(key) || 0) + total);
@@ -434,6 +468,8 @@ export function mergeGameAggregates(gameAggregates: GameAggregates[]): GameAggre
 		soloTypeCounts,
 		callCountsMap,
 		callWinsMap,
+		missedCallOpportunityMap,
+		missedCallMap,
 		pairs,
 		pairTotals,
 		pairCounts,
@@ -471,6 +507,8 @@ export function calculateGroupStatistics(games: Game[]): GroupStatistics {
 		avgEyes: calculateAvgEyes(agg),
 		callGrouped: calculateCallGrouped(agg),
 		callSuccessRate: calculateCallSuccessRate(agg),
+		missedCallRate: calculateMissedCallRate(agg),
+		callFScore: calculateCallFScore(agg),
 		roundsWon: calculateRoundsWon(agg),
 		roundsByType: calculateRoundsByType(agg),
 		soloRoundsByType: calculateSoloRoundsByType(agg),
@@ -506,6 +544,7 @@ function calculateGroupOnlyStatistics(
 ): {
 	gamesWon: Array<{ player: string; value: number; percent: number; color?: string }>;
 	avgTotalPointsPerGame: Array<Record<string, any>>;
+	playerSeriesByGame: GameStatistics['playerSeries'];
 	gamesCount: number;
 	roundsCount: number;
 } {
@@ -513,6 +552,11 @@ function calculateGroupOnlyStatistics(
 	const gamesPlayedMap = new Map<string, number>();
 	const perPlayerPointsPerGame = new Map<string, number[]>();
 	const gamesWonMap = new Map<string, number>(); // only players with top score in a game get a win
+	const gamesWithPoints: Array<{
+		order: number;
+		game: Game;
+		playerGamePoints: Map<string, number>;
+	}> = [];
 	let gamesWithRounds = 0; // Count games that actually have rounds
 
 	for (const player of agg.playerList) {
@@ -521,7 +565,7 @@ function calculateGroupOnlyStatistics(
 		gamesWonMap.set(player.id, 0);
 	}
 
-	for (const game of games) {
+	for (const [order, game] of games.entries()) {
 		// Skip games with no rounds
 		if (!game.rounds || game.rounds.length === 0) {
 			continue;
@@ -540,6 +584,8 @@ function calculateGroupOnlyStatistics(
 				playerGamePoints.set(rp.playerId, (playerGamePoints.get(rp.playerId) || 0) + rp.points);
 			}
 		}
+
+		gamesWithPoints.push({ order, game, playerGamePoints });
 
 		// Track games played and points per game
 		for (const [playerId, points] of playerGamePoints.entries()) {
@@ -589,11 +635,44 @@ function calculateGroupOnlyStatistics(
 			} as Record<string, any>;
 		});
 
-	const totalRounds = agg.totalNormalRounds + agg.totalSoloRounds;
+	const playersWithGames = agg.playerList.filter((pl) => (gamesPlayedMap.get(pl.id) || 0) > 0);
+	const sortedGamesWithPoints = [...gamesWithPoints].sort(
+		(a, b) => a.game.endedAt!.getTime() - b.game.endedAt!.getTime() || a.order - b.order
+	);
 
+	const cumulativeTotals = new Map<string, number>();
+	for (const player of playersWithGames) {
+		cumulativeTotals.set(player.id, 0);
+	}
+
+	const playerSeriesByGameRows = sortedGamesWithPoints.map(({ game, playerGamePoints }) => {
+		const row: Record<string, any> = {
+			date: new Date(game.endedAt!)
+		};
+		for (const player of playersWithGames) {
+			const currentTotal = cumulativeTotals.get(player.id) || 0;
+			const nextTotal = currentTotal + (playerGamePoints.get(player.id) || 0);
+			cumulativeTotals.set(player.id, nextTotal);
+			row[player.name] = nextTotal;
+		}
+		return row;
+	});
+
+	const playerSeriesByGame = {
+		rows: playerSeriesByGameRows,
+		series: playersWithGames.map((pl) => ({
+			key: pl.name,
+			label: pl.name,
+			color: agg.playerColorMap.get(pl.id)
+		}))
+	};
+
+	const totalRounds = agg.totalNormalRounds + agg.totalSoloRounds;
+	console.log(playerSeriesByGame);
 	return {
 		gamesWon,
 		avgTotalPointsPerGame,
+		playerSeriesByGame,
 		gamesCount: gamesWithRounds,
 		roundsCount: totalRounds
 	};

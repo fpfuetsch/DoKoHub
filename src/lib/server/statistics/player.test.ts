@@ -374,6 +374,8 @@ describe('calculatePlayerStatistics', () => {
 		expect(stats.reKontraShare).toBeDefined();
 		expect(stats.teamWinRates).toBeDefined();
 		expect(stats.avgReKontra).toBeDefined();
+		expect(stats.missedCallRate).toBeDefined();
+		expect(stats.callFScore).toBeDefined();
 	});
 
 	it('tracks bonuses and calls', () => {

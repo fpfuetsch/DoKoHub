@@ -23,6 +23,8 @@ interface MockRound {
 
 interface MockGame {
 	id: string;
+	createdAt?: Date;
+	endedAt?: Date | null;
 	participants: Array<{
 		player: { id: string; getTruncatedDisplayName: () => string };
 	}>;
@@ -33,6 +35,8 @@ interface MockGame {
 function createMockGame(overrides?: Partial<MockGame>): MockGame {
 	return {
 		id: 'game-1',
+		createdAt: new Date('2026-01-01T00:00:00.000Z'),
+		endedAt: new Date('2026-01-01T00:00:00.000Z'),
 		participants: [
 			{ player: { id: 'p1', getTruncatedDisplayName: () => 'Alice' } },
 			{ player: { id: 'p2', getTruncatedDisplayName: () => 'Bob' } }
@@ -297,6 +301,69 @@ describe('calculateGroupStatistics', () => {
 		expect(stats.roundsCount).toBe(0);
 		expect(stats.playerSeries.rows).toEqual([]);
 		expect(stats.playerSeries.series).toEqual([]);
+		expect(stats.playerSeriesByGame.rows).toEqual([]);
+		expect(stats.playerSeriesByGame.series).toEqual([]);
+	});
+
+	it('calculates cumulative playerSeriesByGame over finished games in chronological order', () => {
+		const game1 = createMockGame({
+			id: 'g1',
+			createdAt: new Date('2026-01-01T00:00:00.000Z'),
+			endedAt: new Date('2026-01-02T00:00:00.000Z'),
+			participants: [
+				{ player: { id: 'p1', getTruncatedDisplayName: () => 'Alice' } },
+				{ player: { id: 'p2', getTruncatedDisplayName: () => 'Bob' } }
+			],
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: -10 }
+					]
+				}
+			]
+		});
+
+		const game2 = createMockGame({
+			id: 'g2',
+			createdAt: new Date('2026-01-02T00:00:00.000Z'),
+			endedAt: new Date('2026-01-01T00:00:00.000Z'),
+			participants: [
+				{ player: { id: 'p1', getTruncatedDisplayName: () => 'Alice' } },
+				{ player: { id: 'p2', getTruncatedDisplayName: () => 'Bob' } }
+			],
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.KONTRA, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.RE, bonuses: [], calls: [] }
+					],
+					eyesRe: 130,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: -5 },
+						{ playerId: 'p2', points: 5 }
+					]
+				}
+			]
+		});
+
+		const stats = calculateGroupStatistics([game1, game2] as any);
+
+		expect(stats.playerSeriesByGame.rows).toEqual([
+			{ date: new Date('2026-01-01T00:00:00.000Z'), Alice: -5, Bob: 5 },
+			{ date: new Date('2026-01-02T00:00:00.000Z'), Alice: 5, Bob: -5 }
+		]);
+		expect(stats.playerSeriesByGame.series).toHaveLength(2);
+		expect(stats.playerSeriesByGame.series.map((s) => s.label).sort()).toEqual(['Alice', 'Bob']);
 	});
 
 	it('calculates gamesCount correctly', () => {
@@ -572,6 +639,7 @@ describe('calculateGroupStatistics', () => {
 		expect(stats.avgEyesGrouped).toBeDefined();
 		expect(stats.callGrouped).toBeDefined();
 		expect(stats.callSuccessRate).toBeDefined();
+		expect(stats.callFScore).toBeDefined();
 		expect(stats.roundsWon).toBeDefined();
 		expect(stats.roundsByType).toBeDefined();
 		expect(stats.soloRoundsByType).toBeDefined();

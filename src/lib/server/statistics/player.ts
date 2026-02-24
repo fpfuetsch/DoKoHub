@@ -9,6 +9,8 @@ import {
 	calculateBonusGrouped,
 	calculateCallGrouped,
 	calculateCallSuccessRate,
+	calculateCallFScore,
+	calculateMissedCallRate,
 	calculateRoundsWon,
 	calculateWinLostShareByType,
 	calculateAvgPointsByGameType,
@@ -59,6 +61,8 @@ export interface PlayerStatistics {
 	bonusGrouped: Array<Record<string, any>>;
 	callGrouped: Array<Record<string, any>>;
 	callSuccessRate: Array<Record<string, any>>;
+	missedCallRate: Array<Record<string, any>>;
+	callFScore: Array<{ player: string; fScore: number; color?: string }>;
 
 	// Series for legends
 	soloTypeSeries: Array<{ key: string; label: string; color?: string }>;
@@ -135,6 +139,8 @@ export function calculatePlayerStatistics(
 		bonusGrouped: calculateBonusGrouped(playerOnlyAgg),
 		callGrouped: calculateCallGrouped(playerOnlyAgg),
 		callSuccessRate: calculateCallSuccessRate(playerOnlyAgg),
+		missedCallRate: calculateMissedCallRate(playerOnlyAgg),
+		callFScore: calculateCallFScore(playerOnlyAgg),
 
 		// Series
 		soloTypeSeries: getSoloTypeSeries(playerOnlyAgg),
@@ -203,6 +209,8 @@ function filterAggregatesForPlayer(agg: GameAggregates, playerId: string): GameA
 		soloTypeCounts: agg.playerSoloTypeCounts.get(playerId) || new Map(),
 		callCountsMap: { [playerId]: agg.callCountsMap[playerId] || new Map() },
 		callWinsMap: { [playerId]: agg.callWinsMap[playerId] || new Map() },
+		missedCallOpportunityMap: { [playerId]: agg.missedCallOpportunityMap[playerId] || new Map() },
+		missedCallMap: { [playerId]: agg.missedCallMap[playerId] || new Map() },
 		pairs: [],
 		pairTotals: new Map(),
 		pairCounts: new Map(),
@@ -293,6 +301,8 @@ function createEmptyStatistics(): PlayerStatistics {
 		bonusGrouped: [],
 		callGrouped: [],
 		callSuccessRate: [],
+		missedCallRate: [],
+		callFScore: [],
 		soloTypeSeries: [],
 		roundTypeSeries: [],
 		callSeries: [],
@@ -340,6 +350,8 @@ function createEmptyAggregates(): GameAggregates {
 		soloTypeCounts: new Map(),
 		callCountsMap: {},
 		callWinsMap: {},
+		missedCallOpportunityMap: {},
+		missedCallMap: {},
 		pairs: [],
 		pairTotals: new Map(),
 		pairCounts: new Map(),

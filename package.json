@@ -48,7 +48,7 @@
 		"drizzle-kit": "^0.31.8",
 		"drizzle-orm": "^0.45.0",
 		"jose": "^6.1.3",
-		"layerchart": "^2.0.0-next.43",
+		"layerchart": "^2.0.0-next.46",
 		"postgres": "^3.4.7",
 		"zod": "^4.2.1"
 	}

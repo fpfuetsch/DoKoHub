@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { BarChart, PieChart } from 'layerchart';
+	import { LineChart, BarChart, PieChart } from 'layerchart';
 	import { Alert } from 'flowbite-svelte';
 	import { InfoCircleSolid } from 'flowbite-svelte-icons';
 	import StatsCard from '$lib/components/StatsCard.svelte';
@@ -45,6 +45,22 @@
 		<div class="mb-8">
 			<h2 class="text-center text-xl font-bold text-gray-700 dark:text-white">Spiele</h2>
 			<div class="mx-auto flex flex-wrap justify-center gap-1">
+				<StatsCard
+					title="Punkteentwicklung"
+					loading={!stats}
+					hide={stats && (!stats?.playerSeriesByGame || stats.playerSeriesByGame.rows.length === 0)}
+				>
+					<LineChart
+						data={stats?.playerSeriesByGame?.rows ?? []}
+						x="date"
+						series={stats?.playerSeriesByGame?.series ?? []}
+						props={{
+							spline: { strokeWidth: 3 }
+						}}
+						legend={{ classes: { items: 'gap-1', item: 'text-sm', swatch: 'size-3' } }}
+					/>
+				</StatsCard>
+
 				<StatsCard
 					title="Spiele gespielt"
 					loading={stats?.gamesCount == null}
@@ -324,6 +340,28 @@
 						seriesLayout="group"
 						props={{ yAxis: { format: 'percentRound' }, bars: { motion: 'tween' } }}
 						legend={{ classes: { items: 'gap-1', item: 'text-sm', swatch: 'size-3' } }}
+					/>
+				</StatsCard>
+
+				<StatsCard title="Verpasste An-/Absagen im Team" loading={!stats?.missedCallRate}>
+					<BarChart
+						data={stats?.missedCallRate ?? []}
+						x="player"
+						series={stats?.callSeries ?? []}
+						seriesLayout="group"
+						props={{ yAxis: { format: 'percentRound' }, bars: { motion: 'tween' } }}
+						legend={{ classes: { items: 'gap-1', item: 'text-sm', swatch: 'size-3' } }}
+					/>
+				</StatsCard>
+
+				<StatsCard title="An-/Absagen F-Score" loading={!stats?.callFScore}>
+					<BarChart
+						data={stats?.callFScore ?? []}
+						x="player"
+						series={[{ key: 'fScore', label: 'F-Score', color: 'var(--color-teal-400)' }]}
+						seriesLayout="group"
+						props={{ yAxis: { format: 'percentRound' }, bars: { motion: 'tween' } }}
+						legend={false}
 					/>
 				</StatsCard>
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BonusType, CallType, Team, RoundType } from '$lib/domain/enums';
+import { BonusType, CallType, Team, RoundType, RoundResult } from '$lib/domain/enums';
 import { calculateGameStatistics, aggregateGameRounds } from './game';
 
 // ============================================================================
@@ -727,6 +727,206 @@ describe('calculateCallSuccessRate', () => {
 		// p1 called RE twice: won round 1, lost round 2 -> 50% success
 		const p1CallRate = stats.callSuccessRate.find((c) => c.player === 'Alice');
 		expect(p1CallRate?.RE).toBe(0.5);
+	});
+});
+
+describe('calculateMissedCallRate', () => {
+	it('calculates missed absage rates per player and call type', () => {
+		const game = createMockGame({
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{
+							playerId: 'p1',
+							team: Team.RE,
+							bonuses: [],
+							calls: [{ callType: CallType.RE }, { callType: CallType.Keine90 }]
+						},
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 181,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10, result: RoundResult.WON },
+						{ playerId: 'p2', points: -10, result: RoundResult.LOST }
+					]
+				},
+				{
+					roundNumber: 2,
+					type: RoundType.Normal,
+					participants: [
+						{
+							playerId: 'p1',
+							team: Team.RE,
+							bonuses: [],
+							calls: []
+						},
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 211,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10, result: RoundResult.WON },
+						{ playerId: 'p2', points: -10, result: RoundResult.LOST }
+					]
+				}
+			]
+		});
+
+		const stats = calculateGameStatistics(game as any);
+		const p1MissedRate = stats.missedCallRate.find((c) => c.player === 'Alice');
+		const p2MissedRate = stats.missedCallRate.find((c) => c.player === 'Bob');
+
+		expect(p1MissedRate?.RE).toBe(0.5);
+		expect(p1MissedRate?.KONTRA).toBe(0);
+		expect(p1MissedRate?.Keine90).toBe(0.5);
+		expect(p1MissedRate?.Keine60).toBe(1);
+		expect(p1MissedRate?.Keine30).toBe(1);
+		expect(p1MissedRate?.Schwarz).toBe(0);
+
+		expect(p2MissedRate?.RE).toBe(0);
+		expect(p2MissedRate?.KONTRA).toBe(0);
+		expect(p2MissedRate?.Keine90).toBe(0);
+		expect(p2MissedRate?.Keine60).toBe(0);
+		expect(p2MissedRate?.Keine30).toBe(0);
+		expect(p2MissedRate?.Schwarz).toBe(0);
+	});
+
+	it('does not count as missed when a teammate called it', () => {
+		const game = createMockGame({
+			participants: [
+				{ player: { id: 'p1', getTruncatedDisplayName: () => 'Alice' } },
+				{ player: { id: 'p2', getTruncatedDisplayName: () => 'Bob' } },
+				{ player: { id: 'p3', getTruncatedDisplayName: () => 'Cara' } },
+				{ player: { id: 'p4', getTruncatedDisplayName: () => 'Dan' } }
+			],
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{
+							playerId: 'p2',
+							team: Team.RE,
+							bonuses: [],
+							calls: [{ callType: CallType.Keine90 }]
+						},
+						{ playerId: 'p3', team: Team.KONTRA, bonuses: [], calls: [] },
+						{ playerId: 'p4', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 151,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10, result: RoundResult.WON },
+						{ playerId: 'p2', points: 10, result: RoundResult.WON },
+						{ playerId: 'p3', points: -10, result: RoundResult.LOST },
+						{ playerId: 'p4', points: -10, result: RoundResult.LOST }
+					]
+				}
+			]
+		});
+
+		const stats = calculateGameStatistics(game as any);
+		const aliceMissedRate = stats.missedCallRate.find((c) => c.player === 'Alice');
+
+		expect(aliceMissedRate?.RE).toBe(1);
+		expect(aliceMissedRate?.Keine90).toBe(0);
+	});
+});
+
+describe('calculateCallFScore', () => {
+	it('calculates F-score from successful, unsuccessful and missed calls', () => {
+		const game = createMockGame({
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{
+							playerId: 'p1',
+							team: Team.RE,
+							bonuses: [],
+							calls: [{ callType: CallType.RE }, { callType: CallType.Keine90 }]
+						},
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 181,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10, result: RoundResult.WON },
+						{ playerId: 'p2', points: -10, result: RoundResult.LOST }
+					]
+				},
+				{
+					roundNumber: 2,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 151,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10, result: RoundResult.WON },
+						{ playerId: 'p2', points: -10, result: RoundResult.LOST }
+					]
+				}
+			]
+		});
+
+		const stats = calculateGameStatistics(game as any);
+		const aliceFScore = stats.callFScore?.find((c) => c.player === 'Alice');
+		const bobFScore = stats.callFScore?.find((c) => c.player === 'Bob');
+
+		// TP=2 (RE, Keine90 successful), FP=0, FN=3 (Keine60 in round1, RE+Keine90 in round2)
+		// F1 = 2*2 / (4 + 0 + 3) = 4/7
+		expect(aliceFScore?.fScore).toBeCloseTo(4 / 7, 6);
+		expect(bobFScore?.fScore).toBe(0);
+	});
+
+	it('does not count missed calls when teammate made the call', () => {
+		const game = createMockGame({
+			participants: [
+				{ player: { id: 'p1', getTruncatedDisplayName: () => 'Alice' } },
+				{ player: { id: 'p2', getTruncatedDisplayName: () => 'Bob' } },
+				{ player: { id: 'p3', getTruncatedDisplayName: () => 'Cara' } },
+				{ player: { id: 'p4', getTruncatedDisplayName: () => 'Dan' } }
+			],
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{
+							playerId: 'p1',
+							team: Team.RE,
+							bonuses: [],
+							calls: [{ callType: CallType.RE }]
+						},
+						{
+							playerId: 'p2',
+							team: Team.RE,
+							bonuses: [],
+							calls: [{ callType: CallType.Keine90 }]
+						},
+						{ playerId: 'p3', team: Team.KONTRA, bonuses: [], calls: [] },
+						{ playerId: 'p4', team: Team.KONTRA, bonuses: [], calls: [] }
+					],
+					eyesRe: 151,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10, result: RoundResult.WON },
+						{ playerId: 'p2', points: 10, result: RoundResult.WON },
+						{ playerId: 'p3', points: -10, result: RoundResult.LOST },
+						{ playerId: 'p4', points: -10, result: RoundResult.LOST }
+					]
+				}
+			]
+		});
+
+		const stats = calculateGameStatistics(game as any);
+		const aliceFScore = stats.callFScore?.find((c) => c.player === 'Alice');
+		const bobFScore = stats.callFScore?.find((c) => c.player === 'Bob');
+
+		expect(aliceFScore?.fScore).toBe(1);
+		expect(bobFScore?.fScore).toBe(1);
 	});
 });
 

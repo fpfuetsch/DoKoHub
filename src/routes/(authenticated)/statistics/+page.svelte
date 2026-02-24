@@ -310,6 +310,36 @@
 					/>
 				</StatsCard>
 
+				<StatsCard title="Verpasste An-/Absagen im Team" loading={!stats?.missedCallRate}>
+					<BarChart
+						data={stats?.missedCallRate ?? []}
+						x="player"
+						series={stats?.callSeries ?? []}
+						seriesLayout="group"
+						props={{
+							xAxis: { tickLabelProps: { value: '' } },
+							yAxis: { format: 'percentRound' },
+							bars: { motion: 'tween' }
+						}}
+						legend={{ classes: { items: 'gap-1', item: 'text-sm', swatch: 'size-3' } }}
+					/>
+				</StatsCard>
+
+				<StatsCard title="An-/Absagen F-Score" loading={!stats?.callFScore}>
+					<BarChart
+						data={stats?.callFScore ?? []}
+						x="player"
+						series={[{ key: 'fScore', label: 'F-Score', color: 'var(--color-teal-400)' }]}
+						seriesLayout="group"
+						props={{
+							xAxis: { tickLabelProps: { value: '' } },
+							yAxis: { format: 'percentRound' },
+							bars: { motion: 'tween' }
+						}}
+						legend={false}
+					/>
+				</StatsCard>
+
 				<!-- Bonuspunkte Häufigkeit -->
 				<StatsCard title="Häufigkeit Bonuspunkte" loading={!stats?.bonusGrouped}>
 					<BarChart
