@@ -1,5 +1,14 @@
 <script lang="ts">
-	import { Button, Modal, Label, Alert, ButtonGroup, Popover } from 'flowbite-svelte';
+	import {
+		Button,
+		Modal,
+		Label,
+		Alert,
+		ButtonGroup,
+		Popover,
+		Progressradial
+	} from 'flowbite-svelte';
+	import { sineOut } from 'svelte/easing';
 	import {
 		PlusOutline,
 		ExclamationCircleSolid,
@@ -109,6 +118,161 @@
 			return ranks;
 		})()
 	);
+
+	const awardCeremonyRanking = $derived(
+		(() => {
+			const rankedPlayers = sortedParticipants
+				.map((participant) => ({
+					playerId: participant.playerId,
+					name: participant.player?.displayName ?? 'Spieler',
+					points: playerTotals.get(participant.playerId) ?? 0
+				}))
+				.sort((a, b) => a.points - b.points || a.name.localeCompare(b.name));
+
+			const uniqueScoresAsc = Array.from(new Set(rankedPlayers.map((entry) => entry.points))).sort(
+				(a, b) => a - b
+			);
+			const scoreToPlace = new Map<number, number>();
+			uniqueScoresAsc.forEach((score, index) => {
+				scoreToPlace.set(score, uniqueScoresAsc.length - index);
+			});
+
+			return rankedPlayers.map((entry, index) => {
+				const place = scoreToPlace.get(entry.points) ?? rankedPlayers.length - index;
+				const medal = place === 1 ? '🥇' : place === 2 ? '🥈' : place === 3 ? '🥉' : '😬';
+				return {
+					...entry,
+					place,
+					medal
+				};
+			});
+		})()
+	);
+
+	let awardCeremonyOpen = $state(false);
+	let awardCeremonyStep = $state(0);
+	let awardCeremonyCountdown = $state(10);
+	let awardCeremonyProgress = $state(0);
+	let showCeremonyPlace = $state(false);
+	let showCeremonyPoints = $state(false);
+	let showCeremonyName = $state(false);
+	const awardCeremonyCountdownStart = 10;
+	const awardCeremonyCountdownUpdateMs = 100;
+	const awardCeremonyStepMs = 10000;
+	const awardCeremonyRevealStartMs = 300;
+	const awardCeremonyRevealGapMs = 1600;
+	const awardCeremonyNameDelayAfterPointsMs = 2600;
+	const awardCeremonyRevealDurationMs = 1400;
+	const awardCeremonySwapFadeOutMs = 1200;
+	type TrophyRainDrop = {
+		left: string;
+		delay: string;
+		duration: string;
+		size: string;
+	};
+	const awardCeremonyTrophyRainCount = 18;
+	let awardCeremonyTrophyRain = $state<TrophyRainDrop[]>([]);
+
+	const randomInRange = (min: number, max: number) => min + Math.random() * (max - min);
+
+	const generateAwardCeremonyTrophyRain = (
+		count = awardCeremonyTrophyRainCount
+	): TrophyRainDrop[] =>
+		Array.from({ length: count }, () => ({
+			left: `${randomInRange(2, 98).toFixed(1)}%`,
+			delay: `-${randomInRange(0.2, 7).toFixed(1)}s`,
+			duration: `${randomInRange(6.7, 8.6).toFixed(1)}s`,
+			size: `${Math.round(randomInRange(32, 41))}px`
+		}));
+	const maxAwardCeremonyStep = $derived(Math.max(0, awardCeremonyRanking.length - 1));
+
+	const currentAwardCeremonyEntry = $derived(awardCeremonyRanking[awardCeremonyStep] ?? null);
+	const isFirstPlaceCeremonyEntry = $derived(currentAwardCeremonyEntry?.place === 1);
+	const shouldShowAwardCeremonyTrophyRain = $derived(isFirstPlaceCeremonyEntry && showCeremonyName);
+
+	const resetAwardCeremonyProgress = () => {
+		awardCeremonyCountdown = awardCeremonyCountdownStart;
+		awardCeremonyProgress = 0;
+	};
+
+	const hideAwardCeremonyReveal = () => {
+		showCeremonyPlace = false;
+		showCeremonyPoints = false;
+		showCeremonyName = false;
+	};
+
+	const startAwardCeremony = () => {
+		awardCeremonyStep = 0;
+		resetAwardCeremonyProgress();
+		awardCeremonyTrophyRain = generateAwardCeremonyTrophyRain();
+		awardCeremonyOpen = true;
+	};
+
+	$effect(() => {
+		if (!awardCeremonyOpen) return;
+		if (awardCeremonyStep >= maxAwardCeremonyStep) {
+			awardCeremonyCountdown = 0;
+			awardCeremonyProgress = 100;
+			return;
+		}
+
+		resetAwardCeremonyProgress();
+		const start = Date.now();
+		const countdownInterval = setInterval(() => {
+			const elapsedMs = Math.min(awardCeremonyStepMs, Date.now() - start);
+			const remainingMs = Math.max(0, awardCeremonyStepMs - elapsedMs);
+			awardCeremonyCountdown = Math.ceil(remainingMs / 1000);
+			awardCeremonyProgress = (elapsedMs / awardCeremonyStepMs) * 100;
+		}, awardCeremonyCountdownUpdateMs);
+
+		const hideTimer = setTimeout(() => {
+			hideAwardCeremonyReveal();
+		}, awardCeremonyStepMs - awardCeremonySwapFadeOutMs);
+
+		const timer = setTimeout(() => {
+			awardCeremonyStep = Math.min(awardCeremonyStep + 1, maxAwardCeremonyStep);
+		}, awardCeremonyStepMs);
+
+		return () => {
+			clearInterval(countdownInterval);
+			clearTimeout(hideTimer);
+			clearTimeout(timer);
+		};
+	});
+
+	$effect(() => {
+		if (!awardCeremonyOpen || !currentAwardCeremonyEntry) {
+			hideAwardCeremonyReveal();
+			return;
+		}
+
+		if (isFirstPlaceCeremonyEntry) {
+			awardCeremonyTrophyRain = generateAwardCeremonyTrophyRain();
+		}
+
+		hideAwardCeremonyReveal();
+
+		const placeTimer = setTimeout(() => {
+			showCeremonyPlace = true;
+		}, awardCeremonyRevealStartMs);
+
+		const pointsTimer = setTimeout(() => {
+			showCeremonyPoints = true;
+		}, awardCeremonyRevealStartMs + awardCeremonyRevealGapMs);
+
+		const nameTimer = setTimeout(
+			() => {
+				showCeremonyName = true;
+			},
+			awardCeremonyRevealStartMs + awardCeremonyRevealGapMs + awardCeremonyNameDelayAfterPointsMs
+		);
+
+		return () => {
+			clearTimeout(placeTimer);
+			clearTimeout(pointsTimer);
+			clearTimeout(nameTimer);
+		};
+	});
 
 	// For 5-player games, calculate dealer who sits out
 	// For 4-player games, dealer and starter follow the normal rotation
@@ -790,18 +954,27 @@
 					class="rounded-lg border border-primary bg-white p-4 shadow-sm dark:border-secondary-800 dark:bg-gray-800/60"
 				>
 					<div class="flex items-center justify-between">
-						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Spiel abschließen</h3>
+						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+							Siegerehrung & Spiel abschließen
+						</h3>
 					</div>
 					<p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
 						Alle Runden sind gespielt. Wenn du das Spiel abschließt können Runden nicht mehr
 						bearbeitet werden.
 					</p>
+					<div class="mt-3 flex justify-end">
+						<Button type="button" color="primary" class="px-4 py-2" onclick={startAwardCeremony}
+							>Siegerehrung starten</Button
+						>
+					</div>
 					<form
 						method="POST"
 						action="/groups/{game.groupId}/games/{game.id}?/finish"
 						class="mt-3 flex justify-end"
 					>
-						<Button type="submit" color="primary" class="px-4 py-2">Spiel abschließen</Button>
+						<Button outline type="submit" color="primary" class="px-4 py-2"
+							>Spiel abschließen</Button
+						>
 					</form>
 				</div>
 			{:else if !hasUpcomingRound && !allMandatorySolosDone}
@@ -830,6 +1003,86 @@
 		<PlusOutline class="h-10 w-10" />
 	</Button>
 {/if}
+
+<Modal
+	bind:open={awardCeremonyOpen}
+	fullscreen
+	autoclose={false}
+	size="none"
+	classes={{ body: 'p-0' }}
+>
+	<div class="relative flex h-dvh flex-col items-center justify-center overflow-hidden">
+		{#if isFirstPlaceCeremonyEntry}
+			<div
+				class="pointer-events-none absolute inset-0 z-0 transition-opacity ease-out {shouldShowAwardCeremonyTrophyRain
+					? 'opacity-100'
+					: 'opacity-0'}"
+				style={`transition-duration: ${awardCeremonyRevealDurationMs}ms;`}
+			>
+				{#each awardCeremonyTrophyRain as drop}
+					<span
+						class="trophy-rain"
+						style={`left: ${drop.left}; animation-delay: ${drop.delay}; animation-duration: ${drop.duration}; font-size: ${drop.size};`}
+						>🏆</span
+					>
+				{/each}
+			</div>
+		{/if}
+
+		{#if currentAwardCeremonyEntry}
+			<div class="relative z-10 flex flex-col items-center text-center">
+				<p
+					class="leading-none font-bold text-gray-700 transition-opacity ease-out dark:text-white {showCeremonyPlace
+						? 'opacity-100'
+						: 'opacity-0'}"
+					style={`transition-duration: ${awardCeremonyRevealDurationMs}ms;`}
+				>
+					{#if currentAwardCeremonyEntry.place <= 3}
+						<span class="text-[120px]">{currentAwardCeremonyEntry.medal}</span>
+					{:else}
+						<span class="text-[80px]">Platz {currentAwardCeremonyEntry.place}</span>
+					{/if}
+				</p>
+				<p
+					class="mt-5 text-[40px] font-semibold text-secondary transition-opacity ease-out dark:text-secondary-400 {showCeremonyPoints
+						? 'opacity-100'
+						: 'opacity-0'}"
+					style={`transition-duration: ${awardCeremonyRevealDurationMs}ms;`}
+				>
+					{currentAwardCeremonyEntry.points}
+					{Math.abs(currentAwardCeremonyEntry.points) === 1 ? ' Punkt' : ' Punkte'}
+				</p>
+				<p
+					class="mt-15 text-[80px] font-semibold text-primary drop-shadow-sm transition-opacity ease-out dark:text-primary-400 {showCeremonyName
+						? 'opacity-100'
+						: 'opacity-0'}"
+					style={`transition-duration: ${awardCeremonyRevealDurationMs}ms;`}
+				>
+					{currentAwardCeremonyEntry.name}
+				</p>
+			</div>
+		{/if}
+
+		<div class="fixed inset-x-0 bottom-4 flex justify-center">
+			{#if awardCeremonyStep < maxAwardCeremonyStep}
+				<div class="relative inline-flex items-center justify-center">
+					<Progressradial
+						size="h-14 w-14"
+						progress={awardCeremonyProgress}
+						animate
+						precision={1}
+						tweenDuration={300}
+						easing={sineOut}
+					/>
+					<span
+						class="pointer-events-none absolute text-base font-semibold text-gray-700 dark:text-gray-200"
+						>{awardCeremonyCountdown}s</span
+					>
+				</div>
+			{/if}
+		</div>
+	</div>
+</Modal>
 
 <Modal bind:open={roundModal} size="sm" autoclose={false} class="p-2 *:border-0!">
 	<form method="POST" action="?/save" use:enhance={handleRoundSubmit}>
@@ -1563,3 +1816,32 @@
 		</div>
 	{/if}
 </Modal>
+
+<style>
+	.trophy-rain {
+		position: absolute;
+		top: -20%;
+		opacity: 0.8;
+		filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.15));
+		animation-name: trophy-rain-fall;
+		animation-timing-function: linear;
+		animation-iteration-count: infinite;
+	}
+
+	@keyframes trophy-rain-fall {
+		0% {
+			transform: translate3d(0, -15vh, 0);
+			opacity: 0;
+		}
+		8% {
+			opacity: 0.85;
+		}
+		50% {
+			transform: translate3d(0, 52vh, 0);
+		}
+		100% {
+			transform: translate3d(0, 118vh, 0);
+			opacity: 0;
+		}
+	}
+</style>
