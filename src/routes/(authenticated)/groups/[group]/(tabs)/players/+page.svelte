@@ -7,9 +7,9 @@
 		DotsVerticalOutline,
 		OpenDoorOutline,
 		LinkOutline,
-		ClipboardOutline,
 		EnvelopeOutline,
-		UserAddOutline
+		UserAddOutline,
+		ClipboardCleanOutline
 	} from 'flowbite-svelte-icons';
 	import { QrCodeOutline } from 'flowbite-svelte-icons';
 	import {
@@ -24,19 +24,20 @@
 		Alert,
 		Dropdown,
 		DropdownItem,
-		ButtonGroup
+		ButtonGroup,
+		InputAddon,
+		Clipboard,
+		Tooltip
 	} from 'flowbite-svelte';
 
 	import { EditOutline } from 'flowbite-svelte-icons';
 	import QRCode from '@castlenine/svelte-qrcode';
-	import { Toast } from 'flowbite-svelte';
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import type { PageProps } from './$types';
 	import type { Player } from '$lib/domain/player';
 	import { AuthProvider } from '$lib/domain/enums';
-	import { CheckCircleOutline } from 'flowbite-svelte-icons';
-	import { slide } from 'svelte/transition';
+	import { CheckOutline } from 'flowbite-svelte-icons';
 	import logo from '$lib/assets/dokohub.png';
 
 	let { data, form }: PageProps = $props();
@@ -70,6 +71,7 @@
 	let playerNameInput = $state('');
 
 	let inviteUrl = $state<string | null>(null);
+	let inviteClipboardValue = $state('');
 	let showQr = $state(false);
 	let inviteFormat = $state<'link' | 'qr' | null>(null);
 
@@ -89,38 +91,18 @@
 		}
 	}
 
-	let inviteToast = $state(false);
-	let inviteToastCounter = $state(3);
-
-	function showInviteToast() {
-		inviteToast = true;
-		inviteToastCounter = 3;
-		inviteTimeout();
-	}
-
-	function inviteTimeout() {
-		if (--inviteToastCounter > 0) return setTimeout(inviteTimeout, 1000);
-		inviteToast = false;
-	}
-
 	$effect(() => {
 		if (!formModal) {
 			// close modal; clear inviteUrl
 			inviteUrl = null;
+			inviteClipboardValue = '';
 			showQr = false;
 		}
 	});
 
-	async function copyInvite() {
-		const u = inviteUrl;
-		if (!u) return;
-		try {
-			await navigator.clipboard.writeText(u);
-			showInviteToast();
-		} catch (e) {
-			console.error('Copy failed', e);
-		}
-	}
+	$effect(() => {
+		inviteClipboardValue = inviteUrl ?? '';
+	});
 </script>
 
 <div class="flex flex-col items-center gap-4">
@@ -229,20 +211,6 @@
 </Button>
 
 <Modal bind:open={formModal} size="sm">
-	<Toast
-		transition={slide}
-		bind:toastStatus={inviteToast}
-		dismissable={false}
-		position="top-right"
-		color="green"
-	>
-		{#snippet icon()}
-			<CheckCircleOutline
-				class="h-6 w-6 bg-green-100 text-green-600 dark:bg-green-800 dark:text-green-200"
-			/>
-		{/snippet}
-		Einladungslink kopiert!
-	</Toast>
 	<div class="flex flex-col">
 		<h3 class="text-xl font-medium text-gray-900 dark:text-white">Spieler hinzufügen</h3>
 
@@ -274,26 +242,28 @@
 						{:else}
 							<div class="flex items-center justify-end gap-2">
 								<div class="flex w-full flex-col gap-2">
-									<div class="flex items-center gap-2">
+									<ButtonGroup>
+										<InputAddon>URL</InputAddon>
 										<Input
 											id="inviteLink"
-											value={inviteUrl ?? ''}
+											bind:value={inviteClipboardValue}
 											readonly
-											class="flex-1 bg-transparent"
+											disabled
+											class="w-64"
 										/>
-										<div class="flex items-center gap-2">
-											<Button
-												color="secondary"
-												size="sm"
-												aria-label="Kopieren"
-												onclick={copyInvite}
-												class="p-2"
-											>
-												<ClipboardOutline class="mr-1 h-4 w-4" />
-												Kopieren
-											</Button>
-										</div>
-									</div>
+										<Clipboard color="secondary" bind:value={inviteClipboardValue}>
+											{#snippet children(success)}
+												<Tooltip class="whitespace-nowrap"
+													>{success ? 'Kopiert' : 'Kopieren'}</Tooltip
+												>
+												{#if success}
+													<CheckOutline class="h-4 w-4" />
+												{:else}
+													<ClipboardCleanOutline class="h-4 w-4" />
+												{/if}
+											{/snippet}
+										</Clipboard>
+									</ButtonGroup>
 									<Helper
 										>Teile diesen Link mit den anderen Spielern, damit sie der Gruppe beitreten
 										können.</Helper
