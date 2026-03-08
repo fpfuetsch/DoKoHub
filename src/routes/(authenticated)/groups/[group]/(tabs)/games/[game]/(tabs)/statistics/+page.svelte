@@ -109,7 +109,7 @@
 				</StatsCard>
 
 				<StatsCard
-					title="Siegesgrate je Rundentyp"
+					title="Siegesrate je Rundentyp"
 					loading={!stats}
 					hide={stats && !stats?.winLostShareByType}
 				>
@@ -166,7 +166,7 @@
 				</StatsCard>
 
 				<StatsCard
-					title="Siegesgrate je Solotyp"
+					title="Siegesrate je Solotyp"
 					loading={!stats}
 					hide={stats && !stats?.soloTypeWinRateByPlayer}
 				>
@@ -227,7 +227,7 @@
 				</StatsCard>
 
 				<StatsCard
-					title="Siegesgrate Re / Kontra"
+					title="Siegesrate Re / Kontra"
 					loading={!stats}
 					hide={stats && !stats?.teamWinRates}
 				>

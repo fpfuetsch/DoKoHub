@@ -185,7 +185,7 @@
 					/>
 				</StatsCard>
 
-				<StatsCard title="Siegesgrate je Rundentyp" loading={!stats?.winLostShareByType}>
+				<StatsCard title="Siegesrate je Rundentyp" loading={!stats?.winLostShareByType}>
 					<BarChart
 						data={stats?.winLostShareByType ?? []}
 						x="player"
@@ -230,7 +230,7 @@
 					/>
 				</StatsCard>
 
-				<StatsCard title="Siegesgrate je Solotyp" loading={!stats?.soloTypeWinRateByPlayer}>
+				<StatsCard title="Siegesrate je Solotyp" loading={!stats?.soloTypeWinRateByPlayer}>
 					<BarChart
 						data={stats?.soloTypeWinRateByPlayer ?? []}
 						x="player"
@@ -279,7 +279,7 @@
 					/>
 				</StatsCard>
 
-				<StatsCard title="Siegesgrate Re / Kontra" loading={!stats?.teamWinRates}>
+				<StatsCard title="Siegesrate Re / Kontra" loading={!stats?.teamWinRates}>
 					<BarChart
 						data={stats?.teamWinRates ?? []}
 						x="player"
