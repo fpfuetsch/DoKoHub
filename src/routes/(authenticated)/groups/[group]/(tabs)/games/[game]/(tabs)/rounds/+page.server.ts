@@ -8,6 +8,7 @@ import type {
 	BonusTypeEnumValue
 } from '$lib/domain/enums';
 import { CallType } from '$lib/server/enums';
+import { publishRoundsUpdated } from '$lib/server/realtime/round';
 import { fail, type RequestEvent, type ServerLoad } from '@sveltejs/kit';
 
 export const load: ServerLoad = async ({ parent }) => {
@@ -149,6 +150,8 @@ export const actions = {
 				return fail(inserted.status, { error: inserted.error });
 			}
 		}
+
+		publishRoundsUpdated(groupId, gameId);
 
 		return { success: true };
 	}

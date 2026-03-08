@@ -668,7 +668,6 @@ function calculateGroupOnlyStatistics(
 	};
 
 	const totalRounds = agg.totalNormalRounds + agg.totalSoloRounds;
-	console.log(playerSeriesByGame);
 	return {
 		gamesWon,
 		avgTotalPointsPerGame,

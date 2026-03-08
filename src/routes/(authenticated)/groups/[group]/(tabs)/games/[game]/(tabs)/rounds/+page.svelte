@@ -22,6 +22,7 @@
 	} from 'flowbite-svelte-icons';
 	import { enhance, applyAction } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
+	import { onMount } from 'svelte';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import type { PageProps } from './$types';
 	import { Game } from '$lib/domain/game';
@@ -42,6 +43,15 @@
 		actionForm = form;
 	});
 	const game: Game = $derived(data.game);
+
+	type RoundRealtimeEvent = {
+		eventId: string;
+		timestamp: number;
+	};
+
+	const realtimeDebounceMs = 300;
+	let realtimeRefreshTimeout: ReturnType<typeof setTimeout> | null = null;
+	let lastRealtimeEventId: string | null = null;
 
 	type RoundWithPoints = { round: Round; points: ReturnType<Round['calculatePoints']> };
 	type MandatorySoloSlot = {
@@ -516,6 +526,46 @@
 			await applyAction(result);
 		};
 	};
+
+	const queueRealtimeRefresh = () => {
+		if (realtimeRefreshTimeout) {
+			clearTimeout(realtimeRefreshTimeout);
+		}
+
+		realtimeRefreshTimeout = setTimeout(async () => {
+			realtimeRefreshTimeout = null;
+			await invalidateAll();
+		}, realtimeDebounceMs);
+	};
+
+	onMount(() => {
+		if (!game.groupId || !game.id) return;
+
+		const eventSource = new EventSource(`/groups/${game.groupId}/games/${game.id}/rounds`);
+
+		eventSource.addEventListener('rounds-updated', (event) => {
+			let payload: RoundRealtimeEvent;
+			try {
+				const messageEvent = event as MessageEvent<string>;
+				payload = JSON.parse(messageEvent.data) as RoundRealtimeEvent;
+			} catch {
+				return;
+			}
+
+			if (payload.eventId === lastRealtimeEventId) return;
+
+			lastRealtimeEventId = payload.eventId;
+			queueRealtimeRefresh();
+		});
+
+		return () => {
+			eventSource.close();
+			if (realtimeRefreshTimeout) {
+				clearTimeout(realtimeRefreshTimeout);
+				realtimeRefreshTimeout = null;
+			}
+		};
+	});
 
 	const startNewRound = () => {
 		actionForm = undefined;
