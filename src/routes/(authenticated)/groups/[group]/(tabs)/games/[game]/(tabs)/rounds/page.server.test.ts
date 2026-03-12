@@ -174,6 +174,50 @@ describe('rounds save action', () => {
 		expect(result).toEqual({ success: true });
 	});
 
+	it('passes solo round type through unchanged', async () => {
+		requireUserOrFailMock.mockReturnValue({ id: 'user-1' });
+		getByIdGameMock.mockResolvedValue({
+			ok: true,
+			value: {
+				id: 'game-1',
+				participants: [
+					{ playerId: 'p1', seatPosition: 0, player: { id: 'p1' } },
+					{ playerId: 'p2', seatPosition: 1, player: { id: 'p2' } },
+					{ playerId: 'p3', seatPosition: 2, player: { id: 'p3' } },
+					{ playerId: 'p4', seatPosition: 3, player: { id: 'p4' } }
+				],
+				rounds: []
+			}
+		});
+		addRoundMock.mockResolvedValue({ ok: true });
+
+		const formData = new FormData();
+		formData.set('type', 'SOLO_KREUZ');
+		formData.set('soloType', 'LUST');
+		formData.set('eyesRe', '121');
+		formData.set('player_0_team', 'RE');
+		formData.set('player_1_team', 'KONTRA');
+		formData.set('player_2_team', 'KONTRA');
+		formData.set('player_3_team', 'KONTRA');
+		const request = new Request('http://localhost/groups/group-1/games/game-1/rounds', {
+			method: 'POST',
+			body: formData
+		});
+
+		const result = await actions.save({
+			request,
+			locals: { user: { id: 'user-1' } },
+			params: { group: 'group-1', game: 'game-1' }
+		} as any);
+
+		expect(addRoundMock).toHaveBeenCalledWith(
+			'game-1',
+			'group-1',
+			expect.objectContaining({ type: 'SOLO_KREUZ', soloType: 'LUST' })
+		);
+		expect(result).toEqual({ success: true });
+	});
+
 	it('updates existing round successfully', async () => {
 		requireUserOrFailMock.mockReturnValue({ id: 'user-1' });
 		getByIdGameMock.mockResolvedValue({
