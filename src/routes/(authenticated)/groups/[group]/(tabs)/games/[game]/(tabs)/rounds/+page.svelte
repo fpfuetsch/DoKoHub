@@ -538,12 +538,16 @@
 		}, realtimeDebounceMs);
 	};
 
+	const resumeRealtimeSyncDebounceMs = 250;
+
 	onMount(() => {
 		if (!game.groupId || !game.id) return;
 
-		const eventSource = new EventSource(`/groups/${game.groupId}/games/${game.id}/rounds`);
+		const streamUrl = `/groups/${game.groupId}/games/${game.id}/rounds`;
+		let eventSource: EventSource | null = null;
+		let resumeSyncTimeout: ReturnType<typeof setTimeout> | null = null;
 
-		eventSource.addEventListener('rounds-updated', (event) => {
+		const onRoundsUpdated = (event: Event) => {
 			let payload: RoundRealtimeEvent;
 			try {
 				const messageEvent = event as MessageEvent<string>;
@@ -556,13 +560,72 @@
 
 			lastRealtimeEventId = payload.eventId;
 			queueRealtimeRefresh();
-		});
+		};
+
+		const connectEventSource = () => {
+			if (eventSource && eventSource.readyState !== EventSource.CLOSED) return;
+			if (eventSource) {
+				eventSource.close();
+				eventSource = null;
+			}
+
+			eventSource = new EventSource(streamUrl);
+			eventSource.addEventListener('rounds-updated', onRoundsUpdated);
+			eventSource.onerror = () => {
+				// Let native EventSource retry when possible; if it closed, recreate on resume triggers.
+				if (eventSource?.readyState === EventSource.CLOSED) {
+					eventSource.close();
+					eventSource = null;
+				}
+			};
+		};
+
+		const queueResumeRealtimeSync = () => {
+			if (resumeSyncTimeout) {
+				clearTimeout(resumeSyncTimeout);
+			}
+
+			resumeSyncTimeout = setTimeout(async () => {
+				resumeSyncTimeout = null;
+				connectEventSource();
+				await invalidateAll();
+			}, resumeRealtimeSyncDebounceMs);
+		};
+
+		const handleVisibilityChange = () => {
+			if (!document.hidden) {
+				queueResumeRealtimeSync();
+			}
+		};
+
+		const handlePageShow = () => {
+			queueResumeRealtimeSync();
+		};
+
+		const handleOnline = () => {
+			queueResumeRealtimeSync();
+		};
+
+		connectEventSource();
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+		window.addEventListener('pageshow', handlePageShow);
+		window.addEventListener('online', handleOnline);
 
 		return () => {
-			eventSource.close();
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
+			window.removeEventListener('pageshow', handlePageShow);
+			window.removeEventListener('online', handleOnline);
+			if (eventSource) {
+				eventSource.close();
+				eventSource = null;
+			}
 			if (realtimeRefreshTimeout) {
 				clearTimeout(realtimeRefreshTimeout);
 				realtimeRefreshTimeout = null;
+			}
+			if (resumeSyncTimeout) {
+				clearTimeout(resumeSyncTimeout);
+				resumeSyncTimeout = null;
 			}
 		};
 	});
