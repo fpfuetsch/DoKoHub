@@ -221,6 +221,19 @@ export function mergeGameAggregates(gameAggregates: GameAggregates[]): GameAggre
 		missedCallMap[player.id] = missedMap;
 	}
 
+	const canonicalPairIdKey = (pair: { a: { id: string }; b: { id: string } }) => {
+		return pair.a.id < pair.b.id ? `${pair.a.id}::${pair.b.id}` : `${pair.b.id}::${pair.a.id}`;
+	};
+
+	const canonicalPairDisplayKey = (pair: {
+		a: { id: string; name: string };
+		b: { id: string; name: string };
+	}) => {
+		return pair.a.id < pair.b.id
+			? `${pair.a.name} & ${pair.b.name}`
+			: `${pair.b.name} & ${pair.a.name}`;
+	};
+
 	// Merge pairs
 	const pairKeyToPlayers = new Map<
 		string,
@@ -228,7 +241,7 @@ export function mergeGameAggregates(gameAggregates: GameAggregates[]): GameAggre
 	>();
 	for (const agg of gameAggregates) {
 		for (const pair of agg.pairs) {
-			const key = `${pair.a.name} & ${pair.b.name}`;
+			const key = canonicalPairIdKey(pair);
 			if (!pairKeyToPlayers.has(key)) {
 				pairKeyToPlayers.set(key, pair);
 			}
@@ -240,7 +253,7 @@ export function mergeGameAggregates(gameAggregates: GameAggregates[]): GameAggre
 	const pairCounts = new Map<string, number>();
 	const pairTeamRoundCounts = new Map<string, number>();
 	for (const pair of pairs) {
-		const key = `${pair.a.name} & ${pair.b.name}`;
+		const key = canonicalPairDisplayKey(pair);
 		pairTotals.set(key, 0);
 		pairCounts.set(key, 0);
 		pairTeamRoundCounts.set(key, 0);
@@ -404,15 +417,21 @@ export function mergeGameAggregates(gameAggregates: GameAggregates[]): GameAggre
 			}
 		}
 
-		// Pair statistics
-		for (const [key, total] of agg.pairTotals.entries()) {
-			pairTotals.set(key, (pairTotals.get(key) || 0) + total);
-		}
-		for (const [key, count] of agg.pairCounts.entries()) {
-			pairCounts.set(key, (pairCounts.get(key) || 0) + count);
-		}
-		for (const [key, count] of agg.pairTeamRoundCounts.entries()) {
-			pairTeamRoundCounts.set(key, (pairTeamRoundCounts.get(key) || 0) + count);
+		// Pair statistics (normalized by player IDs so A&B and B&A merge)
+		for (const pair of agg.pairs) {
+			const localKey = `${pair.a.name} & ${pair.b.name}`;
+			const mergedKey = canonicalPairDisplayKey(pair);
+
+			const total = agg.pairTotals.get(localKey) || 0;
+			const pairCount = agg.pairCounts.get(localKey) || 0;
+			const teamRoundCount = agg.pairTeamRoundCounts.get(localKey) || 0;
+
+			pairTotals.set(mergedKey, (pairTotals.get(mergedKey) || 0) + total);
+			pairCounts.set(mergedKey, (pairCounts.get(mergedKey) || 0) + pairCount);
+			pairTeamRoundCounts.set(
+				mergedKey,
+				(pairTeamRoundCounts.get(mergedKey) || 0) + teamRoundCount
+			);
 		}
 
 		// Round totals

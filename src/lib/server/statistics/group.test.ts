@@ -270,6 +270,64 @@ describe('mergeGameAggregates', () => {
 		expect(merged.pairTeamRoundCounts.get(pairKey)).toBe(2);
 		expect(merged.pairCounts.get(pairKey)).toBe(2);
 	});
+
+	it('normalizes pair keys when player order differs across games', () => {
+		const game1 = createMockGame({
+			id: 'g1',
+			participants: [
+				{ player: { id: 'p1', getTruncatedDisplayName: () => 'Alice' } },
+				{ player: { id: 'p2', getTruncatedDisplayName: () => 'Bob' } }
+			],
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.RE, bonuses: [], calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 10 },
+						{ playerId: 'p2', points: 10 }
+					]
+				}
+			]
+		});
+
+		const game2 = createMockGame({
+			id: 'g2',
+			participants: [
+				{ player: { id: 'p2', getTruncatedDisplayName: () => 'Bob' } },
+				{ player: { id: 'p1', getTruncatedDisplayName: () => 'Alice' } }
+			],
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, bonuses: [], calls: [] },
+						{ playerId: 'p2', team: Team.RE, bonuses: [], calls: [] }
+					],
+					eyesRe: 130,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 15 },
+						{ playerId: 'p2', points: 15 }
+					]
+				}
+			]
+		});
+
+		const agg1 = aggregateGameRounds(game1 as any);
+		const agg2 = aggregateGameRounds(game2 as any);
+
+		const merged = mergeGameAggregates([agg1, agg2]);
+
+		expect(merged.pairTeamRoundCounts.get('Alice & Bob')).toBe(2);
+		expect(merged.pairTeamRoundCounts.get('Bob & Alice') ?? 0).toBe(0);
+		expect(merged.pairCounts.get('Alice & Bob')).toBe(2);
+		expect(merged.pairCounts.get('Bob & Alice') ?? 0).toBe(0);
+	});
 });
 
 // ============================================================================
