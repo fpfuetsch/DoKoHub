@@ -105,16 +105,6 @@
 					<ButtonGroup class="w-full">
 						<Button
 							type="button"
-							color={playerData.bonus.karlchen === true ? 'secondary' : 'light'}
-							class="flex-1 "
-							onclick={() => {
-								playerData.bonus.karlchen = true;
-							}}
-						>
-							Ja
-						</Button>
-						<Button
-							type="button"
 							color={playerData.bonus.karlchen === false ? 'secondary' : 'light'}
 							class="flex-1 "
 							onclick={() => {
@@ -122,6 +112,16 @@
 							}}
 						>
 							Nein
+						</Button>
+						<Button
+							type="button"
+							color={playerData.bonus.karlchen === true ? 'secondary' : 'light'}
+							class="flex-1 "
+							onclick={() => {
+								playerData.bonus.karlchen = true;
+							}}
+						>
+							Ja
 						</Button>
 					</ButtonGroup>
 				</div>
