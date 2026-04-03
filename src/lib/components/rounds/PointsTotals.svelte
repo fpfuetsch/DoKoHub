@@ -63,7 +63,7 @@
 	</div>
 
 	<div
-		class="grid items-stretch gap-2 p-0 transition duration-150"
+		class="grid items-stretch gap-2 px-0 py-5 transition duration-150"
 		style={`grid-template-columns: 70px repeat(${sortedParticipants.length}, minmax(0, 1fr));`}
 	>
 		<div
