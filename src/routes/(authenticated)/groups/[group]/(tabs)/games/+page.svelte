@@ -106,6 +106,15 @@
 		return ids;
 	};
 
+	/**
+	 * Returns true if `target` is any rotation of `arr`.
+	 * Uses the doubled-array + separator join trick for O(n) time.
+	 */
+	export const isRotation = (arr: string[], target: string[]): boolean => {
+		if (arr.length !== target.length) return false;
+		return arr.concat(arr).join('\0').includes(target.join('\0'));
+	};
+
 	const findLatestGameForSeatOrder = (
 		seatOrder: string[],
 		seatCount: number
@@ -115,7 +124,9 @@
 		games.forEach((game, index) => {
 			if (game.participants.length !== seatCount) return;
 			const ordered = [...game.participants].sort((a, b) => a.seatPosition - b.seatPosition);
-			const matches = ordered.every((participant, i) => participant.playerId === seatOrder[i]);
+			const orderedIds = ordered.map((p) => p.playerId);
+			// Check if seatOrder is any rotation of orderedIds
+			const matches = isRotation(orderedIds, seatOrder);
 			if (!matches) return;
 			if (!latest || game.createdAt > latest.createdAt) {
 				latest = game;
