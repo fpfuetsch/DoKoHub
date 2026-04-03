@@ -54,6 +54,35 @@
 		}
 	>;
 
+	let isSubmitting = false;
+
+	$: if (!open) {
+		isSubmitting = false;
+	}
+
+	const guardedRoundSubmit: SubmitFunction = async (input) => {
+		if (isSubmitting) {
+			input.cancel();
+			return;
+		}
+
+		isSubmitting = true;
+		const callback = await handleRoundSubmit(input);
+
+		if (!callback) {
+			isSubmitting = false;
+			return;
+		}
+
+		return async (result) => {
+			try {
+				await callback(result);
+			} finally {
+				isSubmitting = false;
+			}
+		};
+	};
+
 	const handleEyesInput = (input: number | null) => {
 		if (input === null || input === undefined) {
 			eyesError = null;
@@ -80,7 +109,7 @@
 </script>
 
 <Modal bind:open size="sm" autoclose={false} class="p-2 *:border-0!">
-	<form method="POST" action="?/save" use:enhance={handleRoundSubmit}>
+	<form method="POST" action="?/save" use:enhance={guardedRoundSubmit}>
 		<div class="flex flex-col space-y-2">
 			<h3 class="mb-6 text-xl font-medium text-gray-900 dark:text-white">
 				{editingRoundId ? (isFinished ? 'Runde ansehen' : 'Runde bearbeiten') : 'Runde hinzufügen'}
@@ -586,8 +615,12 @@
 			{/if}
 
 			<div class="mt-2 flex justify-end gap-3">
-				<Button type="button" color="light" onclick={() => (open = false)}>Abbrechen</Button>
-				<Button type="submit" disabled={!canEditRounds}>Speichern</Button>
+				<Button type="button" color="light" disabled={isSubmitting} onclick={() => (open = false)}
+					>Abbrechen</Button
+				>
+				<Button type="submit" disabled={!canEditRounds || isSubmitting}>
+					{isSubmitting ? 'Speichert...' : 'Speichern'}
+				</Button>
 			</div>
 		</div>
 	</form>
