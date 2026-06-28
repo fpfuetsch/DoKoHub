@@ -30,7 +30,7 @@
 		"@types/node": "^24",
 		"@vite-pwa/sveltekit": "^1.1.0",
 		"drizzle-zod": "^0.8.3",
-		"flowbite": "^4.0.1",
+		"flowbite": "^4.0.2",
 		"flowbite-svelte": "^1.31.0",
 		"flowbite-svelte-icons": "^3.0.1",
 		"prettier": "^3.7.4",
