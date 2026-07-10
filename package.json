@@ -24,7 +24,7 @@
 		"@electric-sql/pglite": "^0.3.15",
 		"@sveltejs/adapter-auto": "^7.0.1",
 		"@sveltejs/adapter-node": "^5.4.0",
-		"@sveltejs/kit": "^2.60.1",
+		"@sveltejs/kit": "^2.69.2",
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
 		"@tailwindcss/vite": "^4.3.1",
 		"@types/node": "^26",
