@@ -33,7 +33,7 @@
 		"flowbite": "^4.0.2",
 		"flowbite-svelte": "^1.33.1",
 		"flowbite-svelte-icons": "^3.0.1",
-		"prettier": "^3.7.4",
+		"prettier": "^3.9.6",
 		"prettier-plugin-svelte": "^3.4.0",
 		"prettier-plugin-tailwindcss": "^0.7.2",
 		"svelte": "^5.56.4",
