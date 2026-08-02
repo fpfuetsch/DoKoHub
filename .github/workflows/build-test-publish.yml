@@ -2,11 +2,11 @@ name: Build, Test and Publish
 
 on:
   push:
-    branches: [main, 'feature/**']
+    branches: [main, 'feature/**', 'dependabot/**']
     tags:
       - 'v*.*.*'
   pull_request:
-    branches: [main, 'feature/**']
+    branches: [main, 'feature/**', 'dependabot/**']
 
 jobs:
   test:
