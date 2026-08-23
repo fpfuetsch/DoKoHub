@@ -238,6 +238,20 @@ jobs:
           IMAGE_NAME: ${{ steps.image.outputs.name }}
         run: cosign sign --yes "$IMAGE_NAME@$IMAGE_DIGEST"
 
+      - name: Prepare release assets
+        run: |
+          mkdir -p /tmp/release-assets
+          cp /tmp/sbom.spdx.json /tmp/release-assets/sbom.spdx.json
+          cp /tmp/image-metadata.json /tmp/release-assets/image-metadata.json
+
+      - name: Upload release assets
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: release-assets
+          path: /tmp/release-assets
+          if-no-files-found: error
+          retention-days: 1
+
   create-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
@@ -247,7 +261,37 @@ jobs:
       contents: write
 
     steps:
-      - name: Create release and generate notes
+      - name: Download release assets
+        uses: actions/download-artifact@v8.0.1
+        with:
+          name: release-assets
+          path: /tmp/release-assets
+
+      - name: Prepare release notes
+        env:
+          IMAGE_NAME: ghcr.io/${{ github.repository }}
+        run: |
+          IMAGE_DIGEST=$(jq -r '."containerimage.descriptor".digest' /tmp/release-assets/image-metadata.json)
+          cat > /tmp/release-notes.md <<EOF
+          ## Container image
+
+          <code>$IMAGE_NAME@$IMAGE_DIGEST</code>
+
+          ## Supply-chain verification
+
+          - [SBOM (SPDX JSON)](https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/sbom.spdx.json)
+          - [Build, attestation, and signing workflow](https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)
+
+          Verify the GitHub attestations:
+
+          <code>gh attestation verify oci://$IMAGE_NAME@$IMAGE_DIGEST --repo $GITHUB_REPOSITORY</code>
+
+          Verify the Cosign signature:
+
+          <code>cosign verify $IMAGE_NAME@$IMAGE_DIGEST --certificate-oidc-issuer=https://token.actions.githubusercontent.com</code>
+          EOF
+
+      - name: Create release and upload assets
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes
+        run: gh release create "$GITHUB_REF_NAME" /tmp/release-assets/sbom.spdx.json /tmp/release-assets/image-metadata.json --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --notes-file /tmp/release-notes.md --generate-notes
