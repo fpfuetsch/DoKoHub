@@ -270,24 +270,12 @@ jobs:
           - [SBOM attestation](${{ needs.build-and-push-image.outputs.sbom-attestation-url }})
           - [Provenance attestation](${{ needs.build-and-push-image.outputs.provenance-attestation-url }})
           - [Build, attestation, and signing workflow](https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)
-
-          Verify the Cosign signature:
-
-          <code>cosign verify $IMAGE_REF --certificate-identity-regexp='https://github.com/fpfuetsch/DoKoHub/.github/workflows/build-test-publish.yml@.*' --certificate-oidc-issuer=https://token.actions.githubusercontent.com</code>
+          - Verify image signature: <code>cosign verify $IMAGE_REF --certificate-identity-regexp='https://github.com/fpfuetsch/DoKoHub/.github/workflows/build-test-publish.yml@refs/tags/.+$' --certificate-oidc-issuer=https://token.actions.githubusercontent.com</code>
           EOF
 
-          gh api --method POST "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
-            -f tag_name="$GITHUB_REF_NAME" \
-            --jq .body > /tmp/generated-changelog.md
-
-          {
-            printf '## Changelog\n\n'
-            cat /tmp/generated-changelog.md
-            printf '\n'
-            cat /tmp/custom-release-notes.md
-          } > /tmp/release-notes.md
+          cp /tmp/custom-release-notes.md /tmp/release-notes.md
 
       - name: Create release and upload assets
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --notes-file /tmp/release-notes.md
+        run: gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --notes-file /tmp/release-notes.md --generate-notes
