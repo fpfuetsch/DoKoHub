@@ -217,11 +217,12 @@ jobs:
           output-file: /tmp/sbom.spdx.json
 
       - name: Attest image SBOM
-        uses: actions/attest-sbom@v4.1.0
+        uses: actions/attest@v4.2.2
         with:
           subject-name: ${{ steps.image.outputs.name }}
           subject-digest: ${{ steps.manifest.outputs.digest }}
-          sbom-path: /tmp/sbom.spdx.json
+          predicate-type: https://spdx.dev/Document
+          predicate-path: /tmp/sbom.spdx.json
           push-to-registry: true
 
       - name: Attest image provenance
