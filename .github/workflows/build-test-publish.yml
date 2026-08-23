@@ -154,6 +154,10 @@ jobs:
       packages: write
       attestations: write
       id-token: write
+    outputs:
+      image-digest: ${{ steps.manifest.outputs.digest }}
+      sbom-attestation-url: ${{ steps.sbom-attestation.outputs.attestation-url }}
+      provenance-attestation-url: ${{ steps.provenance-attestation.outputs.attestation-url }}
 
     steps:
       - name: Compute lowercase image name
@@ -217,15 +221,16 @@ jobs:
           output-file: /tmp/sbom.spdx.json
 
       - name: Attest image SBOM
+        id: sbom-attestation
         uses: actions/attest@v4.2.2
         with:
           subject-name: ${{ steps.image.outputs.name }}
           subject-digest: ${{ steps.manifest.outputs.digest }}
-          predicate-type: https://spdx.dev/Document
-          predicate-path: /tmp/sbom.spdx.json
+          sbom-path: /tmp/sbom.spdx.json
           push-to-registry: true
 
       - name: Attest image provenance
+        id: provenance-attestation
         uses: actions/attest-build-provenance@v4.2.2
         with:
           subject-name: ${{ steps.image.outputs.name }}
@@ -238,20 +243,6 @@ jobs:
           IMAGE_NAME: ${{ steps.image.outputs.name }}
         run: cosign sign --yes "$IMAGE_NAME@$IMAGE_DIGEST"
 
-      - name: Prepare release assets
-        run: |
-          mkdir -p /tmp/release-assets
-          cp /tmp/sbom.spdx.json /tmp/release-assets/sbom.spdx.json
-          cp /tmp/image-metadata.json /tmp/release-assets/image-metadata.json
-
-      - name: Upload release assets
-        uses: actions/upload-artifact@v7.0.1
-        with:
-          name: release-assets
-          path: /tmp/release-assets
-          if-no-files-found: error
-          retention-days: 1
-
   create-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
@@ -261,37 +252,42 @@ jobs:
       contents: write
 
     steps:
-      - name: Download release assets
-        uses: actions/download-artifact@v8.0.1
-        with:
-          name: release-assets
-          path: /tmp/release-assets
-
       - name: Prepare release notes
         env:
-          IMAGE_NAME: ghcr.io/${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          IMAGE_DIGEST: ${{ needs.build-and-push-image.outputs.image-digest }}
         run: |
-          IMAGE_DIGEST=$(jq -r '."containerimage.descriptor".digest' /tmp/release-assets/image-metadata.json)
-          cat > /tmp/release-notes.md <<EOF
+          IMAGE_NAME="ghcr.io/$(echo "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
+          IMAGE_TAG="${GITHUB_REF_NAME#v}"
+          IMAGE_REF="$IMAGE_NAME:$IMAGE_TAG@$IMAGE_DIGEST"
+          cat > /tmp/custom-release-notes.md <<EOF
           ## Container image
 
-          <code>$IMAGE_NAME@$IMAGE_DIGEST</code>
+          <code>$IMAGE_REF</code>
 
           ## Supply-chain verification
 
-          - [SBOM (SPDX JSON)](https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/sbom.spdx.json)
+          - [SBOM attestation](${{ needs.build-and-push-image.outputs.sbom-attestation-url }})
+          - [Provenance attestation](${{ needs.build-and-push-image.outputs.provenance-attestation-url }})
           - [Build, attestation, and signing workflow](https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)
-
-          Verify the GitHub attestations:
-
-          <code>gh attestation verify oci://$IMAGE_NAME@$IMAGE_DIGEST --repo $GITHUB_REPOSITORY</code>
 
           Verify the Cosign signature:
 
-          <code>cosign verify $IMAGE_NAME@$IMAGE_DIGEST --certificate-oidc-issuer=https://token.actions.githubusercontent.com</code>
+          <code>cosign verify $IMAGE_REF --certificate-identity-regexp='https://github.com/fpfuetsch/DoKoHub/.github/workflows/build-test-publish.yml@.*' --certificate-oidc-issuer=https://token.actions.githubusercontent.com</code>
           EOF
+
+          gh api --method POST "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
+            -f tag_name="$GITHUB_REF_NAME" \
+            --jq .body > /tmp/generated-changelog.md
+
+          {
+            printf '## Changelog\n\n'
+            cat /tmp/generated-changelog.md
+            printf '\n'
+            cat /tmp/custom-release-notes.md
+          } > /tmp/release-notes.md
 
       - name: Create release and upload assets
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" /tmp/release-assets/sbom.spdx.json /tmp/release-assets/image-metadata.json --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --notes-file /tmp/release-notes.md --generate-notes
+        run: gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --notes-file /tmp/release-notes.md
