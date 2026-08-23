@@ -205,8 +205,9 @@ jobs:
           IMAGE_NAME: ${{ steps.image.outputs.name }}
         run: |
           TAGS=$(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
-          docker buildx imagetools create --iidfile /tmp/image-digest $TAGS $(printf "$IMAGE_NAME@sha256:%s " *)
-          echo "digest=$(cat /tmp/image-digest)" >> "$GITHUB_OUTPUT"
+          docker buildx imagetools create $TAGS $(printf "$IMAGE_NAME@sha256:%s " *) --metadata-file /tmp/image-metadata.json
+          digest=$(jq -r '."containerimage.descriptor".digest' /tmp/image-metadata.json)
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
 
       - name: Generate SBOM
         uses: anchore/sbom-action@v0.24.0
