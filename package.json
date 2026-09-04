@@ -47,7 +47,7 @@
 		"arctic": "^3.7.0",
 		"drizzle-kit": "^0.31.10",
 		"drizzle-orm": "^0.45.2",
-		"jose": "^6.2.8",
+		"jose": "^6.2.10",
 		"layerchart": "^2.3.1",
 		"postgres": "^3.4.9",
 		"zod": "^4.5.4"
