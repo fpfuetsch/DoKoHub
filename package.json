@@ -21,7 +21,7 @@
 	},
 	"devDependencies": {
 		"@castlenine/svelte-qrcode": "^2.3.0",
-		"@electric-sql/pglite": "^0.5.7",
+		"@electric-sql/pglite": "^0.5.8",
 		"@sveltejs/adapter-auto": "^7.0.1",
 		"@sveltejs/adapter-node": "^5.5.7",
 		"@sveltejs/kit": "^2.70.2",
