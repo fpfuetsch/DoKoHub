@@ -46,7 +46,7 @@
 	"dependencies": {
 		"arctic": "^3.7.0",
 		"drizzle-kit": "^0.31.10",
-		"drizzle-orm": "^0.45.2",
+		"drizzle-orm": "^0.45.3",
 		"jose": "^6.2.12",
 		"layerchart": "^2.5.0",
 		"postgres": "^3.4.9",
