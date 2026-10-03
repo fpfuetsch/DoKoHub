@@ -180,7 +180,8 @@
 								<Button
 									type="button"
 									color={roundType === RoundTypeEnum.HochzeitNormal ? 'secondary' : 'light'}
-									class="flex-1  text-xs"
+									class={`flex-1 text-xs ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
+									disabled={!canEditRounds}
 									onclick={() => (roundType = RoundTypeEnum.HochzeitNormal)}
 								>
 									Normal
@@ -188,7 +189,8 @@
 								<Button
 									type="button"
 									color={roundType === RoundTypeEnum.HochzeitStill ? 'secondary' : 'light'}
-									class="flex-1  text-xs"
+									class={`flex-1 text-xs ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
+									disabled={!canEditRounds}
 									onclick={() => (roundType = RoundTypeEnum.HochzeitStill)}
 								>
 									Still
@@ -196,7 +198,8 @@
 								<Button
 									type="button"
 									color={roundType === RoundTypeEnum.HochzeitUngeklaert ? 'secondary' : 'light'}
-									class="flex-1  text-xs"
+									class={`flex-1 text-xs ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
+									disabled={!canEditRounds}
 									onclick={() => (roundType = RoundTypeEnum.HochzeitUngeklaert)}
 								>
 									Ungeklärt
@@ -298,8 +301,9 @@
 									<Button
 										type="button"
 										color={soloTypeSelection === 'PIK' ? 'secondary' : 'light'}
-										class="flex-1  px-1 py-1"
+										class={`flex-1 px-1 py-1 ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
 										size="sm"
+										disabled={!canEditRounds}
 										onclick={() => {
 											soloTypeSelection = 'PIK';
 											roundType = RoundTypeEnum.SoloPik;
@@ -310,8 +314,9 @@
 									<Button
 										type="button"
 										color={soloTypeSelection === 'HERZ' ? 'secondary' : 'light'}
-										class="flex-1  px-1 py-1"
+										class={`flex-1 px-1 py-1 ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
 										size="sm"
+										disabled={!canEditRounds}
 										onclick={() => {
 											soloTypeSelection = 'HERZ';
 											roundType = RoundTypeEnum.SoloHerz;
@@ -322,8 +327,9 @@
 									<Button
 										type="button"
 										color={soloTypeSelection === 'KARO' ? 'secondary' : 'light'}
-										class="flex-1  px-1 py-1"
+										class={`flex-1 px-1 py-1 ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
 										size="sm"
+										disabled={!canEditRounds}
 										onclick={() => {
 											soloTypeSelection = 'KARO';
 											roundType = RoundTypeEnum.SoloKaro;
@@ -614,14 +620,16 @@
 				</Alert>
 			{/if}
 
-			<div class="mt-2 flex justify-end gap-3">
-				<Button type="button" color="light" disabled={isSubmitting} onclick={() => (open = false)}
-					>Abbrechen</Button
-				>
-				<Button type="submit" disabled={!canEditRounds || isSubmitting}>
-					{isSubmitting ? 'Speichert...' : 'Speichern'}
-				</Button>
-			</div>
+			{#if canEditRounds}
+				<div class="mt-2 flex justify-end gap-3">
+					<Button type="button" color="light" disabled={isSubmitting} onclick={() => (open = false)}
+						>Abbrechen</Button
+					>
+					<Button type="submit" disabled={isSubmitting}>
+						{isSubmitting ? 'Speichert...' : 'Speichern'}
+					</Button>
+				</div>
+			{/if}
 		</div>
 	</form>
 </Modal>
