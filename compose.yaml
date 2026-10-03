@@ -25,7 +25,6 @@ services:
       db:
         condition: service_healthy
     environment:
-      ORIGIN: ${ORIGIN}
       DATABASE_URL: ${DATABASE_URL}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}

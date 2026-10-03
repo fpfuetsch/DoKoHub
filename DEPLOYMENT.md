@@ -60,7 +60,27 @@ This document provides instructions for deploying DoKoHub to production using Do
 
 ## Expose deployment
 
-For production, set up a reverse proxy like NGINX for HTTPS to expose the local app port.
+A trusted reverse proxy (e.g. NGINX) is required for HTTPS. The app always assumes `https` and derives its public host from the `Host` header, so the proxy must overwrite it on every request and reject unknown hosts:
+
+```nginx
+server {
+    listen 443 ssl default_server;
+    ssl_reject_handshake on;
+}
+
+server {
+    listen 443 ssl;
+    server_name example.net;
+
+    location / {
+        proxy_pass http://127.0.0.1:5173;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $remote_addr;
+    }
+}
+```
+
+Never expose the app port directly; clients could then forge the `Host` header.
 
 ## Setup Database Backups
 
@@ -81,15 +101,12 @@ Regularly back up the Postgres DB to prevent data loss.
    - Create a project or select an existing one
    - Enable Google+ API
    - Create OAuth 2.0 Client ID
-   - Add authorized redirect URI: `https://example.net/auth/google/callback`
+   - Add authorized redirect URI for every domain you serve: `https://example.net/login/google/callback`
    - Copy Client ID and Secret to `.env` as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
 
 1. Edit `.env` and configure:
 
    ```bash
-   # Application Configuration
-   ORIGIN=https://example.net # Your production URL
-
    # Database Configuration
    POSTGRES_USER=dokohub
    POSTGRES_PASSWORD=<generate-secure-password>
