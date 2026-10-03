@@ -75,7 +75,8 @@ server {
     location / {
         proxy_pass http://127.0.0.1:5173;
         proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-For $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
 ```
