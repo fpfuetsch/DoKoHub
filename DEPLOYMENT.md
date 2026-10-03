@@ -77,11 +77,17 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $host;
         proxy_set_header X-Forwarded-Proto $scheme;
+        # Full page loads send large Link preload headers
+        proxy_buffer_size 16k;
+        proxy_buffers 8 16k;
+        proxy_busy_buffers_size 32k;
     }
 }
 ```
 
 Never expose the app port directly; clients could then forge the `Host` header.
+
+Without `proxy_buffer_size 16k`, direct page loads of the statistics pages fail with `502 Bad Gateway` (`upstream sent too big header`).
 
 ## Setup Database Backups
 
