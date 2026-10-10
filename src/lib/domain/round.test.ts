@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Round } from './round';
+import { getEffectiveCallsForTeam, Round } from './round';
 import { Team, CallType, BonusType, RoundType, RoundResult, SoloType } from '$lib/domain/enums';
 import type { RoundData, GameRoundParticipant } from './round';
 
@@ -31,6 +31,19 @@ describe('Round.calculatePoints', () => {
 		};
 		return new Round(roundData);
 	};
+
+	describe('getEffectiveCallsForTeam', () => {
+		it('expands higher calls and includes the team call', () => {
+			const kontraCalls = getEffectiveCallsForTeam(Team.KONTRA, [
+				createParticipant('p1', Team.KONTRA, [{ callType: CallType.Keine30 }]),
+				createParticipant('p2', Team.RE, [{ callType: CallType.RE }])
+			]);
+
+			expect(kontraCalls).toEqual(
+				new Set([CallType.KONTRA, CallType.Keine30, CallType.Keine60, CallType.Keine90])
+			);
+		});
+	});
 
 	describe('basic win/loss scenarios', () => {
 		it('should give RE positive points for winning without any calls', () => {

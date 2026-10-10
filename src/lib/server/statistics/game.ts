@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { Team, BonusType, CallType, RoundType, RoundResult } from '$lib/domain/enums';
+import { getEffectiveCallsForTeam } from '$lib/domain/round';
 import type { Game } from '$lib/domain/game';
 import { generateDistinctColorPalette } from '$lib/utils/colors';
 import {
@@ -181,6 +182,7 @@ export interface GameAggregates {
 
 	// Per-player: calls that were wins
 	callWinsMap: Record<string, Map<string, number>>;
+	callFScoreCountsMap: Record<string, { tp: number; fp: number; fn: number }>;
 
 	// Per-player: missed call opportunities and misses for absages
 	missedCallOpportunityMap: Record<string, Map<string, number>>;
@@ -269,6 +271,7 @@ export function aggregateGameRounds(game: Game): GameAggregates {
 	];
 	const callCountsMap: Record<string, Map<string, number>> = {};
 	const callWinsMap: Record<string, Map<string, number>> = {};
+	const callFScoreCountsMap: Record<string, { tp: number; fp: number; fn: number }> = {};
 	const missedCallOpportunityMap: Record<string, Map<string, number>> = {};
 	const missedCallMap: Record<string, Map<string, number>> = {};
 	const missedCallTypes = [
@@ -327,6 +330,7 @@ export function aggregateGameRounds(game: Game): GameAggregates {
 		});
 		callCountsMap[pl.id] = m;
 		callWinsMap[pl.id] = wm;
+		callFScoreCountsMap[pl.id] = { tp: 0, fp: 0, fn: 0 };
 
 		const opportunityMap = new Map<string, number>();
 		const missedMap = new Map<string, number>();
@@ -367,17 +371,10 @@ export function aggregateGameRounds(game: Game): GameAggregates {
 			roundPoints.map((rp) => [rp.playerId, (rp as any).result as RoundResult | undefined] as const)
 		);
 		const eyesRe = round.eyesRe ?? 0;
-		const teamCalledTypes = new Map<Team, Set<CallType>>([
-			[Team.RE, new Set<CallType>()],
-			[Team.KONTRA, new Set<CallType>()]
+		const effectiveCallsByTeam = new Map<Team, Set<CallType>>([
+			[Team.RE, getEffectiveCallsForTeam(Team.RE, round.participants)],
+			[Team.KONTRA, getEffectiveCallsForTeam(Team.KONTRA, round.participants)]
 		]);
-		for (const participant of round.participants) {
-			const calledSet = teamCalledTypes.get(participant.team as Team);
-			if (!calledSet) continue;
-			for (const call of participant.calls || []) {
-				calledSet.add(call.callType as CallType);
-			}
-		}
 		const rType = (round as any).type as RoundType;
 		const isSolo =
 			typeof (round as any).isSolo === 'function'
@@ -431,17 +428,17 @@ export function aggregateGameRounds(game: Game): GameAggregates {
 			});
 
 			// Calls
-			(participant.calls || []).forEach((c: any) => {
-				const m = callCountsMap[participant.playerId];
-				if (!m) return;
-				increment(m, c.callType);
-			});
+			const callCounts = callCountsMap[participant.playerId];
+			if (callCounts) {
+				for (const callType of getEffectiveCallsForTeam(participant.team, [participant])) {
+					increment(callCounts, callType);
+				}
+			}
 
 			// Missed call opportunities (Absagen)
 			const playerRoundResult = roundResultMap.get(participant.playerId);
 			const teamWon = playerRoundResult === RoundResult.WON;
 			const teamEyes = participant.team === Team.RE ? eyesRe : 240 - eyesRe;
-			const calledTypes = teamCalledTypes.get(participant.team as Team) ?? new Set<CallType>();
 			const shouldCallTypes: CallType[] = [];
 			if (teamWon && participant.team === Team.RE) shouldCallTypes.push(CallType.RE);
 			if (teamWon && participant.team === Team.KONTRA) shouldCallTypes.push(CallType.KONTRA);
@@ -449,13 +446,22 @@ export function aggregateGameRounds(game: Game): GameAggregates {
 			if (teamEyes >= 181) shouldCallTypes.push(CallType.Keine60);
 			if (teamEyes >= 211) shouldCallTypes.push(CallType.Keine30);
 			if (teamEyes === 240) shouldCallTypes.push(CallType.Schwarz);
+			const effectiveCalls = effectiveCallsByTeam.get(participant.team as Team) ?? new Set();
+			const fScoreCounts = callFScoreCountsMap[participant.playerId];
+			if (fScoreCounts) {
+				if (playerRoundResult === RoundResult.WON) fScoreCounts.tp += effectiveCalls.size;
+				else fScoreCounts.fp += effectiveCalls.size;
+				for (const callType of shouldCallTypes) {
+					if (!effectiveCalls.has(callType)) fScoreCounts.fn++;
+				}
+			}
 
 			const opportunities = missedCallOpportunityMap[participant.playerId];
 			const misses = missedCallMap[participant.playerId];
 			if (opportunities && misses) {
 				for (const callType of shouldCallTypes) {
 					increment(opportunities, callType);
-					if (!calledTypes.has(callType)) {
+					if (!effectiveCalls.has(callType)) {
 						increment(misses, callType);
 					}
 				}
@@ -495,10 +501,14 @@ export function aggregateGameRounds(game: Game): GameAggregates {
 				// Track call success for this player
 				const roundParticipant = round.participants.find((p) => p.playerId === rp.playerId);
 				if (roundParticipant) {
-					(roundParticipant.calls || []).forEach((c: any) => {
-						const wm = callWinsMap[rp.playerId];
-						if (wm) increment(wm, c.callType);
-					});
+					const callWins = callWinsMap[rp.playerId];
+					if (callWins) {
+						for (const callType of getEffectiveCallsForTeam(roundParticipant.team, [
+							roundParticipant
+						])) {
+							increment(callWins, callType);
+						}
+					}
 				}
 
 				// Track wins by round type
@@ -593,6 +603,7 @@ export function aggregateGameRounds(game: Game): GameAggregates {
 		soloTypeCounts,
 		callCountsMap,
 		callWinsMap,
+		callFScoreCountsMap,
 		missedCallOpportunityMap,
 		missedCallMap,
 		pairs,
@@ -775,8 +786,8 @@ export function calculateCallSuccessRate(agg: GameAggregates) {
 }
 
 /**
- * Calculate missed call rate per absage call type per player.
- * Missed rate = missed opportunities / total opportunities for each call type.
+ * Calculate the missed rate per team call type for each player.
+ * Missed rate = missed team opportunities / total team opportunities.
  */
 export function calculateMissedCallRate(agg: GameAggregates) {
 	return agg.playerList.map((pl) => {
@@ -800,34 +811,13 @@ export function calculateMissedCallRate(agg: GameAggregates) {
 }
 
 /**
- * Calculate per-player F-score across all call types.
- * TP = successful calls, FP = unsuccessful calls, FN = missed call opportunities.
+ * Calculate team-based per-player F-score across all call types.
+ * TP = team calls on wins, FP = team calls on losses or draws, FN = missed team calls.
  * F1 = 2TP / (2TP + FP + FN)
  */
 export function calculateCallFScore(agg: GameAggregates) {
-	const callTypes = [
-		CallType.RE,
-		CallType.KONTRA,
-		CallType.Keine90,
-		CallType.Keine60,
-		CallType.Keine30,
-		CallType.Schwarz
-	];
-
 	return agg.playerList.map((pl) => {
-		const tp = callTypes.reduce(
-			(sum, callType) => sum + (agg.callWinsMap[pl.id]?.get(callType) || 0),
-			0
-		);
-		const made = callTypes.reduce(
-			(sum, callType) => sum + (agg.callCountsMap[pl.id]?.get(callType) || 0),
-			0
-		);
-		const fp = Math.max(0, made - tp);
-		const fn = callTypes.reduce(
-			(sum, callType) => sum + (agg.missedCallMap[pl.id]?.get(callType) || 0),
-			0
-		);
+		const { tp, fp, fn } = agg.callFScoreCountsMap[pl.id] ?? { tp: 0, fp: 0, fn: 0 };
 
 		const denominator = 2 * tp + fp + fn;
 		const fScore = denominator > 0 ? (2 * tp) / denominator : 0;

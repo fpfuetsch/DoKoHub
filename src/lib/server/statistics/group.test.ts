@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BonusType, CallType, Team, RoundType } from '$lib/domain/enums';
+import { BonusType, CallType, Team, RoundType, RoundResult } from '$lib/domain/enums';
 import { calculateGroupStatistics, mergeGameAggregates } from './group';
 import { aggregateGameRounds } from './game';
 
@@ -708,6 +708,50 @@ describe('calculateGroupStatistics', () => {
 		expect(stats.avgPointsBySoloType).toBeDefined();
 		expect(stats.teamWinRates).toBeDefined();
 		expect(stats.pairTeamCounts).toBeDefined();
+	});
+
+	it('merges team-wide call F-score counts across games', () => {
+		const game1 = createMockGame({
+			id: 'g1',
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, calls: [{ callType: CallType.RE }] },
+						{ playerId: 'p2', team: Team.KONTRA, calls: [] }
+					],
+					eyesRe: 121,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 1, result: RoundResult.WON },
+						{ playerId: 'p2', points: -1, result: RoundResult.LOST }
+					]
+				}
+			]
+		});
+		const game2 = createMockGame({
+			id: 'g2',
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, calls: [{ callType: CallType.RE }] },
+						{ playerId: 'p2', team: Team.KONTRA, calls: [] }
+					],
+					eyesRe: 120,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: -1, result: RoundResult.LOST },
+						{ playerId: 'p2', points: 1, result: RoundResult.WON }
+					]
+				}
+			]
+		});
+
+		const stats = calculateGroupStatistics([game1, game2] as any);
+		const aliceFScore = stats.callFScore?.find((entry) => entry.player === 'Alice');
+
+		expect(aliceFScore?.fScore).toBeCloseTo(2 / 3, 6);
 	});
 
 	it('handles games with no rounds', () => {

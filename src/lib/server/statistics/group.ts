@@ -89,6 +89,7 @@ export function mergeGameAggregates(gameAggregates: GameAggregates[]): GameAggre
 			soloTypeCounts: new Map(),
 			callCountsMap: {},
 			callWinsMap: {},
+			callFScoreCountsMap: {},
 			missedCallOpportunityMap: {},
 			missedCallMap: {},
 			pairs: [],
@@ -152,6 +153,7 @@ export function mergeGameAggregates(gameAggregates: GameAggregates[]): GameAggre
 
 	const callCountsMap: Record<string, Map<string, number>> = {};
 	const callWinsMap: Record<string, Map<string, number>> = {};
+	const callFScoreCountsMap: Record<string, { tp: number; fp: number; fn: number }> = {};
 	const missedCallOpportunityMap: Record<string, Map<string, number>> = {};
 	const missedCallMap: Record<string, Map<string, number>> = {};
 
@@ -210,6 +212,7 @@ export function mergeGameAggregates(gameAggregates: GameAggregates[]): GameAggre
 		});
 		callCountsMap[player.id] = callMap;
 		callWinsMap[player.id] = callWinMap;
+		callFScoreCountsMap[player.id] = { tp: 0, fp: 0, fn: 0 };
 
 		const missedOpportunityMap = new Map<string, number>();
 		const missedMap = new Map<string, number>();
@@ -398,6 +401,14 @@ export function mergeGameAggregates(gameAggregates: GameAggregates[]): GameAggre
 				}
 			}
 		}
+		for (const [playerId, counts] of Object.entries(agg.callFScoreCountsMap)) {
+			const mergedCounts = callFScoreCountsMap[playerId];
+			if (mergedCounts) {
+				mergedCounts.tp += counts.tp;
+				mergedCounts.fp += counts.fp;
+				mergedCounts.fn += counts.fn;
+			}
+		}
 
 		for (const [playerId, opportunityMap] of Object.entries(agg.missedCallOpportunityMap)) {
 			const mergedOpportunityMap = missedCallOpportunityMap[playerId];
@@ -487,6 +498,7 @@ export function mergeGameAggregates(gameAggregates: GameAggregates[]): GameAggre
 		soloTypeCounts,
 		callCountsMap,
 		callWinsMap,
+		callFScoreCountsMap,
 		missedCallOpportunityMap,
 		missedCallMap,
 		pairs,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BonusType, CallType, Team, RoundType } from '$lib/domain/enums';
+import { BonusType, CallType, Team, RoundType, RoundResult } from '$lib/domain/enums';
 import { calculatePlayerStatistics } from './player';
 
 // ============================================================================
@@ -376,6 +376,40 @@ describe('calculatePlayerStatistics', () => {
 		expect(stats.avgReKontra).toBeDefined();
 		expect(stats.missedCallRate).toBeDefined();
 		expect(stats.callFScore).toBeDefined();
+	});
+
+	it('includes teammate calls in the selected player F-score', () => {
+		const game = createMockGame({
+			participants: [
+				{ player: { id: 'p1', getTruncatedDisplayName: () => 'Alice' } },
+				{ player: { id: 'p2', getTruncatedDisplayName: () => 'Bob' } },
+				{ player: { id: 'p3', getTruncatedDisplayName: () => 'Cara' } },
+				{ player: { id: 'p4', getTruncatedDisplayName: () => 'Dan' } }
+			],
+			rounds: [
+				{
+					roundNumber: 1,
+					type: RoundType.Normal,
+					participants: [
+						{ playerId: 'p1', team: Team.RE, calls: [{ callType: CallType.RE }] },
+						{ playerId: 'p2', team: Team.RE, calls: [] },
+						{ playerId: 'p3', team: Team.KONTRA, calls: [] },
+						{ playerId: 'p4', team: Team.KONTRA, calls: [] }
+					],
+					eyesRe: 121,
+					calculatePoints: () => [
+						{ playerId: 'p1', points: 1, result: RoundResult.WON },
+						{ playerId: 'p2', points: 1, result: RoundResult.WON },
+						{ playerId: 'p3', points: -1, result: RoundResult.LOST },
+						{ playerId: 'p4', points: -1, result: RoundResult.LOST }
+					]
+				}
+			]
+		});
+
+		const stats = calculatePlayerStatistics('p2', 'Bob', [game as any], []);
+
+		expect(stats.callFScore.find((entry) => entry.player === 'Bob')?.fScore).toBe(1);
 	});
 
 	it('tracks bonuses and calls', () => {

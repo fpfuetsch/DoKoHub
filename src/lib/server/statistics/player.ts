@@ -209,6 +209,9 @@ function filterAggregatesForPlayer(agg: GameAggregates, playerId: string): GameA
 		soloTypeCounts: agg.playerSoloTypeCounts.get(playerId) || new Map(),
 		callCountsMap: { [playerId]: agg.callCountsMap[playerId] || new Map() },
 		callWinsMap: { [playerId]: agg.callWinsMap[playerId] || new Map() },
+		callFScoreCountsMap: {
+			[playerId]: agg.callFScoreCountsMap[playerId] || { tp: 0, fp: 0, fn: 0 }
+		},
 		missedCallOpportunityMap: { [playerId]: agg.missedCallOpportunityMap[playerId] || new Map() },
 		missedCallMap: { [playerId]: agg.missedCallMap[playerId] || new Map() },
 		pairs: [],
@@ -350,6 +353,7 @@ function createEmptyAggregates(): GameAggregates {
 		soloTypeCounts: new Map(),
 		callCountsMap: {},
 		callWinsMap: {},
+		callFScoreCountsMap: {},
 		missedCallOpportunityMap: {},
 		missedCallMap: {},
 		pairs: [],

@@ -43,6 +43,35 @@ export interface RoundPoints {
 	result: RoundResultEnumValue;
 }
 
+export function getEffectiveCallsForTeam(
+	team: TeamEnumValue,
+	participants: GameRoundParticipant[]
+): Set<CallTypeEnumValue> {
+	const calls = new Set<CallTypeEnumValue>();
+	for (const participant of participants) {
+		if (participant.team !== team) continue;
+		for (const call of participant.calls ?? []) {
+			calls.add(team === Team.RE ? CallType.RE : CallType.KONTRA);
+			if (call.callType === CallType.Schwarz) {
+				calls.add(CallType.Schwarz);
+				calls.add(CallType.Keine30);
+				calls.add(CallType.Keine60);
+				calls.add(CallType.Keine90);
+			} else if (call.callType === CallType.Keine30) {
+				calls.add(CallType.Keine30);
+				calls.add(CallType.Keine60);
+				calls.add(CallType.Keine90);
+			} else if (call.callType === CallType.Keine60) {
+				calls.add(CallType.Keine60);
+				calls.add(CallType.Keine90);
+			} else if (call.callType === CallType.Keine90) {
+				calls.add(CallType.Keine90);
+			}
+		}
+	}
+	return calls;
+}
+
 export class Round implements RoundData {
 	id: string;
 	roundNumber: number;
@@ -301,46 +330,15 @@ export class Round implements RoundData {
 		KEINE30: boolean;
 		SCHWARZ: boolean;
 	} {
-		const calls = {
-			RE: false,
-			KONTRA: false,
-			KEINE90: false,
-			KEINE60: false,
-			KEINE30: false,
-			SCHWARZ: false
+		const effectiveCalls = getEffectiveCallsForTeam(team, this.participants);
+		return {
+			RE: effectiveCalls.has(CallType.RE),
+			KONTRA: effectiveCalls.has(CallType.KONTRA),
+			KEINE90: effectiveCalls.has(CallType.Keine90),
+			KEINE60: effectiveCalls.has(CallType.Keine60),
+			KEINE30: effectiveCalls.has(CallType.Keine30),
+			SCHWARZ: effectiveCalls.has(CallType.Schwarz)
 		};
-
-		for (const participant of this.participants) {
-			if (participant.team === team) {
-				for (const call of participant.calls) {
-					// Any call by the team implies their team call (RE or KONTRA)
-					if (team === Team.RE) {
-						calls.RE = true;
-					} else {
-						calls.KONTRA = true;
-					}
-
-					// Higher calls imply all lower calls
-					if (call.callType === CallType.Schwarz) {
-						calls.SCHWARZ = true;
-						calls.KEINE30 = true;
-						calls.KEINE60 = true;
-						calls.KEINE90 = true;
-					} else if (call.callType === CallType.Keine30) {
-						calls.KEINE30 = true;
-						calls.KEINE60 = true;
-						calls.KEINE90 = true;
-					} else if (call.callType === CallType.Keine60) {
-						calls.KEINE60 = true;
-						calls.KEINE90 = true;
-					} else if (call.callType === CallType.Keine90) {
-						calls.KEINE90 = true;
-					}
-				}
-			}
-		}
-
-		return calls;
 	}
 
 	private calculateBasePointsForTeam(team: TeamEnumValue, won: boolean): number {
