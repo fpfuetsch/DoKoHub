@@ -42,4 +42,7 @@ COPY entrypoint.sh ./entrypoint.sh
 ENV PORT=5173
 EXPOSE 5173
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+	CMD wget -q --spider "http://127.0.0.1:${PORT}"
+
 ENTRYPOINT ["/app/entrypoint.sh"]
