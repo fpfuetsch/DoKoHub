@@ -38,6 +38,9 @@ COPY drizzle.config.ts ./drizzle.config.ts
 # Copy entrypoint script with execute permissions
 COPY entrypoint.sh ./entrypoint.sh
 
+# Switch to non-root user for security
+USER node
+
 # Default port used by SvelteKit adapter-node output
 ENV PORT=5173
 EXPOSE 5173
