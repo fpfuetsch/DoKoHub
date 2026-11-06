@@ -15,11 +15,11 @@
 		open = $bindable(),
 		sortedParticipants,
 		playerTotals
-	} = $props<{
+	}: {
 		open: boolean;
 		sortedParticipants: GameParticipant[];
 		playerTotals: Map<string, number>;
-	}>();
+	} = $props();
 
 	const ranking = $derived(
 		(() => {
