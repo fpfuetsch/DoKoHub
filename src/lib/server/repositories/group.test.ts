@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { GroupRepository } from './group';
 import { PlayerRepository } from './player';
-import { db } from '$lib/server/db';
-import { GroupMemberTable, GroupTable, PlayerTable } from '$lib/server/db/schema';
+import { db } from '#lib/server/db/index.js';
+import { GroupMemberTable, GroupTable, PlayerTable } from '#lib/server/db/schema.js';
 import { and, eq } from 'drizzle-orm';
-import { AuthProvider } from '$lib/server/enums';
+import { AuthProvider } from '#lib/server/enums.js';
 
 describe('GroupRepository', () => {
 	let repo: GroupRepository;

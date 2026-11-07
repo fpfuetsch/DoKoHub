@@ -3,7 +3,7 @@ import { RoundRepository } from './round';
 import { GameRepository } from './game';
 import { GroupRepository } from './group';
 import { PlayerRepository } from './player';
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db/index.js';
 import {
 	GameRoundCallTable,
 	GameRoundBonusTable,
@@ -15,11 +15,11 @@ import {
 	GroupMemberTable,
 	GroupTable,
 	PlayerTable
-} from '$lib/server/db/schema';
-import { Team, CallType, BonusType, RoundType, SoloType, AuthProvider } from '$lib/server/enums';
-import type { RoundData } from '$lib/domain/round';
-import { Round } from '$lib/domain/round';
-import { Game } from '$lib/domain/game';
+} from '#lib/server/db/schema.js';
+import { Team, CallType, BonusType, RoundType, SoloType, AuthProvider } from '#lib/server/enums.js';
+import type { RoundData } from '#lib/domain/round.js';
+import { Round } from '#lib/domain/round.js';
+import { Game } from '#lib/domain/game.js';
 import { eq } from 'drizzle-orm';
 
 // Helper to build a valid normal round draft with 4 participants

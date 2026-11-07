@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Button } from 'flowbite-svelte';
 	import { EyeOutline, EyeSlashOutline, AwardOutline } from 'flowbite-svelte-icons';
-	import type { GameParticipant } from '$lib/domain/game';
+	import type { GameParticipant } from '#lib/domain/game.js';
 
 	let {
 		sortedParticipants,

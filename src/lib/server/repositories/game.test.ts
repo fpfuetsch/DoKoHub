@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { GameRepository } from './game';
 import { PlayerRepository } from './player';
 import { GroupRepository } from './group';
-import { db } from '$lib/server/db';
-import { GameTable, GroupTable, GroupMemberTable, PlayerTable } from '$lib/server/db/schema';
-import { AuthProvider } from '$lib/server/enums';
+import { db } from '#lib/server/db/index.js';
+import { GameTable, GroupTable, GroupMemberTable, PlayerTable } from '#lib/server/db/schema.js';
+import { AuthProvider } from '#lib/server/enums.js';
 
 describe('GameRepository', () => {
 	let repository: GameRepository;

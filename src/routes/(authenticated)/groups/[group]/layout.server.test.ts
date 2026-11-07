@@ -9,11 +9,11 @@ const { requireUserOrRedirectToLoginMock, getByIdMock, groupRepositoryCtor } = v
 	return { requireUserOrRedirectToLoginMock, getByIdMock, groupRepositoryCtor };
 });
 
-vi.mock('$lib/server/auth/guard', () => ({
+vi.mock('#lib/server/auth/guard.js', () => ({
 	requireUserOrRedirectToLogin: requireUserOrRedirectToLoginMock
 }));
 
-vi.mock('$lib/server/repositories/group', () => ({
+vi.mock('#lib/server/repositories/group.js', () => ({
 	GroupRepository: groupRepositoryCtor
 }));
 

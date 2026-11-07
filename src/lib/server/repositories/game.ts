@@ -1,11 +1,11 @@
-import { RoundRepository } from '$lib/server/repositories/round';
-import { type RepoResult, type RepoVoidResult, ok, err } from '$lib/server/repositories/result';
-import { BaseRepository } from '$lib/server/repositories/base';
-import { db } from '$lib/server/db';
-import { GameTable, GameParticipantTable, PlayerTable } from '$lib/server/db/schema';
-import { Game, type GameParticipant } from '$lib/domain/game';
-import { Player } from '$lib/domain/player';
-import type { GameType, PlayerType } from '$lib/server/db/schema';
+import { RoundRepository } from '#lib/server/repositories/round.js';
+import { type RepoResult, type RepoVoidResult, ok, err } from '#lib/server/repositories/result.js';
+import { BaseRepository } from '#lib/server/repositories/base.js';
+import { db } from '#lib/server/db/index.js';
+import { GameTable, GameParticipantTable, PlayerTable } from '#lib/server/db/schema.js';
+import { Game, type GameParticipant } from '#lib/domain/game.js';
+import { Player } from '#lib/domain/player.js';
+import type { GameType, PlayerType } from '#lib/server/db/schema.js';
 import { and, desc, eq } from 'drizzle-orm';
 
 export class GameRepository extends BaseRepository {

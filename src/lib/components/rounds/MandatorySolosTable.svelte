@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { Popover } from 'flowbite-svelte';
 	import { ShuffleOutline } from 'flowbite-svelte-icons';
-	import type { GameParticipant } from '$lib/domain/game';
-	import type { Round, RoundPoints } from '$lib/domain/round';
-	import { Team as TeamEnum, RoundResult as RoundResultEnum } from '$lib/domain/enums';
+	import type { GameParticipant } from '#lib/domain/game.js';
+	import type { Round, RoundPoints } from '#lib/domain/round.js';
+	import { Team as TeamEnum, RoundResult as RoundResultEnum } from '#lib/domain/enums.js';
 	import { formatRoundLabel, getPlayerResult, placeholderTile, resultStyles } from './roundDisplay';
 
 	type RoundWithPoints = { round: Round; points: RoundPoints[] };

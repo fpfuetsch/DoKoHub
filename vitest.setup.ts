@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 
 // Mock the database module to use an in-memory PGlite instance for testing
-vi.mock('$lib/server/db', async (_importOriginal) => {
+vi.mock('#lib/server/db/index.js', async (_importOriginal) => {
 	// Use the actual schema definitions
 	const schema = await vi.importActual<typeof import('./src/lib/server/db/schema')>(
 		'./src/lib/server/db/schema'

@@ -1,6 +1,6 @@
 import { redirect, fail, type RequestEvent } from '@sveltejs/kit';
-import { GameRepository } from '$lib/server/repositories/game';
-import { requireUserOrFail } from '$lib/server/auth/guard';
+import { GameRepository } from '#lib/server/repositories/game.js';
+import { requireUserOrFail } from '#lib/server/auth/guard.js';
 
 export const load = async ({ params }: { params: { group: string; game: string } }) => {
 	throw redirect(302, `/groups/${params.group}/games/${params.game}/rounds`);

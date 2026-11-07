@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
-import { CallType, RoundType } from '$lib/domain/enums';
-import type { Game } from '$lib/domain/game';
-import { generateDistinctColorPalette } from '$lib/utils/colors';
+import { CallType, RoundType } from '#lib/domain/enums.js';
+import type { Game } from '#lib/domain/game.js';
+import { generateDistinctColorPalette } from '#lib/utils/colors.js';
 import { increment, soloTypeOrder } from './shared';
 import {
 	aggregateGameRounds,
@@ -720,7 +720,7 @@ export async function getGroupStatistics({
 	groupId: string;
 	gameRepo?: any;
 }): Promise<GroupStatistics> {
-	const { GameRepository } = await import('$lib/server/repositories/game');
+	const { GameRepository } = await import('#lib/server/repositories/game.js');
 	const repo = gameRepo || new GameRepository(principalId);
 	const gamesResult = await repo.listByGroup(groupId);
 

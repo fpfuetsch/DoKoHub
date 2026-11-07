@@ -1,19 +1,19 @@
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db/index.js';
 import {
 	GroupTable,
 	GroupMemberTable,
 	PlayerTable,
 	GroupNameSchema,
 	GameTable
-} from '$lib/server/db/schema';
-import { Group } from '$lib/domain/group';
-import { Player } from '$lib/domain/player';
-import { BaseRepository } from '$lib/server/repositories/base';
-import type { GroupType, PlayerType } from '$lib/server/db/schema';
+} from '#lib/server/db/schema.js';
+import { Group } from '#lib/domain/group.js';
+import { Player } from '#lib/domain/player.js';
+import { BaseRepository } from '#lib/server/repositories/base.js';
+import type { GroupType, PlayerType } from '#lib/server/db/schema.js';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { err, ok, type RepoResult, type RepoVoidResult } from './result';
-import { PlayerRepository } from '$lib/server/repositories/player';
-import { AuthProvider } from '$lib/server/enums';
+import { PlayerRepository } from '#lib/server/repositories/player.js';
+import { AuthProvider } from '#lib/server/enums.js';
 
 export class GroupRepository extends BaseRepository {
 	private readonly principalId: string;

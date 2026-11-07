@@ -1,7 +1,7 @@
 import type { ServerLoad } from '@sveltejs/kit';
-import { requireUserOrRedirectToLogin } from '$lib/server/auth/guard';
-import { getGroupStatistics } from '$lib/server/statistics/group';
-import { GameRepository } from '$lib/server/repositories/game';
+import { requireUserOrRedirectToLogin } from '#lib/server/auth/guard.js';
+import { getGroupStatistics } from '#lib/server/statistics/group.js';
+import { GameRepository } from '#lib/server/repositories/game.js';
 
 export const load: ServerLoad = async ({ params, locals, url }) => {
 	const user = requireUserOrRedirectToLogin({ locals, url });

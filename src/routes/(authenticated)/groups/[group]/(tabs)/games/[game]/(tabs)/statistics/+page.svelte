@@ -2,7 +2,7 @@
 	import { LineChart, BarChart, PieChart } from 'layerchart';
 	import { Alert } from 'flowbite-svelte';
 	import { InfoCircleSolid } from 'flowbite-svelte-icons';
-	import StatsCard from '$lib/components/StatsCard.svelte';
+	import StatsCard from '#lib/components/StatsCard.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();

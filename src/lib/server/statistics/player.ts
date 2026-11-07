@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
-import type { Game } from '$lib/domain/game';
-import type { Group } from '$lib/domain/group';
+import type { Game } from '#lib/domain/game.js';
+import type { Group } from '#lib/domain/group.js';
 import {
 	aggregateGameRounds,
 	type GameAggregates,
@@ -375,9 +375,9 @@ export async function getPlayerStatistics({
 }: {
 	principalId: string;
 }): Promise<PlayerStatistics> {
-	const { GroupRepository } = await import('$lib/server/repositories/group');
-	const { GameRepository } = await import('$lib/server/repositories/game');
-	const { PlayerRepository } = await import('$lib/server/repositories/player');
+	const { GroupRepository } = await import('#lib/server/repositories/group.js');
+	const { GameRepository } = await import('#lib/server/repositories/game.js');
+	const { PlayerRepository } = await import('#lib/server/repositories/player.js');
 
 	const groupRepo = new GroupRepository(principalId);
 	const gameRepo = new GameRepository(principalId);

@@ -7,11 +7,11 @@ const { requireUserOrRedirectToLoginMock, getGameStatisticsMock } = vi.hoisted((
 	return { requireUserOrRedirectToLoginMock, getGameStatisticsMock };
 });
 
-vi.mock('$lib/server/auth/guard', () => ({
+vi.mock('#lib/server/auth/guard.js', () => ({
 	requireUserOrRedirectToLogin: requireUserOrRedirectToLoginMock
 }));
 
-vi.mock('$lib/server/statistics/game', () => ({
+vi.mock('#lib/server/statistics/game.js', () => ({
 	getGameStatistics: getGameStatisticsMock
 }));
 

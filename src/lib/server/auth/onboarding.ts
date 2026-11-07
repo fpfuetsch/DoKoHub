@@ -1,13 +1,16 @@
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
-import { env } from '$env/dynamic/private';
+import {
+	AUTH_JWT_SECRET,
+	ONBOARDING_MAX_AGE_SECONDS as ONBOARDING_MAX_AGE_SECONDS_ENV
+} from '$app/env/private';
 import { sessionCookieAttributes, DEFAULT_AUTH_JWT_SECRET } from './session';
-import type { AuthProviderType } from '$lib/server/enums';
+import type { AuthProviderType } from '#lib/server/enums.js';
 
-const rawOnboardingSecret = env.AUTH_JWT_SECRET ?? DEFAULT_AUTH_JWT_SECRET;
+const rawOnboardingSecret = AUTH_JWT_SECRET ?? DEFAULT_AUTH_JWT_SECRET;
 const secret = new TextEncoder().encode(rawOnboardingSecret);
 export const ONBOARDING_COOKIE = 'dokohub_onboarding';
-export const ONBOARDING_MAX_AGE_SECONDS = env.ONBOARDING_MAX_AGE_SECONDS
-	? parseInt(env.ONBOARDING_MAX_AGE_SECONDS)
+export const ONBOARDING_MAX_AGE_SECONDS = ONBOARDING_MAX_AGE_SECONDS_ENV
+	? parseInt(ONBOARDING_MAX_AGE_SECONDS_ENV)
 	: 15 * 60; // default: 15 minutes
 
 export type OnboardingPayload = {

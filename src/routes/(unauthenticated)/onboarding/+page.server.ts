@@ -1,18 +1,18 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { PlayerRepository } from '$lib/server/repositories/player';
-import { PlayerProfileSchema, PlayerDisplayNameSchema } from '$lib/server/db/schema';
+import { PlayerRepository } from '#lib/server/repositories/player.js';
+import { PlayerProfileSchema, PlayerDisplayNameSchema } from '#lib/server/db/schema.js';
 import {
 	ONBOARDING_COOKIE,
 	onboardingCookieAttributes,
 	verifyOnboardingToken
-} from '$lib/server/auth/onboarding';
+} from '#lib/server/auth/onboarding.js';
 import {
 	SESSION_COOKIE_NAME,
 	createSessionToken,
 	sessionCookieAttributes
-} from '$lib/server/auth/session';
-import { AuthProvider } from '$lib/server/enums';
+} from '#lib/server/auth/session.js';
+import { AuthProvider } from '#lib/server/enums.js';
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {
 	if (locals.user) throw redirect(302, '/groups');

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Team } from '$lib/domain/enums';
+import { Team } from '#lib/domain/enums.js';
 
 const { requireUserOrRedirectToLoginMock, getGroupStatisticsMock, listByGroupMock, gameRepoCtor } =
 	vi.hoisted(() => {
@@ -18,11 +18,11 @@ const { requireUserOrRedirectToLoginMock, getGroupStatisticsMock, listByGroupMoc
 		};
 	});
 
-vi.mock('$lib/server/auth/guard', () => ({
+vi.mock('#lib/server/auth/guard.js', () => ({
 	requireUserOrRedirectToLogin: requireUserOrRedirectToLoginMock
 }));
 
-vi.mock('$lib/server/statistics/group', async (importOriginal: any) => {
+vi.mock('#lib/server/statistics/group.js', async (importOriginal: any) => {
 	const actual = await importOriginal();
 	return {
 		...actual,
@@ -30,7 +30,7 @@ vi.mock('$lib/server/statistics/group', async (importOriginal: any) => {
 	};
 });
 
-vi.mock('$lib/server/repositories/game', () => ({
+vi.mock('#lib/server/repositories/game.js', () => ({
 	GameRepository: gameRepoCtor
 }));
 
@@ -225,7 +225,7 @@ describe('group statistics calculation edge cases', () => {
 	});
 
 	it('handles pair team counting for players on same team across multiple rounds', async () => {
-		const { calculateGroupStatistics } = await import('$lib/server/statistics/group');
+		const { calculateGroupStatistics } = await import('#lib/server/statistics/group.js');
 
 		const games: any[] = [
 			{
@@ -307,8 +307,8 @@ describe('group statistics calculation edge cases', () => {
 	});
 
 	it('calculates solo type breakdown correctly', async () => {
-		const { calculateGroupStatistics } = await import('$lib/server/statistics/group');
-		const { RoundType } = await import('$lib/domain/enums');
+		const { calculateGroupStatistics } = await import('#lib/server/statistics/group.js');
+		const { RoundType } = await import('#lib/domain/enums.js');
 
 		const games: any[] = [
 			{
@@ -387,7 +387,7 @@ describe('group statistics calculation edge cases', () => {
 	});
 
 	it('filters out unfinished games from calculations', async () => {
-		const { calculateGroupStatistics } = await import('$lib/server/statistics/group');
+		const { calculateGroupStatistics } = await import('#lib/server/statistics/group.js');
 
 		const games: any[] = [
 			{
@@ -427,7 +427,7 @@ describe('group statistics calculation edge cases', () => {
 	});
 
 	it('returns empty statistics for empty games list', async () => {
-		const { calculateGroupStatistics } = await import('$lib/server/statistics/group');
+		const { calculateGroupStatistics } = await import('#lib/server/statistics/group.js');
 
 		const games: any[] = [];
 		const stats = calculateGroupStatistics(games);

@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { Modal, Button, ButtonGroup, Label } from 'flowbite-svelte';
-	import type { GameParticipant } from '$lib/domain/game';
-	import type { CallTypeEnumValue, TeamEnumValue } from '$lib/domain/enums';
-	import { CallType as CallTypeEnum, Team as TeamEnum } from '$lib/domain/enums';
+	import type { GameParticipant } from '#lib/domain/game.js';
+	import type { CallTypeEnumValue, TeamEnumValue } from '#lib/domain/enums.js';
+	import { CallType as CallTypeEnum, Team as TeamEnum } from '#lib/domain/enums.js';
 
 	export let open: boolean;
 	export let editingPlayerId: string | null;
