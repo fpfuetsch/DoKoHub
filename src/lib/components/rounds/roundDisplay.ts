@@ -1,9 +1,9 @@
-import type { Round, RoundPoints } from '$lib/domain/round';
+import type { Round, RoundPoints } from '#lib/domain/round.js';
 import {
 	RoundType as RoundTypeEnum,
 	SoloType as SoloTypeEnum,
 	RoundResult as RoundResultEnum
-} from '$lib/domain/enums';
+} from '#lib/domain/enums.js';
 
 export const resultStyles: Record<RoundResultEnum, string> = {
 	[RoundResultEnum.WON]:

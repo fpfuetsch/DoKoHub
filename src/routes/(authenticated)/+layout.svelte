@@ -2,7 +2,7 @@
 	import { BottomNav, BottomNavItem } from 'flowbite-svelte';
 	import { UsersGroupSolid, ChartOutline, UserCircleSolid } from 'flowbite-svelte-icons';
 	import { page } from '$app/state';
-	import logo from '$lib/assets/dokohub.png';
+	import logo from '#lib/assets/dokohub.png';
 	let activeUrl = $derived(page.url.pathname);
 	let { children } = $props();
 </script>

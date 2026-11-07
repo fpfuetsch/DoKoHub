@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Modal, Button, ButtonGroup, Label } from 'flowbite-svelte';
-	import type { GameParticipant } from '$lib/domain/game';
-	import type { CallTypeEnumValue, TeamEnumValue } from '$lib/domain/enums';
+	import type { GameParticipant } from '#lib/domain/game.js';
+	import type { CallTypeEnumValue, TeamEnumValue } from '#lib/domain/enums.js';
 	import { PlusOutline, MinusOutline } from 'flowbite-svelte-icons';
 
 	export let open: boolean;

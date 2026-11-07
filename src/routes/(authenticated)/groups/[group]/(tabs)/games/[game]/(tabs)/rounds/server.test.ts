@@ -25,15 +25,15 @@ const {
 	};
 });
 
-vi.mock('$lib/server/auth/guard', () => ({
+vi.mock('#lib/server/auth/guard.js', () => ({
 	requireUserOrFail: requireUserOrFailMock
 }));
 
-vi.mock('$lib/server/repositories/game', () => ({
+vi.mock('#lib/server/repositories/game.js', () => ({
 	GameRepository: gameRepositoryCtor
 }));
 
-vi.mock('$lib/server/realtime/round', () => ({
+vi.mock('#lib/server/realtime/round.js', () => ({
 	subscribeToRoundChanges: subscribeToRoundChangesMock,
 	publishRoundsUpdated: publishRoundsUpdatedMock
 }));

@@ -23,17 +23,17 @@ const {
 	};
 });
 
-vi.mock('$lib/server/repositories/player', () => ({
+vi.mock('#lib/server/repositories/player.js', () => ({
 	PlayerRepository: playerRepositoryCtor
 }));
 
-vi.mock('$lib/server/auth/session', () => ({
+vi.mock('#lib/server/auth/session.js', () => ({
 	createSessionToken: createSessionTokenMock,
 	SESSION_COOKIE_NAME: 'session',
 	sessionCookieAttributes: { path: '/' }
 }));
 
-vi.mock('$lib/server/auth/onboarding', () => ({
+vi.mock('#lib/server/auth/onboarding.js', () => ({
 	verifyOnboardingToken: verifyOnboardingTokenMock,
 	ONBOARDING_COOKIE: 'onboarding',
 	onboardingCookieAttributes: { path: '/' }

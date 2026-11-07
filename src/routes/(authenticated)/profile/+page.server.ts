@@ -1,7 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions } from './$types';
-import { PlayerRepository } from '$lib/server/repositories/player';
-import { requireUserOrFail } from '$lib/server/auth/guard';
+import { PlayerRepository } from '#lib/server/repositories/player.js';
+import { requireUserOrFail } from '#lib/server/auth/guard.js';
 
 export const actions: Actions = {
 	save: async ({ request, locals }) => {

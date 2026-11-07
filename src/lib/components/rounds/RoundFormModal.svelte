@@ -1,18 +1,17 @@
 <script lang="ts">
 	import { Modal, Button, Label, Alert, ButtonGroup } from 'flowbite-svelte';
 	import { EditOutline, ExclamationCircleSolid } from 'flowbite-svelte-icons';
-	import { enhance } from '$app/forms';
-	import type { SubmitFunction } from '@sveltejs/kit';
-	import type { Game } from '$lib/domain/game';
-	import type { GameRoundParticipant } from '$lib/domain/round';
-	import type { CallTypeEnumValue, SoloTypeEnumValue, TeamEnumValue } from '$lib/domain/enums';
+	import { enhance, type SubmitFunction } from '$app/forms';
+	import type { Game } from '#lib/domain/game.js';
+	import type { GameRoundParticipant } from '#lib/domain/round.js';
+	import type { CallTypeEnumValue, SoloTypeEnumValue, TeamEnumValue } from '#lib/domain/enums.js';
 	import {
 		RoundType as RoundTypeEnum,
 		SoloType as SoloTypeEnum,
 		Team as TeamEnum,
 		CallType as CallTypeEnum,
 		BonusType as BonusTypeEnum
-	} from '$lib/domain/enums';
+	} from '#lib/domain/enums.js';
 
 	export let open: boolean;
 	export let isFinished: boolean;
@@ -182,28 +181,24 @@
 									color={roundType === RoundTypeEnum.HochzeitNormal ? 'secondary' : 'light'}
 									class={`flex-1 text-xs ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
 									disabled={!canEditRounds}
-									onclick={() => (roundType = RoundTypeEnum.HochzeitNormal)}
+									onclick={() => (roundType = RoundTypeEnum.HochzeitNormal)}>Normal</Button
 								>
-									Normal
-								</Button>
+
 								<Button
 									type="button"
 									color={roundType === RoundTypeEnum.HochzeitStill ? 'secondary' : 'light'}
 									class={`flex-1 text-xs ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
 									disabled={!canEditRounds}
-									onclick={() => (roundType = RoundTypeEnum.HochzeitStill)}
+									onclick={() => (roundType = RoundTypeEnum.HochzeitStill)}>Still</Button
 								>
-									Still
-								</Button>
+
 								<Button
 									type="button"
 									color={roundType === RoundTypeEnum.HochzeitUngeklaert ? 'secondary' : 'light'}
 									class={`flex-1 text-xs ${!canEditRounds ? 'cursor-not-allowed opacity-60' : ''}`}
 									disabled={!canEditRounds}
-									onclick={() => (roundType = RoundTypeEnum.HochzeitUngeklaert)}
+									onclick={() => (roundType = RoundTypeEnum.HochzeitUngeklaert)}>Ungeklärt</Button
 								>
-									Ungeklärt
-								</Button>
 							</ButtonGroup>
 						</div>
 					{:else if roundType.startsWith('SOLO')}
@@ -224,10 +219,9 @@
 												(editingRoundId && !editingMandatorySolo && roundType.startsWith('SOLO'))
 											)}
 											class={`flex-1 ${!!(!canEditRounds || editingMandatorySolo || (editingRoundId && !editingMandatorySolo && roundType.startsWith('SOLO'))) ? 'cursor-not-allowed opacity-60' : ''}`}
-											onclick={() => (soloType = SoloTypeEnum.Pflicht)}
+											onclick={() => (soloType = SoloTypeEnum.Pflicht)}>Pflicht</Button
 										>
-											Pflicht
-										</Button>
+
 										<Button
 											type="button"
 											color={soloType === SoloTypeEnum.Lust ? 'secondary' : 'light'}
@@ -625,9 +619,10 @@
 					<Button type="button" color="light" disabled={isSubmitting} onclick={() => (open = false)}
 						>Abbrechen</Button
 					>
-					<Button type="submit" disabled={isSubmitting}>
-						{isSubmitting ? 'Speichert...' : 'Speichern'}
-					</Button>
+
+					<Button type="submit" disabled={isSubmitting}
+						>{isSubmitting ? 'Speichert...' : 'Speichern'}</Button
+					>
 				</div>
 			{/if}
 		</div>

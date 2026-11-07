@@ -1,7 +1,7 @@
 import { redirect, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
-import { GroupRepository } from '$lib/server/repositories/group';
-import { requireUserOrFail } from '$lib/server/auth/guard';
+import { GroupRepository } from '#lib/server/repositories/group.js';
+import { requireUserOrFail } from '#lib/server/auth/guard.js';
 
 export const load: PageServerLoad = async ({ params }) => {
 	throw redirect(302, `/groups/${params.group}/games`);

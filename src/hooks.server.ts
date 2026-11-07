@@ -1,10 +1,10 @@
-import type { Handle } from '@sveltejs/kit';
-import { PlayerRepository } from '$lib/server/repositories/player';
+import type { Handle } from '@sveltejs/kit/hooks';
+import { PlayerRepository } from '#lib/server/repositories/player.js';
 import {
 	SESSION_COOKIE_NAME,
 	sessionCookieAttributes,
 	verifySessionToken
-} from '$lib/server/auth/session';
+} from '#lib/server/auth/session.js';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const token = event.cookies.get(SESSION_COOKIE_NAME);

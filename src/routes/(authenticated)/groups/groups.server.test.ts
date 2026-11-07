@@ -11,7 +11,7 @@ const { listMock, createMock, groupRepositoryCtor } = vi.hoisted(() => {
 	return { listMock, createMock, groupRepositoryCtor };
 });
 
-vi.mock('$lib/server/repositories/group', () => ({
+vi.mock('#lib/server/repositories/group.js', () => ({
 	GroupRepository: groupRepositoryCtor
 }));
 

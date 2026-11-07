@@ -1,5 +1,5 @@
-import { GroupRepository } from '$lib/server/repositories/group';
-import { requireUserOrRedirectToLogin, requireUserOrFail } from '$lib/server/auth/guard';
+import { GroupRepository } from '#lib/server/repositories/group.js';
+import { requireUserOrRedirectToLogin, requireUserOrFail } from '#lib/server/auth/guard.js';
 import type { PageServerLoad, Actions } from './$types';
 import { fail, error } from '@sveltejs/kit';
 

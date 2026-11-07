@@ -5,20 +5,20 @@ import {
 	GOOGLE_STATE_COOKIE,
 	GOOGLE_VERIFIER_COOKIE,
 	createGoogleProvider
-} from '$lib/server/auth/google';
+} from '#lib/server/auth/google.js';
 import {
 	SESSION_COOKIE_NAME,
 	createSessionToken,
 	sessionCookieAttributes
-} from '$lib/server/auth/session';
+} from '#lib/server/auth/session.js';
 import {
 	ONBOARDING_COOKIE,
 	createOnboardingToken,
 	onboardingCookieAttributes
-} from '$lib/server/auth/onboarding';
-import { PlayerRepository } from '$lib/server/repositories/player';
-import { AuthProvider } from '$lib/server/enums';
-import { getSafeRedirectUrl } from '$lib/server/auth/redirect';
+} from '#lib/server/auth/onboarding.js';
+import { PlayerRepository } from '#lib/server/repositories/player.js';
+import { AuthProvider } from '#lib/server/enums.js';
+import { getSafeRedirectUrl } from '#lib/server/auth/redirect.js';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ cookies, url }) => {

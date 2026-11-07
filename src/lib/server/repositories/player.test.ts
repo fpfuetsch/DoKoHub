@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { PlayerRepository } from './player';
 import { GroupRepository } from './group';
 import { GameRepository } from './game';
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db/index.js';
 import {
 	GroupMemberTable,
 	GroupTable,
@@ -14,8 +14,8 @@ import {
 	GameRoundCallTable,
 	GameRoundBonusTable,
 	GameRoundResultTable
-} from '$lib/server/db/schema';
-import { AuthProvider } from '$lib/server/enums';
+} from '#lib/server/db/schema.js';
+import { AuthProvider } from '#lib/server/enums.js';
 import { and, eq } from 'drizzle-orm';
 
 describe('PlayerRepository', () => {

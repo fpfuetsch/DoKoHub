@@ -7,10 +7,10 @@ declare global {
 	namespace App {
 		// interface Error {}
 		interface Locals {
-			user: import('$lib/server/db/schema').PlayerType | null;
+			user: import('#lib/server/db/schema.js').PlayerType | null;
 		}
 		interface PageData {
-			user?: import('$lib/server/db/schema').PlayerType | null;
+			user?: import('#lib/server/db/schema.js').PlayerType | null;
 		}
 		// interface PageState {}
 		// interface Platform {}

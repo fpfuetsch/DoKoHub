@@ -1,5 +1,5 @@
-import { db } from '$lib/server/db';
-import { GroupMemberTable, GroupTable } from '$lib/server/db/schema';
+import { db } from '#lib/server/db/index.js';
+import { GroupMemberTable, GroupTable } from '#lib/server/db/schema.js';
 import { and, eq } from 'drizzle-orm';
 import { type RepoVoidResult, ok, err } from './result';
 

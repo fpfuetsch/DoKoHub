@@ -1,4 +1,4 @@
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db/index.js';
 import {
 	GroupMemberTable,
 	PlayerTable,
@@ -8,14 +8,14 @@ import {
 	GameRoundBonusTable,
 	GameRoundResultTable,
 	PlayerDisplayNameSchema
-} from '$lib/server/db/schema';
-import type { AuthProviderType } from '$lib/server/enums';
+} from '#lib/server/db/schema.js';
+import type { AuthProviderType } from '#lib/server/enums.js';
 import { and, eq } from 'drizzle-orm';
-import { Player } from '$lib/domain/player';
-import { BaseRepository } from '$lib/server/repositories/base';
-import type { PlayerType } from '$lib/server/db/schema';
-import { AuthProvider } from '$lib/server/enums';
-import { err, ok, type RepoResult, type RepoVoidResult } from '$lib/server/repositories/result';
+import { Player } from '#lib/domain/player.js';
+import { BaseRepository } from '#lib/server/repositories/base.js';
+import type { PlayerType } from '#lib/server/db/schema.js';
+import { AuthProvider } from '#lib/server/enums.js';
+import { err, ok, type RepoResult, type RepoVoidResult } from '#lib/server/repositories/result.js';
 
 export class PlayerRepository extends BaseRepository {
 	private readonly principalId?: string;

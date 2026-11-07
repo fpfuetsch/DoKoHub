@@ -1,7 +1,7 @@
-import { GroupRepository } from '$lib/server/repositories/group';
+import { GroupRepository } from '#lib/server/repositories/group.js';
 import type { LayoutServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { requireUserOrRedirectToLogin } from '$lib/server/auth/guard';
+import { requireUserOrRedirectToLogin } from '#lib/server/auth/guard.js';
 
 export const load: LayoutServerLoad = async ({ params, locals, url }) => {
 	const user = requireUserOrRedirectToLogin({ locals, url });

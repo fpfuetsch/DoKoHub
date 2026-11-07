@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BonusType, CallType, Team, RoundType, RoundResult } from '$lib/domain/enums';
+import { BonusType, CallType, Team, RoundType, RoundResult } from '#lib/domain/enums.js';
 import { calculatePlayerStatistics } from './player';
 
 // ============================================================================

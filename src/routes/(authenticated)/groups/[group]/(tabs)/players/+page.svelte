@@ -35,10 +35,10 @@
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import type { PageProps } from './$types';
-	import type { Player } from '$lib/domain/player';
-	import { AuthProvider } from '$lib/domain/enums';
+	import type { Player } from '#lib/domain/player.js';
+	import { AuthProvider } from '#lib/domain/enums.js';
 	import { CheckOutline } from 'flowbite-svelte-icons';
-	import logo from '$lib/assets/dokohub.png';
+	import logo from '#lib/assets/dokohub.png';
 
 	let { data, form }: PageProps = $props();
 

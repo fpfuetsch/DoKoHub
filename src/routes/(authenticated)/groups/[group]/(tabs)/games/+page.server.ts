@@ -1,6 +1,6 @@
-import { GameRepository } from '$lib/server/repositories/game';
-import { GroupRepository } from '$lib/server/repositories/group';
-import { requireUserOrFail, requireUserOrRedirectToLogin } from '$lib/server/auth/guard';
+import { GameRepository } from '#lib/server/repositories/game.js';
+import { GroupRepository } from '#lib/server/repositories/group.js';
+import { requireUserOrFail, requireUserOrRedirectToLogin } from '#lib/server/auth/guard.js';
 // input parsing is minimal; validation happens in repositories
 import type { PageServerLoad, Actions } from './$types';
 import { error, fail } from '@sveltejs/kit';

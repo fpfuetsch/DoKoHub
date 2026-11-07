@@ -1,7 +1,7 @@
 import type { Actions } from './$types';
-import { verifyInvite } from '$lib/server/auth/invitation';
-import { GroupRepository } from '$lib/server/repositories/group';
-import { requireUserOrFail, requireUserOrRedirectToLogin } from '$lib/server/auth/guard';
+import { verifyInvite } from '#lib/server/auth/invitation.js';
+import { GroupRepository } from '#lib/server/repositories/group.js';
+import { requireUserOrFail, requireUserOrRedirectToLogin } from '#lib/server/auth/guard.js';
 import { redirect, fail } from '@sveltejs/kit';
 
 export async function load({ url, params, locals }) {

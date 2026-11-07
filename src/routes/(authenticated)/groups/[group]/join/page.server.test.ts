@@ -29,16 +29,16 @@ const {
 	};
 });
 
-vi.mock('$lib/server/auth/invitation', () => ({
+vi.mock('#lib/server/auth/invitation.js', () => ({
 	verifyInvite: verifyInviteMock
 }));
 
-vi.mock('$lib/server/auth/guard', () => ({
+vi.mock('#lib/server/auth/guard.js', () => ({
 	requireUserOrRedirectToLogin: requireUserOrRedirectToLoginMock,
 	requireUserOrFail: requireUserOrFailMock
 }));
 
-vi.mock('$lib/server/repositories/group', () => ({
+vi.mock('#lib/server/repositories/group.js', () => ({
 	GroupRepository: groupRepositoryCtor
 }));
 

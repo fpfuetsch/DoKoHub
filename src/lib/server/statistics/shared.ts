@@ -1,5 +1,5 @@
-import { RoundType } from '$lib/domain/enums';
-import { generateDistinctColorPalette } from '$lib/utils/colors';
+import { RoundType } from '#lib/domain/enums.js';
+import { generateDistinctColorPalette } from '#lib/utils/colors.js';
 
 // Shared round type palette (normal vs. solo)
 export const roundTypeColorPalette = ['var(--color-secondary)', 'var(--color-primary)'];

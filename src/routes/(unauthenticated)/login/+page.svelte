@@ -1,5 +1,5 @@
 <script lang="ts">
-	import logo from '$lib/assets/dokohub.png';
+	import logo from '#lib/assets/dokohub.png';
 	import { Button, Card } from 'flowbite-svelte';
 	const { data } = $props();
 

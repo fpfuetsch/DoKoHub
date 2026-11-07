@@ -6,9 +6,9 @@ import {
 	createGoogleProvider,
 	generateCodeVerifier,
 	generateState
-} from '$lib/server/auth/google';
-import { sessionCookieAttributes } from '$lib/server/auth/session';
-import { getSafeRedirectUrl } from '$lib/server/auth/redirect';
+} from '#lib/server/auth/google.js';
+import { sessionCookieAttributes } from '#lib/server/auth/session.js';
+import { getSafeRedirectUrl } from '#lib/server/auth/redirect.js';
 import type { RequestHandler } from './$types';
 
 const temporaryCookieOptions = {
@@ -35,5 +35,5 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 	if (safeRedirectTo !== '/groups') {
 		cookies.set(GOOGLE_REDIRECT_COOKIE, safeRedirectTo, temporaryCookieOptions);
 	}
-	throw redirect(302, authorizationUrl.toString());
+	throw redirect(302, authorizationUrl.toString(), { external: ['https://accounts.google.com'] });
 };

@@ -1,4 +1,4 @@
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db/index.js';
 import {
 	GameRoundTable,
 	GameRoundParticipantTable,
@@ -8,19 +8,19 @@ import {
 	GameTable,
 	GameParticipantTable,
 	PlayerTable
-} from '$lib/server/db/schema';
-import { RoundType, Team, CallType, BonusType, SoloType, RoundResult } from '$lib/server/enums';
-import { BaseRepository } from '$lib/server/repositories/base';
-import type { GameRoundType, PlayerType } from '$lib/server/db/schema';
+} from '#lib/server/db/schema.js';
+import { RoundType, Team, CallType, BonusType, SoloType, RoundResult } from '#lib/server/enums.js';
+import { BaseRepository } from '#lib/server/repositories/base.js';
+import type { GameRoundType, PlayerType } from '#lib/server/db/schema.js';
 import type {
 	RoundData,
 	GameRoundParticipant,
 	GameRoundCall,
 	GameRoundBonus
-} from '$lib/domain/round';
-import { Round } from '$lib/domain/round';
-import { Player } from '$lib/domain/player';
-import { Game } from '$lib/domain/game';
+} from '#lib/domain/round.js';
+import { Round } from '#lib/domain/round.js';
+import { Player } from '#lib/domain/player.js';
+import { Game } from '#lib/domain/game.js';
 import { and, eq } from 'drizzle-orm';
 import { err, ok, type RepoResult, type RepoVoidResult } from './result';
 

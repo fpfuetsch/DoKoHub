@@ -1,8 +1,8 @@
-import { PlayerRepository } from '$lib/server/repositories/player';
-import { GroupRepository } from '$lib/server/repositories/group';
+import { PlayerRepository } from '#lib/server/repositories/player.js';
+import { GroupRepository } from '#lib/server/repositories/group.js';
 import { fail } from '@sveltejs/kit';
-import { requireUserOrFail } from '$lib/server/auth/guard';
-import { signInvite } from '$lib/server/auth/invitation';
+import { requireUserOrFail } from '#lib/server/auth/guard.js';
+import { signInvite } from '#lib/server/auth/invitation.js';
 import type { Actions } from './$types';
 
 export const actions: Actions = {

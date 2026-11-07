@@ -1,14 +1,14 @@
-import { GameRepository } from '$lib/server/repositories/game';
-import { RoundRepository } from '$lib/server/repositories/round';
-import { type RoundData } from '$lib/domain/round';
-import { requireUserOrFail } from '$lib/server/auth/guard';
+import { GameRepository } from '#lib/server/repositories/game.js';
+import { RoundRepository } from '#lib/server/repositories/round.js';
+import { type RoundData } from '#lib/domain/round.js';
+import { requireUserOrFail } from '#lib/server/auth/guard.js';
 import type {
 	TeamEnumValue as Team,
 	CallTypeEnumValue,
 	BonusTypeEnumValue
-} from '$lib/domain/enums';
-import { CallType } from '$lib/server/enums';
-import { publishRoundsUpdated } from '$lib/server/realtime/round';
+} from '#lib/domain/enums.js';
+import { CallType } from '#lib/server/enums.js';
+import { publishRoundsUpdated } from '#lib/server/realtime/round.js';
 import { fail, type RequestEvent, type ServerLoad } from '@sveltejs/kit';
 
 export const load: ServerLoad = async ({ parent }) => {

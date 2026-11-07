@@ -5,8 +5,8 @@ import type {
 	CallTypeEnumValue,
 	BonusTypeEnumValue,
 	RoundResultEnumValue
-} from '$lib/domain/enums';
-import { Team, CallType, BonusType, RoundType, RoundResult, SoloType } from '$lib/domain/enums';
+} from '#lib/domain/enums.js';
+import { Team, CallType, BonusType, RoundType, RoundResult, SoloType } from '#lib/domain/enums.js';
 import { Player } from './player';
 
 export interface GameRoundCall {

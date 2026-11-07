@@ -12,11 +12,11 @@ const { requireUserOrFailMock, renameMock, deleteMock, groupRepositoryCtor } = v
 	return { requireUserOrFailMock, renameMock, deleteMock, groupRepositoryCtor };
 });
 
-vi.mock('$lib/server/auth/guard', () => ({
+vi.mock('#lib/server/auth/guard.js', () => ({
 	requireUserOrFail: requireUserOrFailMock
 }));
 
-vi.mock('$lib/server/repositories/group', () => ({
+vi.mock('#lib/server/repositories/group.js', () => ({
 	GroupRepository: groupRepositoryCtor
 }));
 
