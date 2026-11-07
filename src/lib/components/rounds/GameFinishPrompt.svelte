@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Button } from 'flowbite-svelte';
-	import type { GameParticipant } from '$lib/domain/game';
+	import type { GameParticipant } from '#lib/domain/game.js';
 
 	export let isFinished: boolean;
 	export let hasUpcomingRound: boolean;

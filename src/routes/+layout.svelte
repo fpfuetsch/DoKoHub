@@ -1,6 +1,7 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import './layout.css';
-	import logo from '$lib/assets/dokohub.png';
+	import logo from '#lib/assets/dokohub.png';
 	import { pwaInfo } from 'virtual:pwa-info';
 
 	const webManifestLink = pwaInfo ? pwaInfo.webManifest.linkTag : '';
@@ -10,6 +11,10 @@
 	const siteTitle = 'DoKoHub';
 	const siteDescription =
 		'DoKoHub — Dokumentiere Doppelkopf-Spiele, verwalte Gruppen und sieh Statistiken ein.';
+
+	onMount(() => {
+		void import('virtual:pwa-register').then(({ registerSW }) => registerSW({ immediate: true }));
+	});
 </script>
 
 <svelte:head>

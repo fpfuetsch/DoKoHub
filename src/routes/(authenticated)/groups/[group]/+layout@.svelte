@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Group } from '$lib/domain/group';
+	import { Group } from '#lib/domain/group.js';
 	import {
 		Button,
 		Tabs,
@@ -22,16 +22,15 @@
 		ExclamationCircleSolid,
 		TrashBinSolid
 	} from 'flowbite-svelte-icons';
-	import { goto, invalidateAll } from '$app/navigation';
-	import { page } from '$app/stores';
-	import { enhance, applyAction } from '$app/forms';
-	import type { SubmitFunction } from '@sveltejs/kit';
-	import { swipe } from '$lib/utils/swipe';
+	import { goto, refreshAll } from '$app/navigation';
+	import { page } from '$app/state';
+	import { enhance, applyAction, type SubmitFunction } from '$app/forms';
+	import { swipe } from '#lib/utils/swipe.js';
 
 	let { data, children } = $props();
 
 	const group: Group | null = $derived(data.group);
-	const groupId = $derived($page.params.group);
+	const groupId = $derived(page.params.group);
 
 	let renameModal = $state(false);
 	let newName = $state('');
@@ -44,7 +43,7 @@
 		{ name: 'players', label: 'Spieler', icon: UsersGroupSolid }
 	];
 
-	const pathParts = $page.url.pathname.split('/');
+	const pathParts = page.url.pathname.split('/');
 	const initialTab = pathParts[pathParts.length - 1] || 'games';
 	let selected = $state(initialTab);
 
@@ -72,7 +71,7 @@
 	const handleRenameSubmit: SubmitFunction = () => {
 		return async ({ result }) => {
 			if (result.type === 'success') {
-				await invalidateAll();
+				await refreshAll();
 				renameModal = false;
 				newName = '';
 			}
@@ -169,13 +168,13 @@
 		<div class="flex flex-col space-y-4">
 			<h3 class="text-xl font-medium text-gray-900 dark:text-white">Gruppe umbenennen</h3>
 
-			{#if $page.form?.error}
+			{#if page.form?.error}
 				<Alert color="red">
 					{#snippet icon()}
 						<ExclamationCircleSolid class="h-5 w-5" />
 					{/snippet}
 					<span class="font-medium">Fehler</span>
-					<div>{$page.form.error}</div>
+					<div>{page.form.error}</div>
 				</Alert>
 			{/if}
 
@@ -194,6 +193,7 @@
 
 			<div class="flex justify-end gap-3">
 				<Button type="button" color="light" onclick={() => (renameModal = false)}>Abbrechen</Button>
+
 				<Button type="submit">Umbenennen</Button>
 			</div>
 		</div>

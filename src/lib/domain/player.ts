@@ -1,5 +1,5 @@
-import type { PlayerType } from '$lib/server/db/schema';
-import type { AuthProviderType } from '$lib/domain/enums';
+import type { PlayerType } from '#lib/server/db/schema.js';
+import type { AuthProviderType } from '#lib/domain/enums.js';
 
 export class Player implements PlayerType {
 	id: string;

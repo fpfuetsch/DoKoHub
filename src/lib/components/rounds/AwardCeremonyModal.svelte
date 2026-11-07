@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Modal, Progressradial } from 'flowbite-svelte';
 	import { sineOut } from 'svelte/easing';
-	import type { GameParticipant } from '$lib/domain/game';
+	import type { GameParticipant } from '#lib/domain/game.js';
 
 	type AwardEntry = {
 		playerId: string;

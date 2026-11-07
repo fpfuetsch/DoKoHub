@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { getEffectiveCallsForTeam, Round } from './round';
-import { Team, CallType, BonusType, RoundType, RoundResult, SoloType } from '$lib/domain/enums';
+import { Team, CallType, BonusType, RoundType, RoundResult, SoloType } from '#lib/domain/enums.js';
 import type { RoundData, GameRoundParticipant } from './round';
 
 describe('Round.calculatePoints', () => {

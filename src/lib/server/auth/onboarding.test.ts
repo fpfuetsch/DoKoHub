@@ -5,7 +5,7 @@ import {
 	ONBOARDING_MAX_AGE_SECONDS,
 	type OnboardingPayload
 } from './onboarding';
-import { AuthProvider } from '$lib/server/enums';
+import { AuthProvider } from '#lib/server/enums.js';
 
 describe('Onboarding', () => {
 	describe('createOnboardingToken', () => {

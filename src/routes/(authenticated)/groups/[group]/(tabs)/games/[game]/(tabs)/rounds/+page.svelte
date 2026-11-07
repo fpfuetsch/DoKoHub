@@ -1,28 +1,27 @@
 <script lang="ts">
 	import { Button } from 'flowbite-svelte';
 	import { PlusOutline } from 'flowbite-svelte-icons';
-	import { applyAction } from '$app/forms';
-	import { invalidateAll } from '$app/navigation';
+	import { applyAction, type SubmitFunction } from '$app/forms';
+	import { refreshAll } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import type { SubmitFunction } from '@sveltejs/kit';
 	import type { PageProps } from './$types';
-	import { Game } from '$lib/domain/game';
-	import { Round } from '$lib/domain/round';
-	import StandardRoundsTable from '$lib/components/rounds/StandardRoundsTable.svelte';
-	import MandatorySolosTable from '$lib/components/rounds/MandatorySolosTable.svelte';
-	import PointsTotals from '$lib/components/rounds/PointsTotals.svelte';
-	import GameFinishPrompt from '$lib/components/rounds/GameFinishPrompt.svelte';
-	import AwardCeremonyModal from '$lib/components/rounds/AwardCeremonyModal.svelte';
-	import RoundFormModal from '$lib/components/rounds/RoundFormModal.svelte';
-	import CallsEditModal from '$lib/components/rounds/CallsEditModal.svelte';
-	import BonusEditModal from '$lib/components/rounds/BonusEditModal.svelte';
+	import { Game } from '#lib/domain/game.js';
+	import { Round } from '#lib/domain/round.js';
+	import StandardRoundsTable from '#lib/components/rounds/StandardRoundsTable.svelte';
+	import MandatorySolosTable from '#lib/components/rounds/MandatorySolosTable.svelte';
+	import PointsTotals from '#lib/components/rounds/PointsTotals.svelte';
+	import GameFinishPrompt from '#lib/components/rounds/GameFinishPrompt.svelte';
+	import AwardCeremonyModal from '#lib/components/rounds/AwardCeremonyModal.svelte';
+	import RoundFormModal from '#lib/components/rounds/RoundFormModal.svelte';
+	import CallsEditModal from '#lib/components/rounds/CallsEditModal.svelte';
+	import BonusEditModal from '#lib/components/rounds/BonusEditModal.svelte';
 	import {
 		RoundType as RoundTypeEnum,
 		SoloType as SoloTypeEnum,
 		Team as TeamEnum,
 		CallType as CallTypeEnum,
 		BonusType as BonusTypeEnum
-	} from '$lib/domain/enums';
+	} from '#lib/domain/enums.js';
 
 	let { data, form }: PageProps = $props();
 	let actionForm = $state<typeof form | undefined>(undefined);
@@ -266,7 +265,7 @@
 	const handleRoundSubmit: SubmitFunction = () => {
 		return async ({ result }) => {
 			if (result.type === 'success') {
-				await invalidateAll();
+				await refreshAll();
 				roundModal = false;
 				// Reset form
 				actionForm = undefined;
@@ -292,7 +291,7 @@
 
 		realtimeRefreshTimeout = setTimeout(async () => {
 			realtimeRefreshTimeout = null;
-			await invalidateAll();
+			await refreshAll();
 		}, realtimeDebounceMs);
 	};
 
@@ -346,7 +345,7 @@
 			resumeSyncTimeout = setTimeout(async () => {
 				resumeSyncTimeout = null;
 				connectEventSource();
-				await invalidateAll();
+				await refreshAll();
 			}, resumeRealtimeSyncDebounceMs);
 		};
 

@@ -44,19 +44,19 @@ const {
 	};
 });
 
-vi.mock('$lib/server/auth/guard', () => ({
+vi.mock('#lib/server/auth/guard.js', () => ({
 	requireUserOrFail: requireUserOrFailMock
 }));
 
-vi.mock('$lib/server/repositories/group', () => ({
+vi.mock('#lib/server/repositories/group.js', () => ({
 	GroupRepository: groupRepositoryCtor
 }));
 
-vi.mock('$lib/server/repositories/player', () => ({
+vi.mock('#lib/server/repositories/player.js', () => ({
 	PlayerRepository: playerRepositoryCtor
 }));
 
-vi.mock('$lib/server/auth/invitation', () => ({
+vi.mock('#lib/server/auth/invitation.js', () => ({
 	signInvite: signInviteMock
 }));
 

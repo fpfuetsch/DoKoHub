@@ -1,5 +1,5 @@
-import { GameRepository } from '$lib/server/repositories/game';
-import { requireUserOrRedirectToLogin } from '$lib/server/auth/guard';
+import { GameRepository } from '#lib/server/repositories/game.js';
+import { requireUserOrRedirectToLogin } from '#lib/server/auth/guard.js';
 import { error } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 

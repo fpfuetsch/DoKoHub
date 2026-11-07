@@ -1,8 +1,8 @@
 import { error } from '@sveltejs/kit';
-import { Team, BonusType, CallType, RoundType, RoundResult } from '$lib/domain/enums';
-import { getEffectiveCallsForTeam } from '$lib/domain/round';
-import type { Game } from '$lib/domain/game';
-import { generateDistinctColorPalette } from '$lib/utils/colors';
+import { Team, BonusType, CallType, RoundType, RoundResult } from '#lib/domain/enums.js';
+import { getEffectiveCallsForTeam } from '#lib/domain/round.js';
+import type { Game } from '#lib/domain/game.js';
+import { generateDistinctColorPalette } from '#lib/utils/colors.js';
 import {
 	bonusSeries,
 	callSeries,
@@ -1113,7 +1113,7 @@ export async function getGameStatistics({
 	groupId: string;
 	gameRepo?: any;
 }): Promise<GameStatistics> {
-	const { GameRepository } = await import('$lib/server/repositories/game');
+	const { GameRepository } = await import('#lib/server/repositories/game.js');
 	const repo = gameRepo || new GameRepository(principalId);
 	const gameResult = await repo.getById(gameId, groupId);
 

@@ -1,4 +1,4 @@
-import type { GroupType } from '$lib/server/db/schema';
+import type { GroupType } from '#lib/server/db/schema.js';
 import { Player } from './player';
 
 export class Group implements GroupType {

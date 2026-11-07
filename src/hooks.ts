@@ -1,8 +1,8 @@
-import { Game } from '$lib/domain/game';
-import { Group } from '$lib/domain/group';
-import { Player } from '$lib/domain/player';
-import { Round } from '$lib/domain/round';
-import type { Transport } from '@sveltejs/kit';
+import type { Transport } from '@sveltejs/kit/hooks';
+import { Game } from '#lib/domain/game.js';
+import { Group } from '#lib/domain/group.js';
+import { Player } from '#lib/domain/player.js';
+import { Round } from '#lib/domain/round.js';
 
 export const transport: Transport = {
 	Group: {

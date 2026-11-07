@@ -15,11 +15,11 @@ const { requireUserOrRedirectToLoginMock, getByIdMock, gameRepositoryCtor } = vi
 	};
 });
 
-vi.mock('$lib/server/auth/guard', () => ({
+vi.mock('#lib/server/auth/guard.js', () => ({
 	requireUserOrRedirectToLogin: requireUserOrRedirectToLoginMock
 }));
 
-vi.mock('$lib/server/repositories/game', () => ({
+vi.mock('#lib/server/repositories/game.js', () => ({
 	GameRepository: gameRepositoryCtor
 }));
 

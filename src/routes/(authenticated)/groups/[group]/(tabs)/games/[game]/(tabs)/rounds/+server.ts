@@ -1,6 +1,6 @@
-import { requireUserOrFail } from '$lib/server/auth/guard';
-import { GameRepository } from '$lib/server/repositories/game';
-import { subscribeToRoundChanges, type RoundsUpdatedPayload } from '$lib/server/realtime/round';
+import { requireUserOrFail } from '#lib/server/auth/guard.js';
+import { GameRepository } from '#lib/server/repositories/game.js';
+import { subscribeToRoundChanges, type RoundsUpdatedPayload } from '#lib/server/realtime/round.js';
 import type { RequestHandler } from './$types';
 
 const HEARTBEAT_INTERVAL_MS = 15000;

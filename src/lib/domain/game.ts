@@ -1,4 +1,4 @@
-import type { GameType } from '$lib/server/db/schema';
+import type { GameType } from '#lib/server/db/schema.js';
 import { Player } from './player';
 import { Round } from './round';
 import { SoloType, Team as TeamEnum } from './enums';

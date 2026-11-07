@@ -36,16 +36,16 @@ const {
 	};
 });
 
-vi.mock('$lib/server/auth/guard', () => ({
+vi.mock('#lib/server/auth/guard.js', () => ({
 	requireUserOrRedirectToLogin: requireUserOrRedirectToLoginMock,
 	requireUserOrFail: requireUserOrFailMock
 }));
 
-vi.mock('$lib/server/repositories/group', () => ({
+vi.mock('#lib/server/repositories/group.js', () => ({
 	GroupRepository: groupRepositoryCtor
 }));
 
-vi.mock('$lib/server/repositories/game', () => ({
+vi.mock('#lib/server/repositories/game.js', () => ({
 	GameRepository: gameRepositoryCtor
 }));
 

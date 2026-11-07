@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { getSafeRedirectUrl } from '$lib/server/auth/redirect';
+import { getSafeRedirectUrl } from '#lib/server/auth/redirect.js';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const rawRedirectTo = url.searchParams.get('redirectTo');

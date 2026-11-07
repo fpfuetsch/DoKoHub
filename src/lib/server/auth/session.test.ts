@@ -5,8 +5,8 @@ import {
 	SESSION_MAX_AGE_SECONDS,
 	type SessionTokenPayload
 } from './session';
-import { AuthProvider } from '$lib/server/enums';
-import type { PlayerType } from '$lib/server/db/schema';
+import { AuthProvider } from '#lib/server/enums.js';
+import type { PlayerType } from '#lib/server/db/schema.js';
 
 describe('Session', () => {
 	describe('createSessionToken', () => {

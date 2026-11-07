@@ -1,11 +1,10 @@
 <script lang="ts">
 	import { Button, Modal, Label, Input, Alert } from 'flowbite-svelte';
 	import { PlusOutline, InfoCircleSolid, ExclamationCircleSolid } from 'flowbite-svelte-icons';
-	import { Group } from '$lib/domain/group';
-	import { formatDate } from '$lib/utils/format';
-	import { enhance, applyAction } from '$app/forms';
-	import { invalidateAll, goto } from '$app/navigation';
-	import type { SubmitFunction } from '@sveltejs/kit';
+	import { Group } from '#lib/domain/group.js';
+	import { formatDate } from '#lib/utils/format.js';
+	import { enhance, applyAction, type SubmitFunction } from '$app/forms';
+	import { refreshAll, goto } from '$app/navigation';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -20,7 +19,7 @@
 					await goto(`/groups/${newGroupId}`);
 					return;
 				}
-				await invalidateAll();
+				await refreshAll();
 				formModal = false;
 			}
 			await applyAction(result);
@@ -72,10 +71,8 @@
 <Button
 	pill={false}
 	class="fixed right-6 bottom-6 z-50 mb-16 rounded-2xl p-2 shadow-lg"
-	onclick={() => (formModal = true)}
+	onclick={() => (formModal = true)}><PlusOutline class="h-10 w-10" /></Button
 >
-	<PlusOutline class="h-10 w-10" />
-</Button>
 
 <Modal bind:open={formModal} size="xs" autoclose={false}>
 	<form method="POST" action="?/create" use:enhance={handleGroupSubmit}>

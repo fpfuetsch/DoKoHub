@@ -9,13 +9,12 @@
 		RefreshOutline,
 		BarsOutline
 	} from 'flowbite-svelte-icons';
-	import { Game } from '$lib/domain/game';
-	import { formatDateTime } from '$lib/utils/format';
+	import { Game } from '#lib/domain/game.js';
+	import { formatDateTime } from '#lib/utils/format.js';
 	import type { PageProps } from './$types';
-	import { enhance, applyAction } from '$app/forms';
-	import { invalidateAll, goto } from '$app/navigation';
-	import type { SubmitFunction } from '@sveltejs/kit';
-	import type { Player } from '$lib/domain/player';
+	import { enhance, applyAction, type SubmitFunction } from '$app/forms';
+	import { refreshAll, goto } from '$app/navigation';
+	import type { Player } from '#lib/domain/player.js';
 
 	let { data, form }: PageProps = $props();
 	const games: Game[] = $derived(data.games ?? []);
@@ -81,7 +80,7 @@
 					await goto(`/groups/${data.group?.id}/games/${newGameId}/rounds`);
 					return;
 				}
-				await invalidateAll();
+				await refreshAll();
 				gameModal = false;
 				withMandatorySolos = false;
 				isFivePlayer = false;
@@ -306,10 +305,8 @@
 	pill={false}
 	class="fixed right-6 bottom-6 z-50 rounded-2xl p-2 shadow-lg"
 	disabled={!canCreateGame}
-	onclick={() => (gameModal = true)}
+	onclick={() => (gameModal = true)}><PlusOutline class="h-10 w-10" /></Button
 >
-	<PlusOutline class="h-10 w-10" />
-</Button>
 
 <Modal bind:open={gameModal} size="xs" autoclose={false}>
 	<form method="POST" action="?/create" use:enhance={handleGameSubmit}>
@@ -363,10 +360,8 @@
 						<Button
 							color={maxRoundCount === option.value ? 'secondary' : 'light'}
 							class="flex-1 "
-							onclick={() => (maxRoundCount = option.value)}
+							onclick={() => (maxRoundCount = option.value)}>{option.label}</Button
 						>
-							{option.label}
-						</Button>
 					{/each}
 				</ButtonGroup>
 			</div>

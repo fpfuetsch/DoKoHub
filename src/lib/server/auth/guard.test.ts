@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { requireUserOrRedirectToLogin, requireUserOrFail } from './guard';
 import type { AuthenticatedUser } from './guard';
-import { AuthProvider } from '$lib/server/enums';
+import { AuthProvider } from '#lib/server/enums.js';
 
 describe('Guard', () => {
 	describe('requireUserOrRedirectToLogin', () => {

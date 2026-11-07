@@ -1,8 +1,11 @@
 import { jwtVerify, SignJWT, type JWTPayload } from 'jose';
-import { env } from '$env/dynamic/private';
+import {
+	INVITATION_JWT_SECRET,
+	INVITATION_MAX_AGE_SECONDS as INVITATION_MAX_AGE_SECONDS_ENV
+} from '$app/env/private';
 
 const DEFAULT_INVITATION_JWT_SECRET = 'dev-invitation-secret-change-me';
-const rawInvitationSecret = env.INVITATION_JWT_SECRET ?? DEFAULT_INVITATION_JWT_SECRET;
+const rawInvitationSecret = INVITATION_JWT_SECRET ?? DEFAULT_INVITATION_JWT_SECRET;
 if (rawInvitationSecret === DEFAULT_INVITATION_JWT_SECRET) {
 	// eslint-disable-next-line no-console
 	console.warn(
@@ -10,8 +13,9 @@ if (rawInvitationSecret === DEFAULT_INVITATION_JWT_SECRET) {
 	);
 }
 const secret = new TextEncoder().encode(rawInvitationSecret);
-export const INVITATION_MAX_AGE_SECONDS = env.INVITATION_MAX_AGE_SECONDS
-	? parseInt(env.INVITATION_MAX_AGE_SECONDS)
+
+export const INVITATION_MAX_AGE_SECONDS = INVITATION_MAX_AGE_SECONDS_ENV
+	? parseInt(INVITATION_MAX_AGE_SECONDS_ENV)
 	: 24 * 60 * 60; // default: 24 hours
 
 export async function signInvite(payload: { groupId: string; groupName: string }) {

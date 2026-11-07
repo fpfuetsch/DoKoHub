@@ -1,11 +1,14 @@
-import { dev } from '$app/environment';
-import { env } from '$env/dynamic/private';
+import { dev } from '$app/env';
+import {
+	AUTH_JWT_SECRET,
+	SESSION_MAX_AGE_SECONDS as SESSION_MAX_AGE_SECONDS_ENV
+} from '$app/env/private';
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
-import type { PlayerType } from '$lib/server/db/schema';
-import type { AuthProviderType } from '$lib/server/enums';
+import type { PlayerType } from '#lib/server/db/schema.js';
+import type { AuthProviderType } from '#lib/server/enums.js';
 
 export const DEFAULT_AUTH_JWT_SECRET = 'dev-secret-change-me';
-const rawJwtSecret = env.AUTH_JWT_SECRET ?? DEFAULT_AUTH_JWT_SECRET;
+const rawJwtSecret = AUTH_JWT_SECRET ?? DEFAULT_AUTH_JWT_SECRET;
 if (rawJwtSecret === DEFAULT_AUTH_JWT_SECRET) {
 	// eslint-disable-next-line no-console
 	console.warn('WARNING: Using default JWT secret. Set AUTH_JWT_SECRET in env for production.');
@@ -15,15 +18,10 @@ const issuer = 'dokohub';
 const audience = 'dokohub:web';
 
 export const SESSION_COOKIE_NAME = 'dokohub';
-export const SESSION_MAX_AGE_SECONDS = env.SESSION_MAX_AGE_SECONDS
-	? parseInt(env.SESSION_MAX_AGE_SECONDS)
+export const SESSION_MAX_AGE_SECONDS = SESSION_MAX_AGE_SECONDS_ENV
+	? parseInt(SESSION_MAX_AGE_SECONDS_ENV)
 	: 7 * 24 * 60 * 60; // default: 7 days
-
-export type SessionTokenPayload = {
-	sub: string;
-	displayName: string;
-	provider: AuthProviderType;
-};
+export type SessionTokenPayload = { sub: string; displayName: string; provider: AuthProviderType };
 
 export async function createSessionToken(user: PlayerType): Promise<string> {
 	return await new SignJWT({

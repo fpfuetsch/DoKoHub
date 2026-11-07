@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { Game } from '$lib/domain/game';
-	import { formatDateTime } from '$lib/utils/format';
+	import { Game } from '#lib/domain/game.js';
+	import { formatDateTime } from '#lib/utils/format.js';
 	import {
 		Button,
 		Tabs,
@@ -23,23 +23,22 @@
 		BookOutline
 	} from 'flowbite-svelte-icons';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
-	import { enhance } from '$app/forms';
-	import type { SubmitFunction } from '@sveltejs/kit';
-	import { swipe } from '$lib/utils/swipe';
+	import { page } from '$app/state';
+	import { enhance, type SubmitFunction } from '$app/forms';
+	import { swipe } from '#lib/utils/swipe.js';
 
 	let { data, children }: { data: { game?: Game }; children: () => any } = $props();
 
 	const game: Game | null = $derived(data.game ?? null);
-	const groupId = $derived($page.params.group);
-	const gameId = $derived($page.params.game);
+	const groupId = $derived(page.params.group);
+	const gameId = $derived(page.params.game);
 
 	const tabs = [
 		{ name: 'rounds', label: 'Runden', icon: OrderedListOutline },
 		{ name: 'statistics', label: 'Statistiken', icon: ChartOutline }
 	];
 
-	const pathParts = $page.url.pathname.split('/').filter(Boolean);
+	const pathParts = page.url.pathname.split('/').filter(Boolean);
 	const initialTab = pathParts[pathParts.length - 1] || 'rounds';
 	let selected = $state(initialTab);
 
@@ -65,7 +64,7 @@
 	};
 
 	$effect(() => {
-		const currentTab = $page.url.pathname.split('/').filter(Boolean).at(-1) || 'rounds';
+		const currentTab = page.url.pathname.split('/').filter(Boolean).at(-1) || 'rounds';
 		if (selected !== currentTab) {
 			selected = currentTab;
 		}
@@ -146,6 +145,7 @@
 						</div>
 					</DropdownItem>
 				{/if}
+
 				<DropdownItem onclick={() => (deleteModal = true)} class="list-none">
 					<div class="flex items-center gap-2">
 						<TrashBinSolid class="h-4 w-4" />
@@ -206,6 +206,7 @@
 
 			<div class="flex justify-end gap-3">
 				<Button type="button" color="light" onclick={() => (finishModal = false)}>Abbrechen</Button>
+
 				<Button type="submit">Spiel beenden</Button>
 			</div>
 		</div>
