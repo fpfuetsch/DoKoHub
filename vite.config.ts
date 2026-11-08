@@ -29,7 +29,8 @@ const viteConfig = defineConfig({
 				},
 				generateSW: {
 					globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
-					globStrict: false
+					globStrict: false,
+					navigateFallback: null
 				},
 				injectRegister: false,
 				devOptions: {
