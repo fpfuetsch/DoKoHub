@@ -11,6 +11,9 @@ const viteConfig = defineConfig({
 		withPwa(
 			{ preprocess: vitePreprocess(), adapter: adapter() },
 			{
+				// Kit builds with a relative Vite base; PWA URLs must stay root-absolute on nested routes.
+				base: '/',
+				scope: '/',
 				manifest: {
 					name: 'DoKoHub',
 					short_name: 'DoKoHub',
@@ -35,7 +38,7 @@ const viteConfig = defineConfig({
 				injectRegister: false,
 				devOptions: {
 					enabled: true,
-					type: 'module'
+					type: 'classic'
 				}
 			}
 		)
